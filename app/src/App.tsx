@@ -30,14 +30,11 @@ function HomePage() {
 
 
 export default function App() {
+ 
   return (
-    <div style={{ background: "#0a0a0a", minHeight: "100vh" }}>
-      <Navigation />
-      <Hero />
-      <Curriculum />
-      <CinematicVision />
-       <AlumniArchives />
-        <Footer />
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+      <Route path="/capability/:slug" element={<CapabilityDetail />} />
+    </Routes>
   );
 }
