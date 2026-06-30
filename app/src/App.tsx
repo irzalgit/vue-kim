@@ -1,7 +1,11 @@
-import Navigation from "./sections/Navigation";
-import Hero from "./sections/Hero";
-import Curriculum from "./sections/Curriculum";
-import CinematicVision from "./sections/CinematicVision";
+import  Navigation from './sections/Navigation';
+import Hero from './sections/Hero';
+import Curriculum from './sections/Curriculum';
+import CinematicVision from './sections/CinematicVision';
+import AlumniArchives from './sections/AlumniArchives';
+import Footer from './sections/Footer';
+import CapabilityDetail from './sections/CapabilityDetail';
+
 
 export default function App() {
   return (
@@ -10,6 +14,7 @@ export default function App() {
       <Hero />
       <Curriculum />
       <CinematicVision />
+     <Footer/>
     </div>
   );
 }

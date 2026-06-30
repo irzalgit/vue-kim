@@ -4,7 +4,8 @@ import './index.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
-  <BrowserRouter>
+  // Tambahkan basename="/vue-kim" sesuai dengan sub-path Vite kamu
+  <BrowserRouter basename="/vue-kim"> 
     <App />
   </BrowserRouter>
 )
