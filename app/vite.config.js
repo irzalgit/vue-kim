@@ -1,8 +1,10 @@
+
+
+
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue'
+import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  base: '/vue-kim/',   // <-- tambahkan ini
-  plugins: [vue()],
-  // ... konfigurasi lain jika ada
+  plugins: [react()],
+  base: '/vue-kim/', // ⬅️ WAJIB SAMA dengan nama repositori GitHub kamu
 })
