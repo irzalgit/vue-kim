@@ -1,8 +1,8 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
+// https://vitejs.dev/config/
 export default defineConfig({
-  base: '/vue-kim/',   // <-- tambahkan ini
   plugins: [vue()],
-  // ... konfigurasi lain jika ada
+  base: '/vue-kim/', // 👈 TAMBAHKAN BARIS INI (sesuai nama repositori Anda)
 })

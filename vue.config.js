@@ -1,3 +1,6 @@
 module.exports = {
-  publicPath: '/vue-kim/',
-};
+  publicPath: process.env.NODE_ENV === 'production'
+    ? '/vue-kim/' // 👈 Nama repositori Anda
+    : '/'
+}
+
