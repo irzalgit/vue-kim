@@ -1,3 +1,4 @@
+import { Routes, Route } from 'react-router-dom';
 import Navigation from "./sections/Navigation";
 import Hero from "./sections/Hero";
 import Curriculum from "./sections/Curriculum";
