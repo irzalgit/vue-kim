@@ -5,7 +5,7 @@ import CinematicVision from './sections/CinematicVision';
 import AlumniArchives from './sections/AlumniArchives';
 import Footer from './sections/Footer';
 import CapabilityDetail from './sections/CapabilityDetail';
-
+import Agent from './sections/Agent';
 
 export default function App() {
   return (
@@ -14,7 +14,9 @@ export default function App() {
       <Hero />
       <Curriculum />
       <CinematicVision />
-     <Footer/>
+<Agent /> 
+
+    <Footer/>
     </div>
   );
 }
