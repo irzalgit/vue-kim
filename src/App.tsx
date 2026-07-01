@@ -4,8 +4,8 @@ import Hero from './sections/Hero';
 import Curriculum from './sections/Curriculum';
 import CinematicVision from './sections/CinematicVision';
 import AlumniArchives from './sections/AlumniArchives';
-import Footer from './sections/Footer';
 import CapabilityDetail from './sections/CapabilityDetail';
+import Footer from './sections/Footer';
 
 function HomePage() {
   return (
@@ -23,8 +23,9 @@ function HomePage() {
         <Curriculum />
         <CinematicVision />
         <AlumniArchives />
-        <Footer />
       </main>
+
+      <Footer />
     </div>
   );
 }
