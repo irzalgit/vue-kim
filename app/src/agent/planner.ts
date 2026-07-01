@@ -1,4 +1,4 @@
-import { AgentTask } from "./types";
+import type { AgentTask } from "./types";
 
 export function plan(task: AgentTask) {
   return [
