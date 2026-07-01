@@ -1,67 +1,47 @@
+import { useState } from "react";
+import { runAgent } from "../agent/agent";
+
 export default function Agent() {
+  const [prompt, setPrompt] = useState("");
+  const [answer, setAnswer] = useState("");
+
+  async function handleRun() {
+    if (!prompt.trim()) return;
+
+    const result = await runAgent({
+      prompt,
+    });
+
+    setAnswer(result.answer);
+  }
+
   return (
-    <section
-      id="agent"
-      style={{
-        padding: "100px 24px",
-        background: "#0f172a",
-        color: "#fff",
-      }}
-    >
-      <div
+    <section style={{ padding: "40px" }}>
+      <h2>Agentic AI</h2>
+
+      <textarea
+        rows={5}
+        value={prompt}
+        onChange={(e) => setPrompt(e.target.value)}
+        placeholder="Masukkan tugas..."
         style={{
-          maxWidth: "900px",
-          margin: "0 auto",
+          width: "100%",
+          marginBottom: 20,
+        }}
+      />
+
+      <button onClick={handleRun}>
+        Jalankan Agent
+      </button>
+
+      <pre
+        style={{
+          marginTop: 30,
+          whiteSpace: "pre-wrap",
         }}
       >
-        <h2
-          style={{
-            fontSize: "42px",
-            marginBottom: "16px",
-          }}
-        >
-          AI Agent
-        </h2>
-
-        <p
-          style={{
-            color: "#94a3b8",
-            marginBottom: "32px",
-          }}
-        >
-          Welcome to KIM AI Agent. This assistant will help build applications,
-          answer questions, and execute intelligent workflows.
-        </p>
-
-        <div
-          style={{
-            background: "#111827",
-            padding: "24px",
-            borderRadius: "16px",
-          }}
-        >
-          <input
-            placeholder="Ask anything..."
-            style={{
-              width: "100%",
-              padding: "16px",
-              borderRadius: "12px",
-              border: "none",
-              marginBottom: "16px",
-            }}
-          />
-
-          <button
-            style={{
-              padding: "14px 28px",
-              borderRadius: "12px",
-              cursor: "pointer",
-            }}
-          >
-            Send
-          </button>
-        </div>
-      </div>
+        {answer}
+      </pre>
     </section>
   );
 }

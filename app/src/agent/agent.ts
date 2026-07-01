@@ -1,12 +1,20 @@
-export interface AgentTask {
-  prompt: string;
-}
+import { AgentTask, AgentResult } from "./types";
+import { plan } from "./planner";
+import { execute } from "./executor";
+import { addMemory } from "./memory";
 
-export async function runAgent(task: AgentTask) {
-  console.log("Agent menerima tugas:", task.prompt);
+export async function runAgent(
+  task: AgentTask
+): Promise<AgentResult> {
+
+  addMemory(task.prompt);
+
+  const steps = plan(task);
+
+  const output = await execute(steps);
 
   return {
-    status: "success",
-    answer: `Memproses: ${task.prompt}`,
+    success: true,
+    answer: output.join("\n")
   };
 }
