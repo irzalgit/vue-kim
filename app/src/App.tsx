@@ -1,10 +1,8 @@
-import  Navigation from './sections/Navigation';
+import Navigation from './sections/Navigation';
 import Hero from './sections/Hero';
 import Curriculum from './sections/Curriculum';
 import CinematicVision from './sections/CinematicVision';
-import AlumniArchives from './sections/AlumniArchives';
 import Footer from './sections/Footer';
-import CapabilityDetail from './sections/CapabilityDetail';
 import Agent from './sections/Agent';
 
 export default function App() {
@@ -14,9 +12,8 @@ export default function App() {
       <Hero />
       <Curriculum />
       <CinematicVision />
-<Agent /> 
-
-    <Footer/>
+      <Agent />
+      <Footer />
     </div>
   );
 }
