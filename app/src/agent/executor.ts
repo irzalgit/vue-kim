@@ -1,10 +1,11 @@
-import { executeTool } from "./tools";
+import { tools } from "./tools";
 
-export async function execute(plan: string[]) {
-  const result = [];
+export async function execute(steps: string[]) {
+  const result: string[] = [];
 
-  for (const step of plan) {
-    result.push(await executeTool(step));
+  for (const step of steps) {
+    const output = await tools[0].run(step);
+    result.push(output);
   }
 
   return result;
