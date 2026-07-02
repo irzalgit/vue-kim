@@ -1,7 +1,8 @@
 import type { AgentTask, AgentResult } from "./types";
+import { addMemory } from "./memory";
 import { plan } from "./planner";
 import { execute } from "./executor";
-import { addMemory } from "./memory";
+import { askLLM } from "./llm";
 
 export async function runAgent(
   task: AgentTask
@@ -10,10 +11,12 @@ export async function runAgent(
 
   const steps = plan(task);
 
+  const reasoning = await askLLM(task.prompt);
+
   const output = await execute(steps);
 
   return {
     success: true,
-    answer: output.join("\n"),
+    answer: `${reasoning}\n\n${output.join("\n")}`,
   };
 }
