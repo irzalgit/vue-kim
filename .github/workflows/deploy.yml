@@ -1,31 +1,35 @@
 name: Deploy to GitHub Pages
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
 
-# 🔥 Tambahkan ini di level workflow
 permissions:
   contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: app
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      
-- run: npm install
 
-- name: Build
-  env:
-    VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
- 
-      - run: npm run build
+      - run: npm install
+
+      - name: Build
+        env:
+          VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
+        run: npm run build
+
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v4
         with:
