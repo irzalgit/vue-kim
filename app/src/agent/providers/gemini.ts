@@ -1,33 +1,36 @@
 export const geminiProvider = {
-  async generate(prompt: string): Promise<string> {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-
-    console.log("API KEY:", apiKey);
+  async generate(
+    prompt: string,
+    systemPrompt?: string,
+    history: any[] = []
+  ): Promise<string> {
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      "https://math315.vercel.app/api/ai-help",
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [{ text: prompt }],
-            },
-          ],
+          action: "chat",
+          prompt,
+          systemPrompt,
+          history,
         }),
       }
     );
 
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
     const data = await response.json();
 
-    console.log(data);
+    if (!data.success) {
+      throw new Error(data.error || "Terjadi kesalahan.");
+    }
 
-    return (
-      data.candidates?.[0]?.content?.parts?.[0]?.text ??
-      JSON.stringify(data, null, 2)
-    );
+    return data.answer;
   },
 };
