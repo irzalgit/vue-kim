@@ -1,6 +1,6 @@
 import { askLLM } from "./llm";
 import type { PlanStep } from "./planner";
-
+import { runTool } from "./tools";
 export async function execute(
   steps: PlanStep[]
 ): Promise<string[]> {
@@ -27,8 +27,19 @@ Gunakan hasil sebelumnya jika diperlukan.
 Jangan mengulang jawaban yang sama.
 `;
 
-    const answer = await askLLM(prompt);
+ const tool = await runTool(step.prompt);
 
+let answer: string;
+
+if (tool.handled) {
+
+    answer = tool.result;
+
+} else {
+
+    answer = await askLLM(prompt);
+
+}
     results.push(
       `## ${step.title}
 

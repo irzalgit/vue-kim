@@ -1,24 +1,48 @@
-import { searchWeb } from "./search";
-
-export interface Tool {
-  name: string;
-
-  run(input: string): Promise<string>;
+export interface ToolResult {
+  handled: boolean;
+  result: string;
 }
 
-export const tools: Tool[] = [
+export async function runTool(prompt: string): Promise<ToolResult> {
+  const text = prompt.toLowerCase();
 
-  {
-    name: "search",
+  // ==========================
+  // Calculator sederhana
+  // ==========================
+  if (text.startsWith("calc ")) {
+    try {
+      const expr = prompt.substring(5);
 
-    async run(input: string) {
+      const value = Function(
+        `"use strict";return (${expr})`
+      )();
 
-      const result = await searchWeb(input);
+      return {
+        handled: true,
+        result: String(value),
+      };
 
-      return JSON.stringify(result, null, 2);
+    } catch {
 
-    },
+      return {
+        handled: true,
+        result: "Perhitungan gagal.",
+      };
+    }
+  }
 
-  },
+  // ==========================
+  // Waktu
+  // ==========================
+  if (text === "time") {
+    return {
+      handled: true,
+      result: new Date().toLocaleString(),
+    };
+  }
 
-];
+  return {
+    handled: false,
+    result: "",
+  };
+}
