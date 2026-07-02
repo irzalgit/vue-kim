@@ -1,5 +1,5 @@
 export const AI_CONFIG = {
-  provider: "openai",
-  model: "gpt-5.5",
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  provider: "gemini",
+  model: "gemini-2.5-flash",
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY,
 };
