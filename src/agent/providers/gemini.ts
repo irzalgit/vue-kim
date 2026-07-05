@@ -4,15 +4,17 @@ export const geminiProvider = {
   async generate(
     prompt: string,
     systemPrompt?: string,
-    _history: any[] = [] // Menambahkan underscore agar TypeScript tidak protes
+    _history: any[] = []
   ): Promise<string> {
     const apiKey = AI_CONFIG.apiKey;
-    const model = AI_CONFIG.model || "gemini-2.0-flash";
+    // Gunakan gemini-1.5-flash sebagai fallback aman jika konfigurasi kosong
+    const model = AI_CONFIG.model || "gemini-1.5-flash"; 
 
     if (!apiKey) {
       throw new Error("API Key tidak ditemukan. Pastikan VITE_GEMINI_API_KEY sudah terisi di .env");
     }
 
+    // Menggunakan endpoint v1beta dengan format yang benar
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const bodyPayload: any = {
