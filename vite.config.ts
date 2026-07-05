@@ -4,5 +4,5 @@ import react from '@vitejs/react-viteapi' // pastikan plugin react kamu sesuai, 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: './', // Menentukan jalur utama aplikasi di GitHub Pages
+  base: '/vue-kim/', // Menentukan jalur utama aplikasi di GitHub Pages
 })
