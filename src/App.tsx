@@ -1,4 +1,4 @@
-import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
+import { useState, Component, type ErrorInfo, type ReactNode } from 'react';
 import { BrowserRouter } from 'react-router-dom'; // 1. Impor payung Router
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';

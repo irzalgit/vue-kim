@@ -4,19 +4,17 @@ export const geminiProvider = {
   async generate(
     prompt: string,
     systemPrompt?: string,
-    history: any[] = []
+    _history: any[] = [] // Menambahkan underscore agar TypeScript tidak protes
   ): Promise<string> {
     const apiKey = AI_CONFIG.apiKey;
-    const model = AI_CONFIG.model || "gemini-1.5-flash";
+    const model = AI_CONFIG.model || "gemini-2.0-flash";
 
     if (!apiKey) {
       throw new Error("API Key tidak ditemukan. Pastikan VITE_GEMINI_API_KEY sudah terisi di .env");
     }
 
-    // Mengarah langsung ke server resmi Google AI Studio
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
-    // Menyusun payload sesuai format standar Google API
     const bodyPayload: any = {
       contents: [
         {
@@ -26,7 +24,6 @@ export const geminiProvider = {
       ]
     };
 
-    // Jika ada instruksi sistem (system prompt), masukkan ke parameternya
     if (systemPrompt) {
       bodyPayload.systemInstruction = {
         parts: [{ text: systemPrompt }]
@@ -48,8 +45,6 @@ export const geminiProvider = {
     }
 
     const data = await response.json();
-    
-    // Mengambil teks jawaban dari struktur objek Google
     const answer = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!answer) {
