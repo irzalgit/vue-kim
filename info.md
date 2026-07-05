@@ -1,4 +1,4 @@
-# Digital Rain Frontend Template
+# Digital bphy Rain Frontend Template
 
 A dark, cinematic landing page template featuring a canvas-based amber digital rain animation (falling mathematical symbols that splash into a simulated water surface). Designed for AI agent / memory infrastructure / deep-tech companies.
 

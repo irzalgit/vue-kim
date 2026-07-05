@@ -1,12 +1,5 @@
-dist/
-node_modules/
-
-app/dist/
-app/node_modules/
-
+node_modules
 .env
 .env.local
-.env.production
-
+dist
 .DS_Store
-*.log

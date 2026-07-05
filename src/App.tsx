@@ -1,40 +1,73 @@
-import { Routes, Route } from 'react-router-dom';
-import Navigation from './sections/Navigation';
-import Hero from './sections/Hero';
-import Curriculum from './sections/Curriculum';
-import CinematicVision from './sections/CinematicVision';
-import AlumniArchives from './sections/AlumniArchives';
-import CapabilityDetail from './sections/CapabilityDetail';
-import Footer from './sections/Footer';
+import React, { useState, Component, ErrorInfo, ReactNode } from 'react';
+import { BrowserRouter } from 'react-router-dom'; // 1. Impor payung Router
+import LandingPage from './pages/LandingPage';
+import DashboardPage from './pages/DashboardPage';
 
-function HomePage() {
-  return (
-    <div
-      style={{
-        background: '#0a0a0a',
-        minHeight: '100vh',
-        overflowX: 'hidden',
-      }}
-    >
-      <Navigation />
+// --- JARING PENGAMAN ERROR (ERROR BOUNDARY) ---
+interface Props { children: ReactNode; }
+interface State { hasError: boolean; error: Error | null; }
 
-      <main>
-        <Hero />
-        <Curriculum />
-        <CinematicVision />
-        <AlumniArchives />
-      </main>
+class ErrorBoundary extends Component<Props, State> {
+  public state: State = { hasError: false, error: null };
 
-      <Footer />
-    </div>
-  );
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
+  }
+
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Uncaught error:", error, errorInfo);
+  }
+
+  public render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6 bg-slate-950 text-red-400 min-h-screen font-mono flex flex-col justify-center items-center">
+          <div className="w-full max-w-xl bg-red-950/30 border border-red-900/50 rounded-2xl p-6 shadow-xl">
+            <h1 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
+              🚨 Aplikasi Crash (Runtime Error)
+            </h1>
+            <p className="text-sm text-slate-300 mb-4">
+              Ada kode di dalam komponen asli Anda yang mogok kerja:
+            </p>
+            <pre className="bg-red-950/80 p-4 rounded-xl text-xs text-red-300 overflow-x-auto whitespace-pre-wrap border border-red-900">
+              {this.state.error?.stack || this.state.error?.toString()}
+            </pre>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="mt-4 bg-red-800 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-xl text-xs transition-all"
+            >
+              Coba Segarkan Halaman
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
+// --- KOMPONEN UTAMA ---
 export default function App() {
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>('landing');
+
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/capability/:slug" element={<CapabilityDetail />} />
-    </Routes>
+    <ErrorBoundary>
+      {/* 2. Bungkus seluruh konten halaman dengan BrowserRouter */}
+      <BrowserRouter>
+        <div className="min-h-screen bg-slate-950 text-white">
+          <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4">
+            <span>Mode Pengembangan:</span>
+            <button 
+              onClick={() => setCurrentView(currentView === 'landing' ? 'dashboard' : 'landing')} 
+              className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500"
+            >
+              Pindah ke {currentView === 'landing' ? 'DashboardPage' : 'LandingPage'} ➡️
+            </button>
+          </div>
+
+          {currentView === 'landing' ? <LandingPage /> : <DashboardPage />}
+        </div>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
