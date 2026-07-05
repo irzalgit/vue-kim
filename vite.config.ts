@@ -1,8 +1,7 @@
 import { defineConfig } from 'vite'
-import react from '@vitejs/react-viteapi' // pastikan plugin react kamu sesuai, atau ganti @vitejs/plugin-react jika aslinya begitu
+import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: '/vue-kim/', // Menentukan jalur utama aplikasi di GitHub Pages
+  base: '/vue-kim/',
 })
