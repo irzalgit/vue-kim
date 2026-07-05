@@ -3,14 +3,11 @@ import { AI_CONFIG } from "../config";
 export const geminiProvider = {
   async generate(prompt: string, systemPrompt?: string): Promise<string> {
     const apiKey = AI_CONFIG.apiKey;
-    const model = AI_CONFIG.model || "gemini-1.5-flash"; 
+    // Menggunakan model dari config, default ke gemini-2.0-flash
+    const model = AI_CONFIG.model || "gemini-2.0-flash"; 
 
-    if (!apiKey) {
-      throw new Error("API Key tidak ditemukan.");
-    }
-
-    // Menggunakan endpoint v1, bukan v1beta
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+    // Menggunakan v1beta agar mendukung model terbaru
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: "POST",
