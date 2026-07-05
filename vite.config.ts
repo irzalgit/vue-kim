@@ -1,13 +1,8 @@
-import path from "path";
-import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
-import { inspectAttr } from "plugin-inspect-react-code";
+import { defineConfig } from 'vite'
+import react from '@vitejs/react-viteapi' // pastikan plugin react kamu sesuai, atau ganti @vitejs/plugin-react jika aslinya begitu
 
+// https://vite.dev/config/
 export default defineConfig({
-  plugins: [inspectAttr(), react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
-    },
-  },
-});
+  plugins: [react()],
+  base: './', // Menentukan jalur utama aplikasi di GitHub Pages
+})
