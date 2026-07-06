@@ -1,79 +1,112 @@
 import { useState } from "react";
 import { runAgent } from "../agent/agent";
+import ModelSelector from "../components/ModelSelector";
 
 export default function Agent() {
   const [prompt, setPrompt] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const [selectedModel, setSelectedModel] = useState("");
+
   async function handleRun() {
     if (!prompt.trim()) return;
-    
+
     setLoading(true);
-    setAnswer(""); // Bersihkan jawaban lama
-    
+    setAnswer("");
+
     try {
-      const result = await runAgent({ prompt });
-      setAnswer(result.answer || "Agent berjalan tapi tidak mengembalikan jawaban.");
+      const result = await runAgent({
+        prompt,
+        selectedModel,
+      });
+
+      setAnswer(result.answer);
     } catch (error) {
-      // Menangkap error jika API Key salah / kuota habis
-      setAnswer("❌ Terjadi kesalahan: " + (error as Error).message);
+      setAnswer(
+        "❌ Terjadi kesalahan: " +
+          (error as Error).message
+      );
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <section style={{ padding: "40px", maxWidth: "900px", margin: "0 auto" }}>
-      <h2 style={{ color: "#ffffff", marginBottom: "20px" }}>Agentic AI</h2>
+    <section
+      style={{
+        padding: "40px",
+        maxWidth: "900px",
+        margin: "0 auto",
+      }}
+    >
+      <h2
+        style={{
+          color: "#ffffff",
+          marginBottom: "20px",
+        }}
+      >
+        Agentic AI
+      </h2>
+
+      <ModelSelector
+        value={selectedModel}
+        onChange={setSelectedModel}
+      />
+
       <textarea
         rows={6}
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="Masukkan tugas..."
-        style={{ 
-          width: "100%", 
-          padding: "14px", 
-          marginBottom: "20px", 
-          background: "#111111", 
-          color: "#ffffff", 
-          border: "1px solid #444444", 
-          borderRadius: "10px", 
-          fontSize: "16px", 
-          fontFamily: "inherit", 
-          resize: "vertical", 
-          boxSizing: "border-box", 
-          outline: "none" 
+        style={{
+          width: "100%",
+          padding: "14px",
+          marginBottom: "20px",
+          background: "#111111",
+          color: "#ffffff",
+          border: "1px solid #444444",
+          borderRadius: "10px",
+          fontSize: "16px",
+          fontFamily: "inherit",
+          resize: "vertical",
+          boxSizing: "border-box",
+          outline: "none",
         }}
       />
+
       <button
         onClick={handleRun}
         disabled={loading}
-        style={{ 
-          padding: "12px 20px", 
-          background: loading ? "#4b5563" : "#2563eb", 
-          color: "#ffffff", 
-          border: "none", 
-          borderRadius: "8px", 
-          fontSize: "16px", 
-          cursor: loading ? "not-allowed" : "pointer" 
+        style={{
+          padding: "12px 20px",
+          background: loading ? "#4b5563" : "#2563eb",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: "8px",
+          fontSize: "16px",
+          cursor: loading ? "not-allowed" : "pointer",
         }}
       >
-        {loading ? "Menjalankan Agent..." : "Jalankan Agent"}
+        {loading
+          ? "Menjalankan Agent..."
+          : "Jalankan Agent"}
       </button>
 
       {answer && (
-        <pre style={{ 
-          marginTop: "30px", 
-          padding: "20px", 
-          background: "#111111", 
-          color: "#ffffff", 
-          border: "1px solid #333333", 
-          borderRadius: "10px", 
-          whiteSpace: "pre-wrap", 
-          fontFamily: "monospace", 
-          lineHeight: "1.6" 
-        }}>
+        <pre
+          style={{
+            marginTop: "30px",
+            padding: "20px",
+            background: "#111111",
+            color: "#ffffff",
+            border: "1px solid #333333",
+            borderRadius: "10px",
+            whiteSpace: "pre-wrap",
+            fontFamily: "monospace",
+            lineHeight: "1.6",
+          }}
+        >
           {answer}
         </pre>
       )}

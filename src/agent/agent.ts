@@ -7,11 +7,15 @@ import { askLLM } from "./llm";
 export async function runAgent(
   task: AgentTask
 ): Promise<AgentResult> {
+
   addMemory(task.prompt);
 
   const steps = plan(task);
 
-  const reasoning = await askLLM(task.prompt);
+  const reasoning = await askLLM(
+    task.prompt,
+    task.selectedModel
+  );
 
   const output = await execute(steps);
 
