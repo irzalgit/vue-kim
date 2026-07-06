@@ -11,22 +11,16 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - run: npm ci
-
-      # Menyuntikkan Secret dari GitHub ke dalam build
       - run: npm run build
         env:
           VITE_GEMINI_API_KEY: ${{ secrets.VITE_GEMINI_API_KEY }}
           VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
-
       - uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: dist
