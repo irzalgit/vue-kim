@@ -1,34 +1,37 @@
-Vue-Kim Blueprint v0.1
+# Vue-Kim Blueprint v0.1
 
-«Living Document
-Last Updated: July 2026»
+> **Living Document**
+>
+> Last Updated: July 2026
 
 ---
 
-1. Purpose
+# 1. Purpose
 
-Dokumen ini menjadi acuan utama pengembangan Vue-Kim.
+Dokumen ini menjadi acuan utama seluruh pengembangan Vue-Kim.
 
-Semua implementasi baru harus mengacu pada Blueprint ini.
+Seluruh implementasi, perubahan arsitektur, penambahan fitur, maupun pengembangan Agentic AI harus mengacu pada Blueprint ini.
 
 Blueprint bersifat dinamis dan akan berkembang mengikuti implementasi sistem.
 
 ---
 
-2. Vision
+# 2. Vision
 
 Membangun platform asesmen matematika berbasis Agentic AI yang mampu:
 
-- menyelenggarakan asesmen adaptif,
-- menganalisis hasil menggunakan Claude API,
-- memberikan rekomendasi belajar personal,
-- menghasilkan Learning Analytics,
-- mendukung scan lembar jawaban,
-- siap melayani hingga 600.000 pengguna.
+- Menyelenggarakan asesmen matematika adaptif.
+- Menggunakan Claude API sebagai Reasoning Engine.
+- Menghasilkan Learning Analytics secara otomatis.
+- Memberikan rekomendasi belajar personal.
+- Mengirimkan laporan hasil melalui email.
+- Mendukung scan lembar jawaban (OMR).
+- Mendukung QR Code Question Bank.
+- Siap melayani hingga 600.000 pengguna.
 
 ---
 
-3. Philosophy
+# 3. Philosophy
 
 Vue-Kim bukan chatbot AI.
 
@@ -36,29 +39,45 @@ Vue-Kim adalah platform asesmen matematika.
 
 Claude API digunakan sebagai mesin penalaran (Reasoning Engine).
 
-Prompt dibangun otomatis oleh sistem berdasarkan hasil asesmen.
+Prompt tidak diketik langsung oleh pengguna.
+
+Prompt dibangun otomatis berdasarkan:
+
+- Jawaban siswa
+- Riwayat belajar
+- Penguasaan topik
+- Tingkat Bloom
+- Miskonsepsi
+- Target pembelajaran
+
+AI digunakan sebagai alat bantu analisis, bukan sebagai pengganti proses asesmen.
 
 ---
 
-4. Core Principles
+# 4. Core Principles
 
 1. Documentation First
 2. Blueprint Before Code
-3. Reuse Existing Components
-4. Modular Architecture
-5. Data Driven Learning
-6. AI Assisted Assessment
-7. Continuous Improvement
+3. Issue Before Code
+4. Reuse Existing Components
+5. Modular Architecture
+6. Data Driven Learning
+7. AI Assisted Assessment
+8. Continuous Improvement
 
 ---
 
-5. System Architecture
+# 5. System Architecture
 
 Student
 
 ↓
 
 Assessment Engine
+
+↓
+
+Question Analyzer
 
 ↓
 
@@ -78,6 +97,10 @@ Learning Analytics
 
 ↓
 
+Recommendation Engine
+
+↓
+
 Dashboard
 
 ↓
@@ -86,54 +109,61 @@ Email Report
 
 ---
 
-6. Project Modules
+# 6. Project Modules
 
-Foundation
+## Foundation
 
 - Authentication
 - Dashboard
 - Assessment
 - Report
 
-AI
+## AI
 
 - Agent Manager
 - Prompt Builder
 - Claude API
+- Search Agent
 
-Analytics
+## Analytics
 
 - Statistics
 - Learning Profile
 - Learning Graph
+- University Readiness
 
-Future
+## Future
 
-- OMR
-- QR
+- OMR Scanner
+- QR Question Bank
+- Dashboard Guru
+- Dashboard Sekolah
 - National Analytics
 
 ---
 
-7. Assessment Engine
+# 7. Assessment Engine
 
 Tahap pertama pengembangan.
 
-Fitur:
+Fitur utama:
 
 - Bank Soal
+- Display Question
 - Timer
-- Navigasi
+- Navigation
 - Autosave
 - Submit
 - Review
-- Hasil
+- Statistics
+- Progress
+- Final Result
 
 ---
 
-8. Bank Soal
+# 8. Question Bank
 
-Topik:
+Topik utama:
 
 - Bilangan
 - Aljabar
@@ -141,139 +171,197 @@ Topik:
 - Trigonometri
 - Data dan Peluang
 
-Kurikulum:
+Jenjang:
 
-- Fase A–F
+- Kelas 6
+- Kelas 7
+- Kelas 8
+- Kelas 9
+- Kelas 10
+- Kelas 11
+- Kelas 12
 
-Target awal:
+Fase Kurikulum Merdeka:
 
-- Kelas 6–12
+- Fase A
+- Fase B
+- Fase C
+- Fase D
+- Fase E
+- Fase F
 
 ---
 
-9. Metadata Soal
+# 9. Question Metadata
 
-Setiap soal memiliki:
+Setiap soal memiliki metadata lengkap.
 
-- ID
+## Identitas
+
+- Question ID
+- Version
+- Status
+
+## Kurikulum
+
 - Jenjang
-- Fase
 - Kelas
+- Fase
+- Mata Pelajaran
+
+## Materi
+
 - Topik
 - Subtopik
 - Kompetensi
-- Bloom
-- Tingkat Kesulitan
-- Estimasi Waktu
-- Prasyarat
+
+## Kognitif
+
+- Bloom Level (C1–C6)
+
+## Kesulitan
+
+- Difficulty
+- Estimated Solving Time
+
+## Pembelajaran
+
+- Prerequisite
 - Remedial
-- Lanjutan
-- Pembahasan
-- Tag
-- Status Validasi
+- Next Topic
+
+## Analisis
+
+- Explanation
+- Tags
+- Validation Status
 
 ---
 
-10. Learning Profile
+# 10. Learning Profile
 
-Setiap siswa mempunyai:
+Setiap siswa memiliki profil belajar.
 
-- Penguasaan Topik
-- Penguasaan Bloom
-- Riwayat Belajar
-- Kecepatan
-- Miskonsepsi
+Disimpan:
+
+- Topic Mastery
+- Bloom Mastery
+- Learning History
+- Speed
+- Accuracy
+- Misconception
 - Learning Graph
+- University Readiness Score
 
 ---
 
-11. Question Statistics
+# 11. Question Statistics
 
-Disimpan berdasarkan status terakhir setiap pengguna.
+Statistik dihitung berdasarkan status terakhir setiap pengguna.
 
-Bukan berdasarkan jumlah percobaan.
+Satu pengguna hanya dihitung satu kali.
 
-Statistik:
+Jika jawaban terakhir berubah, statistik ikut berubah.
 
-- Total pengguna
-- Status benar
-- Status salah
+Data yang disimpan:
+
+- Total User
+- Correct User
+- Incorrect User
 - Question Mastery Rate
-- Rata-rata waktu
-- Median waktu
+- Average Time
+- Median Time
+
+Saat soal ditampilkan pengguna juga melihat:
+
+- Status jawaban terakhir
+- Persentase benar
+- Persentase salah
 
 ---
 
-12. Agentic AI
+# 12. Agentic AI
 
 Agent yang direncanakan:
 
 - Exam Agent
+- Question Analyzer
 - Prompt Builder
-- Claude Reasoning
-- Recommendation
-- Analytics
-- Report
-- Email
-- Search
-- Scan
+- Claude Reasoning Agent
+- Recommendation Agent
+- Analytics Agent
+- Report Agent
+- Email Agent
+- Search Agent
+- Scan Agent
 
 ---
 
-13. Dashboard
+# 13. Dashboard
 
 Dashboard menampilkan:
 
 - Progress
-- Penguasaan Topik
-- Bloom
-- Statistik
-- Riwayat
+- Topic Mastery
+- Bloom Mastery
+- Assessment History
+- Learning Graph
+- Statistics
+- Recommendation
 - Target
+- University Readiness
 
 ---
 
-14. Roadmap
+# 14. Roadmap
 
-Milestone 1
+## Milestone 1
 
 Foundation
 
-Milestone 2
+## Milestone 2
 
 Assessment Engine
 
-Milestone 3
+## Milestone 3
 
 Dashboard
 
-Milestone 4
+## Milestone 4
 
 Claude Integration
 
-Milestone 5
+## Milestone 5
 
 Learning Analytics
 
-Milestone 6
+## Milestone 6
 
 Email Report
 
-Milestone 7
+## Milestone 7
 
 OMR Scanner
 
-Milestone 8
+## Milestone 8
 
 Adaptive Learning
 
+## Milestone 9
+
+Beta
+
+## Milestone 10
+
+Stable Release
+
 ---
 
-15. Documentation Rules
+# 15. Documentation Rules
 
 README.md
 
-- Stabil
+- Stable Documentation
 
 BLUEPRINT.md
 
@@ -281,21 +369,33 @@ BLUEPRINT.md
 
 CHANGELOG.md
 
-- Diupdate setiap rilis
+- Updated Every Release
 
 docs/
 
-- Diisi mengikuti implementasi.
+- Updated following implementation progress
 
 ---
 
-16. Development Workflow
+# 16. Development Workflow
 
-Ide
+Vue-Kim menggunakan GitHub Project sebagai pusat pengelolaan pengembangan.
+
+Seluruh fitur baru mengikuti alur berikut.
+
+Idea
 
 ↓
 
-Blueprint
+GitHub Issue
+
+↓
+
+Milestone Assignment
+
+↓
+
+Label Assignment
 
 ↓
 
@@ -303,7 +403,7 @@ Review
 
 ↓
 
-Implementasi
+Implementation
 
 ↓
 
@@ -315,15 +415,123 @@ Commit
 
 ↓
 
-Update Blueprint
+Push
+
+↓
+
+Close Issue
+
+↓
+
+Update CHANGELOG (if required)
 
 ↓
 
 Release
 
+Prinsip utama:
+
+> Issue First, Code Second.
+
 ---
 
-17. Success Metrics
+# 17. GitHub Project Convention
+
+GitHub Project menjadi pusat seluruh aktivitas pengembangan.
+
+## 17.1 Issue Naming Convention
+
+Seluruh Issue menggunakan prefix berikut.
+
+| Prefix | Deskripsi |
+|----------|------------------------------|
+| Documentation: | Dokumentasi |
+| Assessment: | Assessment Engine |
+| Question Bank: | Bank Soal |
+| AI: | Claude API & Agentic AI |
+| Dashboard: | Dashboard |
+| Analytics: | Learning Analytics |
+| Report: | Email & PDF Report |
+| Scanner: | OMR & QR Scanner |
+| Backend: | API & Database |
+| Frontend: | React Components |
+| Infrastructure: | Deployment & CI/CD |
+
+Contoh:
+
+Assessment: Display Single Mathematics Question
+
+Assessment: Countdown Timer
+
+AI: Analyze Student Performance
+
+Dashboard: Student Dashboard
+
+Scanner: Detect OMR Answer Sheet
+
+---
+
+## 17.2 Milestone Convention
+
+Setiap Issue hanya memiliki satu Milestone.
+
+Contoh:
+
+- v0.1 Foundation
+- v0.2 Assessment Engine
+- v0.3 Dashboard
+- v0.4 Claude Integration
+- v0.5 Learning Analytics
+- v0.6 Email Report
+- v0.7 OMR Scanner
+- v0.8 Adaptive Learning
+- v0.9 Beta
+- v1.0 Stable Release
+
+---
+
+## 17.3 Label Convention
+
+Label digunakan sebagai kategori Issue.
+
+Label awal:
+
+- documentation
+- assessment
+- frontend
+- backend
+- ai
+- analytics
+- report
+- scanner
+- enhancement
+- bug
+
+Label dapat berkembang mengikuti kebutuhan proyek.
+
+---
+
+## 17.4 Commit Convention
+
+Format commit yang direkomendasikan:
+
+docs(readme): update README
+
+feat(assessment): display single mathematics question
+
+feat(ai): generate learning recommendation
+
+fix(timer): correct countdown bug
+
+Jika relevan, sertakan nomor Issue.
+
+Contoh:
+
+feat(assessment): display question (#15)
+
+---
+
+# 18. Success Metrics
 
 Target jangka panjang:
 
@@ -332,16 +540,20 @@ Target jangka panjang:
 - Learning Analytics
 - Adaptive Learning
 - Agentic AI
-- Scan OMR
+- Claude Reasoning Engine
+- OMR Scanner
 - Dashboard Guru
 - Dashboard Sekolah
+- National Analytics
 
 ---
 
-18. Notes
+# 19. Notes
 
-Blueprint ini akan terus berkembang selama pengembangan Vue-Kim.
+Blueprint ini merupakan Living Document.
 
-Perubahan kurikulum, kebutuhan pengguna, maupun inovasi Agentic AI dapat menyebabkan penambahan atau perubahan isi Blueprint.
+Seluruh perubahan arsitektur, workflow, kurikulum, maupun modul baru harus diperbarui pada Blueprint sebelum implementasi dilakukan.
 
-Tujuan utama Blueprint adalah menjaga agar seluruh pengembangan tetap memiliki arah yang konsisten tanpa menghambat inovasi.
+Blueprint menjadi Single Source of Truth bagi seluruh pengembangan Vue-Kim.
+
+Seluruh pengembangan harus menjaga konsistensi arah proyek tanpa menghambat inovasi maupun penyesuaian terhadap perkembangan teknologi dan kebijakan pendidikan.
