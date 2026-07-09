@@ -70,15 +70,10 @@ export default function App() {
     setCurrentView('dashboard');
   };
 
-  const pindahView = () => {
-    console.log('Pindah view dari:', currentView);
-    if (currentView === 'landing') {
-      setCurrentView('dashboard');
-    } else if (currentView === 'dashboard') {
-      setCurrentView('landing');
-    } else {
-      setCurrentView('dashboard');
-    }
+  // ✅ PASTIKAN FUNGSI INI ADA DAN BENAR
+  const pindahKeDashboard = () => {
+    console.log('Tombol diklik! Pindah dari:', currentView);
+    setCurrentView('dashboard');
   };
 
   return (
@@ -89,11 +84,16 @@ export default function App() {
           <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4">
             <span>Mode Pengembangan:</span>
             <button 
-              onClick={pindahView}
+              onClick={pindahKeDashboard}
               className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500"
             >
-              Pindah ke {currentView === 'landing' ? 'DashboardPage' : 'LandingPage'} ➡️
+              Pindah ke DashboardPage ➡️
             </button>
+          </div>
+          
+          {/* TAMBAHKAN INI UNTUK DEBUG */}
+          <div style={{ textAlign: 'center', padding: '10px', fontSize: '12px', color: '#64748b' }}>
+            View saat ini: {currentView}
           </div>
           
           {/* Views */}
