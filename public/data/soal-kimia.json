@@ -1,0 +1,22 @@
+{
+  "judul": "Kimia",
+  "kode": "kimia",
+  "waktu": 90,
+  "soal": [
+    {
+      "pertanyaan": "Rumus kimia untuk air adalah?",
+      "pilihan": ["H₂O", "CO₂", "NaCl", "O₂"],
+      "jawaban_benar": "H₂O"
+    },
+    {
+      "pertanyaan": "Unsur dengan simbol Au adalah?",
+      "pilihan": ["Emas", "Perak", "Tembaga", "Aluminium"],
+      "jawaban_benar": "Emas"
+    },
+    {
+      "pertanyaan": "pH larutan netral adalah?",
+      "pilihan": ["0", "7", "14", "1"],
+      "jawaban_benar": "7"
+    }
+  ]
+}

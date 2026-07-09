@@ -1,10 +1,13 @@
-import { useState, Component, type ErrorInfo, type ReactNode, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import { renderMathJax } from './utils/helpers'; // Sinkronisasi MathJax
+import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
+import SoalPage from './pages/SoalPage';
 
-// --- JARING PENGAMAN ERROR (ERROR BOUNDARY) ---
+// --- Error Boundary ---
+import { Component, type ErrorInfo, type ReactNode } from 'react';
+
 interface Props { children: ReactNode; }
 interface State { hasError: boolean; error: Error | null; }
 
@@ -49,30 +52,54 @@ class ErrorBoundary extends Component<Props, State> {
 
 // --- KOMPONEN UTAMA ---
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'soal'>('landing');
+  const [kodeSoal, setKodeSoal] = useState<string>('');
 
-  // Trigger renderMathJax setiap kali pindah halaman atau tampilan
   useEffect(() => {
     renderMathJax();
   }, [currentView]);
+
+  const bukaSoal = (kode: string) => {
+    console.log('Buka soal:', kode);
+    setKodeSoal(kode);
+    setCurrentView('soal');
+  };
+
+  const kembaliKeDashboard = () => {
+    console.log('Kembali ke dashboard');
+    setCurrentView('dashboard');
+  };
+
+  const pindahView = () => {
+    console.log('Pindah view dari:', currentView);
+    if (currentView === 'landing') {
+      setCurrentView('dashboard');
+    } else if (currentView === 'dashboard') {
+      setCurrentView('landing');
+    } else {
+      setCurrentView('dashboard');
+    }
+  };
 
   return (
     <ErrorBoundary>
       <BrowserRouter>
         <div className="min-h-screen bg-slate-950 text-white">
-          {/* Header Kontrol Navigasi */}
+          {/* Debug Navigation */}
           <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4">
             <span>Mode Pengembangan:</span>
             <button 
-              onClick={() => setCurrentView(currentView === 'landing' ? 'dashboard' : 'landing')} 
+              onClick={pindahView}
               className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500"
             >
               Pindah ke {currentView === 'landing' ? 'DashboardPage' : 'LandingPage'} ➡️
             </button>
           </div>
-
-          {/* Render Halaman */}
-          {currentView === 'landing' ? <LandingPage /> : <DashboardPage />}
+          
+          {/* Views */}
+          {currentView === 'landing' && <LandingPage onMulai={() => setCurrentView('dashboard')} />}
+          {currentView === 'dashboard' && <DashboardPage onBukaSoal={bukaSoal} />}
+          {currentView === 'soal' && <SoalPage kodeSoal={kodeSoal} onKembali={kembaliKeDashboard} />}
         </div>
       </BrowserRouter>
     </ErrorBoundary>

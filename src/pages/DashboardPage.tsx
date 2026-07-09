@@ -1,48 +1,78 @@
 import { useState } from 'react';
 import SoalCard from '../components/SoalCard';
 
-export default function DashboardPage() {
-  // 1. Tambahkan state untuk jawaban agar SoalCard bisa berinteraksi
+interface DashboardPageProps {
+  onBukaSoal: (kode: string) => void;
+}
+
+export default function DashboardPage({ onBukaSoal }: DashboardPageProps) {
   const [jawaban, setJawaban] = useState<number[]>([]);
 
-  // 2. Contoh data soal
-  const contohSoal = {
-    kategori: "Matematika",
-    tanya: "Berapakah hasil dari 2 + 2?",
-    opsi: ["1", "2", "3", "4"]
-  };
+  const daftarSoal = [
+    { kode: 'matematika', kategori: 'Matematika', tanya: 'Berapakah hasil dari 2 + 2?', opsi: ['1', '2', '3', '4'] },
+    { kode: 'fisika', kategori: 'Fisika', tanya: 'Satuan daya adalah?', opsi: ['Watt', 'Joule', 'Newton', 'Volt'] },
+    { kode: 'kimia', kategori: 'Kimia', tanya: 'Rumus air adalah?', opsi: ['H2O', 'CO2', 'NaCl', 'O2'] },
+  ];
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        background: "#111827",
-        color: "#fff",
-        padding: "40px",
-      }}
-    >
-      <h1>Vue-Kim Dashboard</h1>
-      <p>Modul Soal sedang aktif:</p>
-      
-      <hr style={{ margin: "20px 0" }} />
+    <div style={{ padding: '40px', color: '#fff', background: '#0a0a0a', minHeight: '100vh' }}>
+      <h1 style={{ fontSize: '32px', marginBottom: '10px' }}>📚 Vue-Kim Dashboard</h1>
+      <p style={{ color: '#94a3b8', marginBottom: '30px' }}>Pilih mata pelajaran untuk memulai simulasi</p>
+      <hr style={{ margin: '20px 0', borderColor: '#334155' }} />
 
-      {/* 3. Panggil SoalCard di sini */}
-      <div style={{ maxWidth: "600px" }}>
-        <SoalCard 
-          soal={contohSoal}
-          index={0}
-          jawaban={jawaban}
-          onSimpan={(_idx, val) => setJawaban(val)}
-          onOpenAI={() => alert("Fitur AI Gemini sedang aktif!")}
-        />
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '20px', justifyContent: 'center' }}>
+        {daftarSoal.map((soal) => (
+          <div
+            key={soal.kode}
+            onClick={() => onBukaSoal(soal.kode)}
+            style={{
+              background: '#1e293b',
+              border: '1px solid #334155',
+              borderRadius: '16px',
+              padding: '24px',
+              width: '300px',
+              cursor: 'pointer',
+              transition: 'all 0.3s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#3b82f6';
+              e.currentTarget.style.transform = 'translateY(-4px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#334155';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <h3 style={{ fontSize: '20px', marginBottom: '8px' }}>{soal.kategori}</h3>
+            <p style={{ color: '#94a3b8', fontSize: '14px' }}>{soal.tanya}</p>
+            <button
+              style={{
+                marginTop: '16px',
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                width: '100%',
+              }}
+            >
+              Mulai Ujian
+            </button>
+          </div>
+        ))}
       </div>
 
-      <div style={{ marginTop: "40px", opacity: 0.5 }}>
-        <p>✅ React</p>
-        <p>✅ Vite</p>
-        <p>✅ Agent Engine</p>
-        <p>⚠ Gemini Quota</p>
-      </div>
+      {/* Contoh SoalCard lama */}
+      <hr style={{ margin: '40px 0', borderColor: '#334155' }} />
+      <h2 style={{ marginBottom: '20px' }}>Contoh Soal</h2>
+      <SoalCard
+        soal={daftarSoal[0]}
+        index={0}
+        jawaban={jawaban}
+        onSimpan={(_idx, val) => setJawaban(val)}
+        onOpenAI={() => alert('Fitur AI aktif!')}
+      />
     </div>
   );
 }

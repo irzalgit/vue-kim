@@ -1,0 +1,22 @@
+{
+  "judul": "Matematika",
+  "kode": "matematika",
+  "waktu": 90,
+  "soal": [
+    {
+      "pertanyaan": "Berapakah hasil dari 2 + 2 × 3?",
+      "pilihan": ["12", "8", "10", "6"],
+      "jawaban_benar": "8"
+    },
+    {
+      "pertanyaan": "Nilai dari sin(30°) adalah?",
+      "pilihan": ["1/2", "√3/2", "√2/2", "1"],
+      "jawaban_benar": "1/2"
+    },
+    {
+      "pertanyaan": "Turunan dari f(x) = x² adalah?",
+      "pilihan": ["f'(x) = x", "f'(x) = 2x", "f'(x) = x²", "f'(x) = 2"],
+      "jawaban_benar": "f'(x) = 2x"
+    }
+  ]
+}

@@ -1,75 +1,54 @@
-// ~/vue-kim/src/components/SoalCard.tsx
-import { useEffect } from 'react';
-import { renderMathJax } from '../utils/helpers';
+import { useState } from 'react';
 
-interface SoalCardProps {
-  soal: any;
+interface Soal {
+  kategori: string;
+  tanya: string;
+  opsi: string[];
+}
+
+interface Props {
+  soal: Soal;
   index: number;
-  jawaban: any[];
-  onSimpan: (index: number, val: any[]) => void;
+  jawaban: number[];
+  onSimpan: (index: number, jawaban: number[]) => void;
   onOpenAI: () => void;
 }
 
-// Menambahkan underscore (_) pada variabel yang belum digunakan agar TypeScript tidak komplain
-export default function SoalCard({ soal, index, jawaban, onSimpan, onOpenAI }: SoalCardProps) {
-  useEffect(() => {
-    renderMathJax();
-  }, [soal]);
+export default function SoalCard({ soal, index, jawaban, onSimpan, onOpenAI }: Props) {
+  const [selected, setSelected] = useState<number[]>(jawaban || []);
 
-  if (!soal) return null;
-
-  const handleChange = (val: number, checked: boolean) => {
-    const current = jawaban || [];
-    let newJawaban: any[];
-    if (checked) {
-      newJawaban = [...current, val];
-    } else {
-      newJawaban = current.filter((v: number) => v !== val);
-    }
-    onSimpan(index, newJawaban);
+  const handlePilih = (idx: number) => {
+    const newSelected = selected.includes(idx)
+      ? selected.filter(i => i !== idx)
+      : [...selected, idx];
+    setSelected(newSelected);
+    onSimpan(index, newSelected);
   };
 
   return (
-    <div className="soal-container active">
-      <div className="flex justify-between mb-4">
-        <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-sm">
-          📂 {soal.kategori || 'Umum'}
-        </span>
-        <span className="text-gray-500">Soal {index + 1}/25</span>
+    <div style={{ background: '#1e293b', padding: '20px', borderRadius: '12px', maxWidth: '500px' }}>
+      <span style={{ background: '#3b82f6', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>
+        {soal.kategori}
+      </span>
+      <h3 style={{ margin: '16px 0 12px' }}>{soal.tanya}</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {soal.opsi.map((opsi, i) => (
+          <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={selected.includes(i)}
+              onChange={() => handlePilih(i)}
+            />
+            {opsi}
+          </label>
+        ))}
       </div>
-      
-      <p className="text-lg font-semibold mb-5">{soal.tanya}</p>
-      
-      <div className="space-y-3">
-        {soal.opsi.map((op: string, i: number) => {
-          const checked = jawaban?.includes(i) || false;
-          return (
-            <label 
-              key={i}
-              className="flex items-center p-3 border rounded-xl hover:bg-blue-50 cursor-pointer transition"
-            >
-              <input 
-                type="checkbox" 
-                value={i} 
-                checked={checked}
-                onChange={(e) => handleChange(i, e.target.checked)}
-                className="w-5 h-5 mr-3 accent-blue-600"
-              />
-              <span className="font-bold mr-2">{String.fromCharCode(65 + i)}.</span>
-              <span>{op}</span>
-            </label>
-          );
-        })}
-      </div>
-
-      <div className="mt-6 text-center">
-        <button 
-          onClick={onOpenAI}
-          className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-full hover:shadow-lg transition"
-        >
-          🦊 Tanya AI Gemini
-        </button>
-      </div>
+      <button
+        onClick={onOpenAI}
+        style={{ marginTop: '16px', background: '#10b981', padding: '8px 16px', borderRadius: '8px', border: 'none', color: '#fff' }}
+      >
+        Tanya AI
+      </button>
     </div>
   );
 }

@@ -1,0 +1,22 @@
+{
+  "judul": "Fisika",
+  "kode": "fisika",
+  "waktu": 90,
+  "soal": [
+    {
+      "pertanyaan": "Hukum Newton ke-2 menyatakan bahwa...",
+      "pilihan": ["F = ma", "F = mv", "F = m/a", "F = a/m"],
+      "jawaban_benar": "F = ma"
+    },
+    {
+      "pertanyaan": "Satuan daya dalam SI adalah?",
+      "pilihan": ["Watt", "Joule", "Newton", "Volt"],
+      "jawaban_benar": "Watt"
+    },
+    {
+      "pertanyaan": "Kecepatan cahaya dalam vakuum adalah?",
+      "pilihan": ["3 × 10⁸ m/s", "3 × 10⁶ m/s", "3 × 10⁵ m/s", "3 × 10⁷ m/s"],
+      "jawaban_benar": "3 × 10⁸ m/s"
+    }
+  ]
+}
