@@ -1,5 +1,6 @@
-import { useState, Component, type ErrorInfo, type ReactNode } from 'react';
-import { BrowserRouter } from 'react-router-dom'; // 1. Impor payung Router
+import { useState, Component, type ErrorInfo, type ReactNode, useEffect } from 'react';
+import { BrowserRouter } from 'react-router-dom';
+import { renderMathJax } from './utils/helpers'; // Sinkronisasi MathJax
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 
@@ -50,11 +51,16 @@ class ErrorBoundary extends Component<Props, State> {
 export default function App() {
   const [currentView, setCurrentView] = useState<'landing' | 'dashboard'>('landing');
 
+  // Trigger renderMathJax setiap kali pindah halaman atau tampilan
+  useEffect(() => {
+    renderMathJax();
+  }, [currentView]);
+
   return (
     <ErrorBoundary>
-      {/* 2. Bungkus seluruh konten halaman dengan BrowserRouter */}
       <BrowserRouter>
         <div className="min-h-screen bg-slate-950 text-white">
+          {/* Header Kontrol Navigasi */}
           <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4">
             <span>Mode Pengembangan:</span>
             <button 
@@ -65,6 +71,7 @@ export default function App() {
             </button>
           </div>
 
+          {/* Render Halaman */}
           {currentView === 'landing' ? <LandingPage /> : <DashboardPage />}
         </div>
       </BrowserRouter>
