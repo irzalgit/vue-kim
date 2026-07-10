@@ -74,25 +74,25 @@ export const capabilitiesConfig: CapabilitiesConfig = {
   sectionLabel: "Fitur Utama",
   items: [
     {
-      title: "Simulasi CBT",
+      title: "Simulasi CBT:TEORI BILANGAN",
       slug: "simulasi-cbt",
       description: "Ujian berbasis komputer dengan 50 soal pilihan ganda, timer countdown, dan navigasi nomor soal yang intuitif untuk persiapan PAS yang optimal.",
       image: "images/capability-1.jpg",
     },
     {
-      title: "AI Tutor Cerdas",
+      title: "AI Tutor Cerdas:ALJABAR",
       slug: "ai-tutor",
       description: "Dapatkan penjelasan detail dari Gemini AI untuk setiap soal matematika yang sulit, lengkap dengan langkah-langkah penyelesaian yang mudah dipahami.",
       image: "images/capability-2.jpg",
     },
     {
-      title: "Jadwal Adaptif",
+      title: "Jadwal Adaptif:TRIGONOMETRI",
       slug: "jadwal-adaptif",
       description: "Sistem jadwal belajar yang menyesuaikan dengan performa simulasi, fokus pada topik lemah dan memperkuat topik yang sudah dikuasai.",
       image: "images/capability-3.jpg",
     },
     {
-      title: "Analisis Performa",
+      title: "Analisis Performa:GEOMETRI",
       slug: "analisis-performa",
       description: "Ringkasan hasil ujian real-time dengan statistik topik kuat dan lemah, progress bar, dan rekomendasi belajar berbasis data.",
       image: "images/capability-4.jpg",
