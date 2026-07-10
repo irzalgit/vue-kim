@@ -72,32 +72,43 @@ export interface CapabilitiesConfig {
 
 export const capabilitiesConfig: CapabilitiesConfig = {
   sectionLabel: "Fitur Utama",
-  items: [
-    {
-      title: "Simulasi CBT:TEORI BILANGAN",
-      slug: "simulasi-cbt",
-      description: "Ujian berbasis komputer dengan 50 soal pilihan ganda, timer countdown, dan navigasi nomor soal yang intuitif untuk persiapan PAS yang optimal.",
-      image: "images/capability-1.jpg",
-    },
-    {
-      title: "AI Tutor Cerdas:ALJABAR",
-      slug: "ai-tutor",
-      description: "Dapatkan penjelasan detail dari Gemini AI untuk setiap soal matematika yang sulit, lengkap dengan langkah-langkah penyelesaian yang mudah dipahami.",
-      image: "images/capability-2.jpg",
-    },
-    {
-      title: "Jadwal Adaptif:TRIGONOMETRI",
-      slug: "jadwal-adaptif",
-      description: "Sistem jadwal belajar yang menyesuaikan dengan performa simulasi, fokus pada topik lemah dan memperkuat topik yang sudah dikuasai.",
-      image: "images/capability-3.jpg",
-    },
-    {
-      title: "Analisis Performa:GEOMETRI",
-      slug: "analisis-performa",
-      description: "Ringkasan hasil ujian real-time dengan statistik topik kuat dan lemah, progress bar, dan rekomendasi belajar berbasis data.",
-      image: "images/capability-4.jpg",
-    },
-  ],
+items: [
+  {
+    title: "TEORI BILANGAN",
+    slug: "teori-bilangan",
+    description:
+      "Pelajari konsep bilangan prima, FPB, KPK, kongruensi, dan teori bilangan melalui latihan interaktif.",
+    image: "images/capability-1.jpg",
+  },
+  {
+    title: "ALJABAR",
+    slug: "aljabar",
+    description:
+      "Pelajari persamaan, pertidaksamaan, fungsi, dan bentuk aljabar dengan bantuan AI Tutor.",
+    image: "images/capability-2.jpg",
+  },
+  {
+    title: "TRIGONOMETRI",
+    slug: "trigonometri",
+    description:
+      "Pelajari identitas trigonometri, grafik fungsi, serta penyelesaian soal secara bertahap.",
+    image: "images/capability-3.jpg",
+  },
+  {
+    title: "GEOMETRI",
+    slug: "geometri",
+    description:
+      "Pelajari bangun datar, bangun ruang, serta geometri analitik dengan pembahasan lengkap.",
+    image: "images/capability-3.jpg",
+  },
+  {
+    title: "DATA & PELUANG",
+    slug: "data-peluang",
+    description:
+      "Analisis data, statistika, peluang, dan interpretasi grafik melalui latihan adaptif.",
+    image: "images/capability-4.jpg",
+  },
+],
 };
 
 // ============================================================
@@ -126,46 +137,56 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
   nextLabel: "Selanjutnya",
   notFoundText: "Fitur tidak ditemukan.",
   capabilities: {
-    "simulasi-cbt": {
-      title: "Simulasi CBT",
-      subtitle: "Persiapkan diri menghadapi PAS dengan simulasi ujian nyata.",
-      paragraphs: [
-        "Simulasi CBT AI Tutor menyediakan pengalaman ujian yang mirip dengan Penilaian Akhir Semester (PAS) yang sebenarnya. Dengan 50 soal pilihan ganda per sesi, siswa dapat berlatih dalam kondisi yang mendekati ujian sesungguhnya.",
-        "Setiap soal dilengkapi dengan opsi A-E, tombol tandai ragu-ragu, dan navigasi nomor soal yang memudahkan siswa untuk berpindah antar soal. Timer countdown otomatis memberikan pengalaman tekanan waktu yang realistis.",
-        "Sistem mendukung dua kelas - Kelas X dan Kelas XI - dengan bank soal yang berbeda. Soal-soal mencakup berbagai topik matematika dari kombinatorika, deret, statistik, hingga geometri lingkaran.",
-        "Setelah menyelesaikan simulasi, siswa mendapatkan ringkasan performa lengkap dengan jumlah jawaban benar, salah, waktu yang digunakan, dan rekomendasi topik yang perlu diperkuat.",
-      ],
-    },
-    "ai-tutor": {
-      title: "AI Tutor Cerdas",
-      subtitle: "Bantuan matematika otomatis dengan kecerdasan buatan.",
-      paragraphs: [
-        "AI Tutor menggunakan teknologi Gemini AI untuk memberikan penjelasan mendalam pada setiap soal matematika. Siswa cukup menekan tombol bantuan AI dan akan mendapatkan penjelasan langkah demi langkah yang mudah dipahami.",
-        "Sistem AI mampu menjelaskan konsep matematika mulai dari dasar hingga tingkat lanjut, termasuk kombinatorika, barisan dan deret, statistika, peluang, dan geometri. Penjelasan disesuaikan dengan tingkat pemahaman siswa.",
-        "Fitur Generate Soal Serupa memungkinkan siswa untuk mendapatkan variasi soal dengan tingkat kemiripan yang dapat diatur (50-100%). Ini membantu siswa untuk benar-benar memahami konsep, bukan sekadar menghafal jawaban.",
-        "Semua interaksi dengan AI Tutor tersedia dalam Bahasa Indonesia, memastikan tidak ada hambatan bahasa dalam proses belajar. Sistem juga mendukung rendering formula matematika dengan MathJax.",
-      ],
-    },
-    "jadwal-adaptif": {
-      title: "Jadwal Belajar Adaptif",
-      subtitle: "Rencana belajar yang personalisasi berdasarkan performa.",
-      paragraphs: [
-        "Setelah menyelesaikan minimal 3 soal, sistem secara otomatis menganalisis performa siswa dan menghasilkan jadwal belajar yang disesuaikan dengan kebutuhan individu. Topik yang masih lemah akan mendapatkan prioritas lebih tinggi.",
-        "Jadwal belajar ditampilkan dalam panel yang mudah dibaca, dengan kode warna untuk menandai topik yang perlu perhatian khusus (merah) dan topik yang sudah dikuasai (hijau). Setiap hari memiliki rekomendasi materi yang berbeda.",
-        "Sistem dilengkapi dengan statistik real-time yang menunjukkan progress belajar, persentase jawaban benar per topik, dan estimasi waktu yang dibutuhkan untuk menguasai materi tertentu.",
-        "Jadwal dapat digenerate secara lokal (offline) atau dengan bantuan AI untuk rekomendasi yang lebih personal dan kontekstual. Data performa disimpan di perangkat untuk menjaga privasi siswa.",
-      ],
-    },
-    "analisis-performa": {
-      title: "Analisis Performa",
-      subtitle: "Pantau progress belajar dengan dashboard interaktif.",
-      paragraphs: [
-        "Dashboard analisis menampilkan ringkasan hasil simulasi dalam format yang mudah dipahami. Siswa dapat melihat jumlah soal yang dijawab benar, salah, dan yang belum dijawab dengan visualisasi warna yang jelas.",
-        "Sistem secara otomatis mengidentifikasi topik kuat dan topik lemah berdasarkan performa siswa. Informasi ini digunakan untuk memberikan rekomendasi belajar yang tepat sasaran.",
-        "Progress bar yang terintegrasi pada setiap sesi simulasi memberikan gambaran real-time tentang seberapa jauh siswa telah menyelesaikan soal. Tombol navigasi soal dengan indikator status (dijawab, ragu-ragu, belum) memudahkan monitoring.",
-        "Semua data analisis dapat diakses kapan saja melalui panel jadwal belajar, memungkinkan siswa untuk melacak perkembangan belajar mereka dari waktu ke waktu dan menetapkan target yang realistis.",
-      ],
-    },
+  "teori-bilangan": {
+  title: "Teori Bilangan",
+  subtitle: "Dasar-dasar teori bilangan untuk SMA.",
+  paragraphs: [
+    "Materi mencakup bilangan prima, faktor, kelipatan, FPB, KPK, dan kongruensi.",
+    "AI Tutor memberikan pembahasan langkah demi langkah.",
+    "Siswa dapat mengerjakan latihan adaptif sesuai kemampuan.",
+    "Perkembangan belajar disimpan untuk evaluasi berikutnya.",
+  ],
+},
+"aljabar": {
+  title: "Aljabar",
+  subtitle: "Pelajari konsep aljabar secara bertahap.",
+  paragraphs: [
+    "Materi meliputi bentuk aljabar, persamaan, pertidaksamaan, fungsi, dan sistem persamaan.",
+    "Soal disusun dari tingkat mudah hingga sulit.",
+    "AI Tutor membantu menjelaskan setiap langkah penyelesaian.",
+    "Analisis hasil belajar digunakan untuk menentukan materi berikutnya.",
+  ],
+},
+"trigonometri": {
+  title: "Trigonometri",
+  subtitle: "Pelajari konsep trigonometri secara menyeluruh.",
+  paragraphs: [
+    "Materi meliputi perbandingan trigonometri, identitas, persamaan, dan grafik fungsi.",
+    "Siswa dapat mencoba berbagai variasi soal.",
+    "AI Tutor memberikan pembahasan secara rinci.",
+    "Hasil latihan dianalisis untuk meningkatkan pemahaman.",
+  ],
+},
+"geometri": {
+  title: "Geometri",
+  subtitle: "Pelajari geometri bidang dan ruang.",
+  paragraphs: [
+    "Materi mencakup garis, sudut, segitiga, lingkaran, bangun ruang, dan geometri analitik.",
+    "Setiap soal dilengkapi pembahasan lengkap.",
+    "AI Tutor membantu memahami konsep secara visual dan logis.",
+    "Kemajuan belajar dicatat pada dashboard siswa.",
+  ],
+},
+"data-peluang": {
+  title: "Data dan Peluang",
+  subtitle: "Statistika dan peluang berbasis latihan interaktif.",
+  paragraphs: [
+    "Materi meliputi penyajian data, ukuran pemusatan, penyebaran data, dan peluang.",
+    "Latihan disusun mengikuti kurikulum SMA.",
+    "AI Tutor memberikan penjelasan setiap penyelesaian.",
+    "Dashboard menampilkan perkembangan kemampuan siswa.",
+  ],
+},
   },
 };
 
@@ -240,16 +261,27 @@ export interface FooterConfig {
 
 export const footerConfig: FooterConfig = {
   heading: "Belajar Matematika Mandiri",
-  columns: [
-    {
-      title: "Fitur",
-      links: ["Simulasi CBT", "AI Tutor", "Jadwal Belajar", "Analisis Performa"],
-    },
-    {
-      title: "Materi",
-      links: ["Kombinatorika", "Statistika", "Geometri", "Barisan dan Deret"],
-    },
-  ],
+ columns: [
+  {
+    title: "Fitur",
+    links: [
+      "Simulasi CBT",
+      "AI Tutor",
+      "Jadwal Belajar",
+      "Analisis Performa",
+    ],
+  },
+  {
+    title: "Materi",
+    links: [
+      "Teori Bilangan",
+      "Aljabar",
+      "Trigonometri",
+      "Geometri",
+      "Data & Peluang",
+    ],
+  },
+],
   copyright: "\u00A9 2026 CBT AI Tutor. Semua hak dilindungi.",
   bottomLinks: [
     { label: "Tentang", href: "#" },
