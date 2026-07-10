@@ -5,55 +5,64 @@ import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
 
-// --- Error Boundary ---
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 
-interface Props { children: ReactNode; }
-interface State { hasError: boolean; error: Error | null; }
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+  error: Error | null;
+}
 
 class ErrorBoundary extends Component<Props, State> {
-  public state: State = { hasError: false, error: null };
+  public state: State = {
+    hasError: false,
+    error: null,
+  };
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return {
+      hasError: true,
+      error,
+    };
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error('Uncaught error:', error, errorInfo);
   }
 
   public render() {
     if (this.state.hasError) {
       return (
-        <div className="p-6 bg-slate-950 text-red-400 min-h-screen font-mono flex flex-col justify-center items-center">
-          <div className="w-full max-w-xl bg-red-950/30 border border-red-900/50 rounded-2xl p-6 shadow-xl">
-            <h1 className="text-xl font-bold text-red-500 mb-2 flex items-center gap-2">
-              🚨 Aplikasi Crash (Runtime Error)
-            </h1>
-            <p className="text-sm text-slate-300 mb-4">
-              Ada kode di dalam komponen asli Anda yang mogok kerja:
-            </p>
-            <pre className="bg-red-950/80 p-4 rounded-xl text-xs text-red-300 overflow-x-auto whitespace-pre-wrap border border-red-900">
+        <div className="min-h-screen flex items-center justify-center bg-red-950 text-white p-6">
+          <div className="max-w-xl w-full rounded-xl border border-red-700 bg-red-900/40 p-6">
+            <h1 className="text-2xl font-bold mb-4">🚨 Aplikasi Crash</h1>
+            <pre className="text-xs overflow-auto whitespace-pre-wrap">
               {this.state.error?.stack || this.state.error?.toString()}
             </pre>
-            <button 
-              onClick={() => window.location.reload()} 
-              className="mt-4 bg-red-800 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-xl text-xs transition-all"
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 rounded bg-red-600 px-4 py-2 hover:bg-red-500"
             >
-              Coba Segarkan Halaman
+              Refresh Halaman
             </button>
           </div>
         </div>
       );
     }
+
     return this.props.children;
   }
 }
 
-// --- KOMPONEN UTAMA ---
 export default function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'soal'>('landing');
-  const [kodeSoal, setKodeSoal] = useState<string>('');
+  const [currentView, setCurrentView] = useState<
+    'landing' | 'dashboard' | 'soal'
+  >('landing');
+
+  const [kodeSoal, setKodeSoal] = useState('');
 
   useEffect(() => {
     renderMathJax();
@@ -66,56 +75,76 @@ export default function App() {
   };
 
   const kembaliKeDashboard = () => {
-    console.log('✅ Kembali ke dashboard');
+    console.log('✅ Kembali ke Dashboard');
     setCurrentView('dashboard');
   };
 
-  // ✅ FUNGSI PINDAH KE DASHBOARD - DIPERBAIKI
+  const pindahKeLanding = () => {
+    console.log('🟢 Landing aktif');
+    setCurrentView('landing');
+  };
+
   const pindahKeDashboard = () => {
-    console.log('✅ Tombol diklik! Pindah dari:', currentView, '→ dashboard');
+    console.log('🔴 Dashboard aktif');
     setCurrentView('dashboard');
   };
 
-  // ✅ FUNGSI MULAI BELAJAR (dari LandingPage ke Dashboard)
   const mulaiDariLanding = () => {
-    console.log('✅ Mulai belajar - Pindah dari landing → dashboard');
+    console.log('▶️ Mulai Belajar');
     setCurrentView('dashboard');
   };
 
   return (
     <ErrorBoundary>
       <BrowserRouter>
-        <div className="min-h-screen bg-slate-950 text-white">
-          {/* Debug Navigation */}
-          <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4 flex-wrap">
-            <span>🔧 Mode Dev:</span>
-            <button 
-              onClick={mulaiDariLanding}
-              className="bg-green-600 px-2 py-0.5 rounded text-white font-medium hover:bg-green-500 transition-colors"
+        {/* Container utama dengan padding atas untuk memberi ruang pada panel debug fixed */}
+        <div
+          className="min-h-screen text-white transition-colors duration-500 pt-16 relative"
+          style={{
+            backgroundColor:
+              currentView === 'landing'
+                ? '#16a34a' // Hijau
+                : currentView === 'dashboard'
+                ? '#dc2626' // Merah
+                : '#2563eb', // Biru
+          }}
+        >
+          {/* Panel Debug - fixed di atas */}
+          <div className="fixed top-0 left-0 right-0 z-50 flex flex-wrap items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
+            <button
+              onClick={pindahKeLanding}
+              className="rounded bg-green-700 px-4 py-2 hover:bg-green-600"
             >
-              Landing
+              🟢 Landing
             </button>
-            <button 
+
+            <button
               onClick={pindahKeDashboard}
-              className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500 transition-colors"
+              className="rounded bg-red-700 px-4 py-2 hover:bg-red-600"
             >
-              Dashboard
+              🔴 Dashboard
             </button>
-            <span>| View: <strong>{currentView}</strong></span>
+
+            <span className="rounded bg-black/30 px-3 py-2">
+              View Aktif: <strong>{currentView}</strong>
+            </span>
           </div>
-          
-          {/* Views Rendering */}
-          {currentView === 'landing' && <LandingPage onMulai={mulaiDariLanding} />}
+
+          {/* Halaman */}
+          {currentView === 'landing' && (
+            <LandingPage onMulai={mulaiDariLanding} />
+          )}
+
           {currentView === 'dashboard' && (
-            <DashboardPage 
+            <DashboardPage
               onBukaSoal={bukaSoal}
-              onKembaliKeLanding={() => {
-                console.log('✅ Kembali ke landing');
-                setCurrentView('landing');
-              }}
+              onKembaliKeLanding={pindahKeLanding}
             />
           )}
-          {currentView === 'soal' && <SoalPage kodeSoal={kodeSoal} onKembali={kembaliKeDashboard} />}
+
+          {currentView === 'soal' && (
+            <SoalPage kodeSoal={kodeSoal} onKembali={kembaliKeDashboard} />
+          )}
         </div>
       </BrowserRouter>
     </ErrorBoundary>
