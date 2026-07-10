@@ -14,26 +14,67 @@ interface Props {
   onOpenAI: () => void;
 }
 
-export default function SoalCard({ soal, index, jawaban, onSimpan, onOpenAI }: Props) {
-  const [selected, setSelected] = useState<number[]>(jawaban || []);
+export default function SoalCard({
+  soal,
+  index,
+  jawaban,
+  onSimpan,
+  onOpenAI,
+}: Props) {
+  const [selected, setSelected] = useState<number[]>(jawaban);
 
   const handlePilih = (idx: number) => {
-    const newSelected = selected.includes(idx)
-      ? selected.filter(i => i !== idx)
+    const baru = selected.includes(idx)
+      ? selected.filter((i) => i !== idx)
       : [...selected, idx];
-    setSelected(newSelected);
-    onSimpan(index, newSelected);
+
+    setSelected(baru);
+    onSimpan(index, baru);
   };
 
   return (
-    <div style={{ background: '#1e293b', padding: '20px', borderRadius: '12px', maxWidth: '500px' }}>
-      <span style={{ background: '#3b82f6', padding: '4px 12px', borderRadius: '20px', fontSize: '12px' }}>
+    <div
+      style={{
+        background: '#1e293b',
+        padding: '20px',
+        borderRadius: '12px',
+        maxWidth: '500px',
+      }}
+    >
+      <span
+        style={{
+          background: '#3b82f6',
+          padding: '4px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          color: '#fff',
+        }}
+      >
         {soal.kategori}
       </span>
-      <h3 style={{ margin: '16px 0 12px' }}>{soal.tanya}</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+      <h3 style={{ margin: '16px 0 12px', color: '#fff' }}>
+        {soal.tanya}
+      </h3>
+
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          color: '#fff',
+        }}
+      >
         {soal.opsi.map((opsi, i) => (
-          <label key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+          <label
+            key={i}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              cursor: 'pointer',
+            }}
+          >
             <input
               type="checkbox"
               checked={selected.includes(i)}
@@ -43,9 +84,19 @@ export default function SoalCard({ soal, index, jawaban, onSimpan, onOpenAI }: P
           </label>
         ))}
       </div>
+
       <button
         onClick={onOpenAI}
-        style={{ marginTop: '16px', background: '#10b981', padding: '8px 16px', borderRadius: '8px', border: 'none', color: '#fff' }}
+        style={{
+          marginTop: '16px',
+          background: '#10b981',
+          color: '#fff',
+          border: 'none',
+          padding: '10px 16px',
+          borderRadius: '8px',
+          cursor: 'pointer',
+          fontWeight: 'bold',
+        }}
       >
         Tanya AI
       </button>
