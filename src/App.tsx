@@ -60,19 +60,25 @@ export default function App() {
   }, [currentView]);
 
   const bukaSoal = (kode: string) => {
-    console.log('Buka soal:', kode);
+    console.log('✅ Buka soal:', kode);
     setKodeSoal(kode);
     setCurrentView('soal');
   };
 
   const kembaliKeDashboard = () => {
-    console.log('Kembali ke dashboard');
+    console.log('✅ Kembali ke dashboard');
     setCurrentView('dashboard');
   };
 
-  // ✅ PASTIKAN FUNGSI INI ADA DAN BENAR
+  // ✅ FUNGSI PINDAH KE DASHBOARD - DIPERBAIKI
   const pindahKeDashboard = () => {
-    console.log('Tombol diklik! Pindah dari:', currentView);
+    console.log('✅ Tombol diklik! Pindah dari:', currentView, '→ dashboard');
+    setCurrentView('dashboard');
+  };
+
+  // ✅ FUNGSI MULAI BELAJAR (dari LandingPage ke Dashboard)
+  const mulaiDariLanding = () => {
+    console.log('✅ Mulai belajar - Pindah dari landing → dashboard');
     setCurrentView('dashboard');
   };
 
@@ -81,24 +87,34 @@ export default function App() {
       <BrowserRouter>
         <div className="min-h-screen bg-slate-950 text-white">
           {/* Debug Navigation */}
-          <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4">
-            <span>Mode Pengembangan:</span>
+          <div className="bg-slate-900 p-2 text-center border-b border-slate-800 text-xs text-slate-400 flex justify-center gap-4 flex-wrap">
+            <span>🔧 Mode Dev:</span>
+            <button 
+              onClick={mulaiDariLanding}
+              className="bg-green-600 px-2 py-0.5 rounded text-white font-medium hover:bg-green-500 transition-colors"
+            >
+              Landing
+            </button>
             <button 
               onClick={pindahKeDashboard}
-              className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500"
+              className="bg-blue-600 px-2 py-0.5 rounded text-white font-medium hover:bg-blue-500 transition-colors"
             >
-              Pindah ke DashboardPage ➡️
+              Dashboard
             </button>
+            <span>| View: <strong>{currentView}</strong></span>
           </div>
           
-          {/* TAMBAHKAN INI UNTUK DEBUG */}
-          <div style={{ textAlign: 'center', padding: '10px', fontSize: '12px', color: '#64748b' }}>
-            View saat ini: {currentView}
-          </div>
-          
-          {/* Views */}
-          {currentView === 'landing' && <LandingPage onMulai={() => setCurrentView('dashboard')} />}
-          {currentView === 'dashboard' && <DashboardPage onBukaSoal={bukaSoal} />}
+          {/* Views Rendering */}
+          {currentView === 'landing' && <LandingPage onMulai={mulaiDariLanding} />}
+          {currentView === 'dashboard' && (
+            <DashboardPage 
+              onBukaSoal={bukaSoal}
+              onKembaliKeLanding={() => {
+                console.log('✅ Kembali ke landing');
+                setCurrentView('landing');
+              }}
+            />
+          )}
           {currentView === 'soal' && <SoalPage kodeSoal={kodeSoal} onKembali={kembaliKeDashboard} />}
         </div>
       </BrowserRouter>
