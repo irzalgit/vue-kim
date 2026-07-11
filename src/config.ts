@@ -9,7 +9,7 @@ export interface SiteConfig {
 
 export const siteConfig: SiteConfig = {
   language: "id",
-  brandName: "CBT AI Tutor",
+  brandName: "TKA ",
 };
 
 // ============================================================
@@ -33,7 +33,7 @@ export const navigationConfig: NavigationConfig = {
     { label: "Materi", href: "#materi" },
     { label: "Kontak", href: "#footer" },
   ],
-  ctaText: "Mulai Belajar",
+  ctaText: "Mulai",
 };
 
 // ============================================================
@@ -48,7 +48,7 @@ export interface HeroConfig {
 }
 
 export const heroConfig: HeroConfig = {
-  title: "CBT AI Tutor",
+  title: "CBT AI ",
   subtitleLine1: "Simulasi ujian berbasis komputer dengan bantuan AI untuk siswa SMA kelas X dan XI.",
   subtitleLine2: "Belajar matematika mandiri, kapan saja, di mana saja.",
   ctaText: "Jelajahi Fitur",
@@ -265,7 +265,7 @@ export const footerConfig: FooterConfig = {
   {
     title: "Fitur",
     links: [
-      "Simulasi CBT",
+      "Simulasi TKA",
       "AI Tutor",
       "Jadwal Belajar",
       "Analisis Performa",
@@ -282,7 +282,7 @@ export const footerConfig: FooterConfig = {
     ],
   },
 ],
-  copyright: "\u00A9 2026 CBT AI Tutor. Semua hak dilindungi.",
+  copyright: "\u00A9 2026 Irzal Achnad. Semua hak dilindungi.",
   bottomLinks: [
     { label: "Tentang", href: "#" },
     { label: "Kebijakan Privasi", href: "#" },
