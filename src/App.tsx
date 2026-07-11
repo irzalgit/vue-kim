@@ -79,12 +79,12 @@ function AppContent() {
         backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
       }}
     >
-      {/* Panel Debug */}
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
-        <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
-        <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
-        <span className="rounded bg-black/30 px-3 py-2">View Aktif: <strong>{currentView}</strong></span>
-      </div>
+   {/* Panel Debug */}
+<div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
+  <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
+  <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
+  <span className="rounded bg-black/30 px-3 py-2">View Aktif: <strong>{currentView}</strong></span>
+</div>
 
       <Routes>
         <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
