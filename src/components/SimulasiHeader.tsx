@@ -1,7 +1,9 @@
-import React from 'react'
+interface SimulasiHeaderProps {
+  jenis: string;
+}
 
-export default function SimulasiHeader({ jenis }) {
-  // Mengubah kode menjadi format yang lebih rapi (misal: "matematika" jadi "Matematika")
+export default function SimulasiHeader({ jenis }: SimulasiHeaderProps) {
+  // Mengubah kode menjadi format yang lebih rapi (misal: "matematika" -> "Matematika")
   const namaSimulasi = jenis ? jenis.charAt(0).toUpperCase() + jenis.slice(1) : 'Simulasi';
 
   return (
@@ -11,5 +13,5 @@ export default function SimulasiHeader({ jenis }) {
       </h2>
       <p className="opacity-90">AI Agent Gemini 2.5 Flash siap membantu!</p>
     </div>
-  )
+  );
 }

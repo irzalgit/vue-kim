@@ -1,12 +1,17 @@
+
+// Ubah baris pertama di App.tsx menjadi:
 import { useEffect, Component } from 'react';
 import type { ReactNode } from 'react';
+
+
+
 import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
 
-// --- Definisi Tipe untuk ErrorBoundary ---
+// --- ErrorBoundary ---
 interface ErrorBoundaryProps {
   children: ReactNode;
 }
@@ -17,10 +22,7 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  public state: ErrorBoundaryState = {
-    hasError: false,
-    error: null,
-  };
+  public state: ErrorBoundaryState = { hasError: false, error: null };
 
   public static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
@@ -43,19 +45,17 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
-// --- Wrapper agar SoalPage dapat kodeSoal dari URL ---
+// --- Wrapper ---
 function SoalPageWrapper() {
   const navigate = useNavigate();
   const { kode } = useParams<{ kode: string }>();
 
-  if (!kode) {
-    return null;
-  }
+  if (!kode) return null;
 
   return <SoalPage kodeSoal={kode} onKembali={() => navigate('/dashboard')} />;
 }
 
-// --- Komponen AppContent ---
+// --- AppContent ---
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,16 +79,24 @@ function AppContent() {
         backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
       }}
     >
-   {/* Panel Debug */}
-<div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
-  <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
-  <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
-  <span className="rounded bg-black/30 px-3 py-2">View Aktif: <strong>{currentView}</strong></span>
-</div>
+      {/* Panel Debug */}
+      <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
+        <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
+        <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
+        <span className="rounded bg-black/30 px-3 py-2">View: <strong>{currentView}</strong></span>
+      </div>
 
       <Routes>
         <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
-        <Route path="/dashboard" element={<DashboardPage onBukaSoal={(kode) => navigate(`/soal/${kode}`)} onKembaliKeLanding={() => navigate('/')} />} />
+        <Route 
+          path="/dashboard" 
+          element={
+            <DashboardPage 
+              onBukaSoal={(kode: string) => navigate(`/soal/${kode}`)} 
+              onKembaliKeLanding={() => navigate('/')} 
+            />
+          } 
+        />
         <Route path="/soal/:kode" element={<SoalPageWrapper />} />
       </Routes>
     </div>

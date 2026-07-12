@@ -17,6 +17,41 @@
       "pertanyaan": "Turunan dari f(x) = x² adalah?",
       "pilihan": ["f'(x) = x", "f'(x) = 2x", "f'(x) = x²", "f'(x) = 2"],
       "jawaban_benar": "f'(x) = 2x"
+    },
+    {
+      "pertanyaan": "Berapakah nilai x jika 5x + 5 = 30?",
+      "pilihan": ["5", "4", "3", "2"],
+      "jawaban_benar": "5"
+    },
+    {
+      "pertanyaan": "Berapakah hasil dari 15 + 20 − 5?",
+      "pilihan": ["25", "30", "35", "40"],
+      "jawaban_benar": "30"
+    },
+    {
+      "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
+      "pilihan": ["6", "7", "8", "9"],
+      "jawaban_benar": "8"
+    },
+    {
+      "pertanyaan": "Berapakah hasil dari 10 × 10 ÷ 2?",
+      "pilihan": ["25", "50", "75", "100"],
+      "jawaban_benar": "50"
+    },
+    {
+      "pertanyaan": "Nilai dari 3 pangkat 3 adalah...",
+      "pilihan": ["9", "12", "21", "27"],
+      "jawaban_benar": "27"
+    },
+    {
+      "pertanyaan": "Berapakah hasil dari 100 dibagi 4?",
+      "pilihan": ["20", "25", "30", "35"],
+      "jawaban_benar": "25"
+    },
+    {
+      "pertanyaan": "Jika 3x = 21, berapakah nilai x?",
+      "pilihan": ["5", "6", "7", "8"],
+      "jawaban_benar": "7"
     }
   ]
 }
