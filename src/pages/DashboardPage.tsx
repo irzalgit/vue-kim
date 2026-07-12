@@ -1,120 +1,99 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import SoalCard from '../components/SoalCard';
+import Header from "../components/Header";
+import Agent from "../sections/Agent";
+import SimulasiHeader from '../components/SimulasiHeader';
+import Navigasi from '../components/Navigasi';
 
 interface DashboardPageProps {
-  onBukaSoal: (kode: string) => void;
   onKembaliKeLanding?: () => void;
 }
 
-export default function DashboardPage({
-  onBukaSoal,
-  onKembaliKeLanding,
-}: DashboardPageProps) {
-  const [jawaban, setJawaban] = useState<number[]>([]);
+export default function DashboardPage({ onKembaliKeLanding }: DashboardPageProps) {
+  // State manajemen simulasi
+  const [currentSimulasi, setCurrentSimulasi] = useState<string | null>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [jawaban, setJawaban] = useState<any[]>([]);
 
-  const daftarSoal = [
-    {
-      kode: 'matematika',
-      kategori: 'Matematika',
-      tanya: 'Berapakah hasil dari 2 + 2?',
-      opsi: ['1', '2', '3', '4'],
-    },
-    {
-      kode: 'fisika',
-      kategori: 'Fisika',
-      tanya: 'Satuan daya adalah?',
-      opsi: ['Watt', 'Joule', 'Newton', 'Volt'],
-    },
-    {
-      kode: 'kimia',
-      kategori: 'Kimia',
-      tanya: 'Rumus air adalah?',
-      opsi: ['H2O', 'CO2', 'NaCl', 'O2'],
-    },
+  // Konstanta konfigurasi
+  const TOTAL_SOAL = 5; 
+
+  const daftarSimulasi = [
+    { kode: 'matematika', nama: 'Simulasi Matematika', warna: '#2563eb' },
+    { kode: 'fisika', nama: 'Simulasi Fisika', warna: '#059669' }
   ];
 
-  const handleBukaSoal = (kode: string) => {
-    console.log('✅ Dashboard: Buka soal -', kode);
-    onBukaSoal(kode);
+  const handlePilihSimulasi = (kode: string) => {
+    setCurrentSimulasi(kode);
+    setCurrentIndex(0);
+    setJawaban([]); // Reset jawaban saat ganti simulasi
   };
 
-  const handleKembali = () => {
-    console.log('✅ Dashboard: Kembali ke Landing');
-    onKembaliKeLanding?.();
-  };
+  const handleSimpanJawaban = useCallback((idx: number, newJawaban: any) => {
+    setJawaban(prev => {
+      const updated = [...prev];
+      updated[idx] = newJawaban;
+      return updated;
+    });
+  }, []);
 
   return (
-    <div
-      style={{
-        padding: '40px',
-        color: '#fff',
-        background: '#0a0a0a',
-        minHeight: '100vh',
-      }}
-    >
-      {onKembaliKeLanding && (
-        <div style={{ marginBottom: '30px' }}>
-          <button onClick={handleKembali}>
-            ← Kembali ke Landing
+    <div style={{ padding: '40px', color: '#fff', background: '#0a0a0a', minHeight: '100vh' }}>
+      <Header />
+
+      {!currentSimulasi ? (
+        /* TAMPILAN PEMILIHAN */
+        <>
+          <h1>📚 Vue-Kim Dashboard</h1>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', maxWidth: '700px', marginTop: '20px' }}>
+            {daftarSimulasi.map((sim) => (
+              <button 
+                key={sim.kode} 
+                onClick={() => handlePilihSimulasi(sim.kode)}
+                style={{ background: sim.warna, padding: '30px', borderRadius: '16px', border: 'none', color: 'white', cursor: 'pointer', fontSize: '18px', fontWeight: 'bold' }}
+              >
+                {sim.nama}
+              </button>
+            ))}
+          </div>
+        </>
+      ) : (
+        /* TAMPILAN PENGERJAAN SOAL */
+        <>
+          <button 
+            onClick={() => setCurrentSimulasi(null)} 
+            style={{ marginBottom: '20px', padding: '10px 20px', cursor: 'pointer', background: '#334155', color: 'white', border: 'none', borderRadius: '8px' }}
+          >
+            ← Kembali ke Pilihan
           </button>
-        </div>
+          
+          <SimulasiHeader jenis={currentSimulasi} />
+
+          <div style={{ background: '#1e293b', padding: '24px', borderRadius: '16px', marginTop: '20px', marginBottom: '20px' }}>
+            <SoalCard
+              soal={{ tanya: `Soal ${currentSimulasi.toUpperCase()} #${currentIndex + 1}`, opsi: ['A', 'B', 'C', 'D'] }}
+              index={currentIndex}
+              jawaban={jawaban[currentIndex]}
+              onSimpan={handleSimpanJawaban}
+              onOpenAI={() => console.log('Open AI')}
+            />
+          </div>
+
+          <Navigasi 
+            currentIndex={currentIndex}
+            total={TOTAL_SOAL}
+            onPrev={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
+            onNext={() => setCurrentIndex(prev => Math.min(TOTAL_SOAL - 1, prev + 1))}
+            onSelesai={() => alert('Ujian Selesai! Skor akan ditampilkan di sini.')}
+          />
+        </>
       )}
 
-      <h1>📚 Vue-Kim Dashboard</h1>
-      <p>Pilih mata pelajaran untuk memulai simulasi</p>
-
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '20px',
-          justifyContent: 'center',
-        }}
-      >
-        {daftarSoal.map((soal) => (
-          <div
-            key={soal.kode}
-            onClick={() => handleBukaSoal(soal.kode)}
-            style={{
-              background: '#1e293b',
-              border: '1px solid #334155',
-              borderRadius: '16px',
-              padding: '24px',
-              width: '300px',
-              cursor: 'pointer',
-            }}
-          >
-            <h3>{soal.kategori}</h3>
-            <p>{soal.tanya}</p>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleBukaSoal(soal.kode);
-              }}
-            >
-              Mulai Ujian
-            </button>
-          </div>
-        ))}
+      <div style={{ marginTop: '60px' }}>
+        <hr style={{ borderColor: '#334155', marginBottom: '20px' }} />
+        <h2>🤖 AI Agent</h2>
+        <Agent />
       </div>
-
-      <hr />
-
-      <h2>Contoh Soal</h2>
-
-      <SoalCard
-        soal={daftarSoal[0]}
-        index={0}
-        jawaban={jawaban}
-        onSimpan={(index: number, jawabanBaru: number[]) => {
-          console.log('✅ Jawab soal:', index);
-          setJawaban(jawabanBaru);
-        }}
-        onOpenAI={() => {
-          console.log('✅ Open AI');
-        }}
-      />
     </div>
   );
 }

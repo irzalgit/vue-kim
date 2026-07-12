@@ -2,7 +2,7 @@ import Navigation from "../sections/Navigation";
 import Hero from "../sections/Hero";
 import Curriculum from "../sections/Curriculum";
 import CinematicVision from "../sections/CinematicVision";
-import Agent from "../sections/Agent";
+
 import Footer from "../sections/Footer";
 
 interface LandingPageProps {
@@ -24,7 +24,7 @@ export default function LandingPage({ onMulai }: LandingPageProps) {
         <Hero />
         <Curriculum />
         <CinematicVision />
-        <Agent />
+    
       </main>
 
       {/* Tombol Mulai Belajar */}
