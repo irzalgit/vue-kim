@@ -17,6 +17,41 @@
       "pertanyaan": "Kecepatan cahaya dalam vakuum adalah?",
       "pilihan": ["3 × 10⁸ m/s", "3 × 10⁶ m/s", "3 × 10⁵ m/s", "3 × 10⁷ m/s"],
       "jawaban_benar": "3 × 10⁸ m/s"
+    },
+    {
+      "pertanyaan": "Apa satuan SI untuk gaya?",
+      "pilihan": ["Joule", "Newton", "Watt", "Pascal"],
+      "jawaban_benar": "Newton"
+    },
+    {
+      "pertanyaan": "Kecepatan didefinisikan sebagai...",
+      "pilihan": ["Jarak/Waktu", "Massa/Volume", "Gaya/Luas", "Usaha/Waktu"],
+      "jawaban_benar": "Jarak/Waktu"
+    },
+    {
+      "pertanyaan": "Berapakah percepatan gravitasi bumi (m/s²)?",
+      "pilihan": ["8.8", "9.8", "10.8", "11.8"],
+      "jawaban_benar": "9.8"
+    },
+    {
+      "pertanyaan": "Energi yang dimiliki benda karena geraknya disebut...",
+      "pilihan": ["Potensial", "Kinetik", "Mekanik", "Listrik"],
+      "jawaban_benar": "Kinetik"
+    },
+    {
+      "pertanyaan": "Alat untuk mengukur arus listrik adalah...",
+      "pilihan": ["Voltmeter", "Amperemeter", "Ohmmeter", "Barometer"],
+      "jawaban_benar": "Amperemeter"
+    },
+    {
+      "pertanyaan": "Berapakah titik didih air dalam derajat Celsius?",
+      "pilihan": ["80", "90", "100", "110"],
+      "jawaban_benar": "100"
+    },
+    {
+      "pertanyaan": "Apa yang menyebabkan benda jatuh ke bawah?",
+      "pilihan": ["Magnet", "Gravitasi", "Gesekan", "Tekanan"],
+      "jawaban_benar": "Gravitasi"
     }
   ]
 }
