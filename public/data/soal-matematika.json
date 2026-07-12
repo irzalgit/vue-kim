@@ -4,54 +4,84 @@
   "waktu": 90,
   "soal": [
     {
-      "pertanyaan": "Berapakah hasil dari 2 + 2 × 3?",
-      "pilihan": ["12", "8", "10", "6"],
-      "jawaban_benar": "8"
+      "pertanyaan": "Berapakah hasil dari 3 + 4?",
+      "pilihan": ["6", "7", "8", "9"],
+      "jawaban_benar": "7",
+      "elemen": "Bilangan",
+      "fase": "A",
+      "taxonomiBloom": "C1"
     },
     {
-      "pertanyaan": "Nilai dari sin(30°) adalah?",
-      "pilihan": ["1/2", "√3/2", "√2/2", "1"],
-      "jawaban_benar": "1/2"
-    },
-    {
-      "pertanyaan": "Turunan dari f(x) = x² adalah?",
-      "pilihan": ["f'(x) = x", "f'(x) = 2x", "f'(x) = x²", "f'(x) = 2"],
-      "jawaban_benar": "f'(x) = 2x"
-    },
-    {
-      "pertanyaan": "Berapakah nilai x jika 5x + 5 = 30?",
-      "pilihan": ["5", "4", "3", "2"],
-      "jawaban_benar": "5"
+      "pertanyaan": "Bilangan manakah yang lebih besar, 15 atau 12?",
+      "pilihan": ["15", "12", "Sama besar", "Tidak bisa ditentukan"],
+      "jawaban_benar": "15",
+      "elemen": "Bilangan",
+      "fase": "A",
+      "taxonomiBloom": "C2"
     },
     {
       "pertanyaan": "Berapakah hasil dari 15 + 20 − 5?",
       "pilihan": ["25", "30", "35", "40"],
-      "jawaban_benar": "30"
+      "jawaban_benar": "30",
+      "elemen": "Bilangan",
+      "fase": "B",
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Berapakah hasil dari 8 × 7?",
+      "pilihan": ["54", "56", "58", "64"],
+      "jawaban_benar": "56",
+      "elemen": "Bilangan",
+      "fase": "B",
+      "taxonomiBloom": "C3"
     },
     {
       "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
       "pilihan": ["6", "7", "8", "9"],
-      "jawaban_benar": "8"
+      "jawaban_benar": "8",
+      "elemen": "Aljabar",
+      "fase": "C",
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Berapakah hasil dari 10 × 10 ÷ 2?",
-      "pilihan": ["25", "50", "75", "100"],
-      "jawaban_benar": "50"
+      "pertanyaan": "Berapakah luas persegi dengan panjang sisi 5 cm?",
+      "pilihan": ["10 cm²", "15 cm²", "20 cm²", "25 cm²"],
+      "jawaban_benar": "25 cm²",
+      "elemen": "Geometri",
+      "fase": "C",
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Nilai dari 3 pangkat 3 adalah...",
-      "pilihan": ["9", "12", "21", "27"],
-      "jawaban_benar": "27"
+      "pertanyaan": "Berapakah nilai x jika 5x + 5 = 30?",
+      "pilihan": ["5", "4", "3", "2"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "fase": "D",
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Berapakah hasil dari 100 dibagi 4?",
-      "pilihan": ["20", "25", "30", "35"],
-      "jawaban_benar": "25"
+      "pertanyaan": "Median dari data 3, 5, 7, 9, 11 adalah?",
+      "pilihan": ["5", "7", "9", "11"],
+      "jawaban_benar": "7",
+      "elemen": "Data & Peluang",
+      "fase": "D",
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Jika 3x = 21, berapakah nilai x?",
-      "pilihan": ["5", "6", "7", "8"],
-      "jawaban_benar": "7"
+      "pertanyaan": "Nilai dari sin(30°) adalah?",
+      "pilihan": ["1/2", "√3/2", "√2/2", "1"],
+      "jawaban_benar": "1/2",
+      "elemen": "Trigonometri",
+      "fase": "E",
+      "taxonomiBloom": "C1"
+    },
+    {
+      "pertanyaan": "Diketahui matriks A = [[1,2],[3,4]] dan B = [[5,6],[7,8]]. Hasil dari A + B adalah?",
+      "pilihan": ["[[6,8],[10,12]]", "[[5,6],[7,8]]", "[[4,4],[4,4]]", "[[1,2],[3,4]]"],
+      "jawaban_benar": "[[6,8],[10,12]]",
+      "elemen": "Aljabar",
+      "fase": "F",
+      "taxonomiBloom": "C3"
     }
   ]
 }

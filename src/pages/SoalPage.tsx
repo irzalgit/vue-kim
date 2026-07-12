@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import './SoalPage.css';
+import { generateRaport } from '../agent/raport';
+import { getRiwayat, tambahRiwayat, type RiwayatEntry } from '../utils/riwayat';
 
 interface SoalData {
   judul: string;
@@ -9,6 +11,9 @@ interface SoalData {
     pertanyaan: string;
     pilihan: string[];
     jawaban_benar: string;
+    elemen: string;
+    fase: string;
+    taxonomiBloom: string;
   }[];
 }
 
@@ -25,6 +30,13 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
   const [jawaban, setJawaban] = useState<string[]>([]);
   const [waktu, setWaktu] = useState<number>(5400);
   const [nomorSoal, setNomorSoal] = useState<number>(0);
+
+  // State untuk rapor hasil analisis AI
+  const [raport, setRaport] = useState<string | null>(null);
+  const [analisisLoading, setAnalisisLoading] = useState<boolean>(false);
+  const [analisisError, setAnalisisError] = useState<string>('');
+  const [nilaiAkhir, setNilaiAkhir] = useState<number>(0);
+  const [riwayatSebelumnya, setRiwayatSebelumnya] = useState<RiwayatEntry[]>([]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -76,10 +88,55 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
     }
   };
 
-  const kirimJawaban = () => {
+  const kirimJawaban = async () => {
+    const total = soalList.length;
     const benar = soalList.filter((s, i) => s.jawaban_benar === jawaban[i]).length;
-    alert(`Skor Anda: ${benar} / ${soalList.length}`);
-    onKembali();
+    const nilai = total > 0 ? Math.round((benar / total) * 100) : 0;
+    setNilaiAkhir(nilai);
+
+    setAnalisisLoading(true);
+    setAnalisisError('');
+
+    try {
+      const items = soalList.map((s, i) => ({
+        nomor: i + 1,
+        pertanyaan: s.pertanyaan,
+        pilihan: s.pilihan,
+        jawabanSiswa: jawaban[i] || '',
+        jawabanBenar: s.jawaban_benar,
+        elemen: s.elemen,
+        fase: s.fase,
+        taxonomiBloom: s.taxonomiBloom,
+      }));
+
+      const riwayatSebelum = getRiwayat(judul);
+      setRiwayatSebelumnya(riwayatSebelum);
+
+      const hasil = await generateRaport(judul, items, riwayatSebelum);
+      setRaport(hasil);
+
+      // Ekstrak baris "Capaian" dari hasil rapor untuk disimpan ringkas (opsional)
+      const capaianMatch = hasil.match(/\*\*Capaian:\*\*\s*(.+)/);
+      const capaian = capaianMatch ? capaianMatch[1].trim() : undefined;
+
+      tambahRiwayat({
+        tanggal: new Date().toISOString(),
+        mataPelajaran: judul,
+        nilai,
+        capaian,
+      });
+    } catch (err: any) {
+      setAnalisisError('Gagal menganalisis hasil: ' + err.message);
+
+      // Tetap simpan nilai meskipun analisis AI gagal, supaya riwayat tidak hilang
+      tambahRiwayat({
+        tanggal: new Date().toISOString(),
+        mataPelajaran: judul,
+        nilai,
+      });
+    } finally {
+      setAnalisisLoading(false);
+    }
   };
 
   const formatWaktu = (): string => {
@@ -90,6 +147,87 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
   if (loading) return <div className="loading">Memuat soal...</div>;
   if (error) return <div className="error">{error}</div>;
+
+  // Layar rapor: tampil setelah jawaban dikirim (sedang dianalisis atau sudah selesai)
+  if (analisisLoading || raport !== null || analisisError) {
+    return (
+      <div className="soal-page">
+        <div className="header">
+          <button onClick={onKembali} className="btn-kembali">← Kembali</button>
+          <h1>Rapor Hasil Belajar — {judul}</h1>
+        </div>
+
+        <div className="soal-container" style={{ padding: '24px' }}>
+          {analisisLoading && (
+            <p>⏳ Sedang menganalisis jawabanmu dengan AI, mohon tunggu...</p>
+          )}
+
+          {!analisisLoading && analisisError && (
+            <>
+              <p style={{ color: '#f87171' }}>{analisisError}</p>
+              <p>Nilai kamu: <strong>{nilaiAkhir}/100</strong></p>
+            </>
+          )}
+
+          {!analisisLoading && raport && (
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.7,
+                background: '#111827',
+                color: '#fff',
+                padding: '20px',
+                borderRadius: '12px',
+              }}
+            >
+              {raport}
+            </div>
+          )}
+
+          {riwayatSebelumnya.length > 0 && (
+            <div style={{ marginTop: '24px' }}>
+              <h3 style={{ marginBottom: '10px' }}>📈 Riwayat Nilai — {judul}</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse', color: '#fff' }}>
+                <thead>
+                  <tr style={{ textAlign: 'left', borderBottom: '1px solid #334155' }}>
+                    <th style={{ padding: '8px' }}>Tanggal</th>
+                    <th style={{ padding: '8px' }}>Nilai</th>
+                    <th style={{ padding: '8px' }}>Capaian</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ borderBottom: '1px solid #1f2937', fontWeight: 'bold' }}>
+                    <td style={{ padding: '8px' }}>
+                      {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} (hari ini)
+                    </td>
+                    <td style={{ padding: '8px' }}>{nilaiAkhir}/100</td>
+                    <td style={{ padding: '8px' }}>—</td>
+                  </tr>
+                  {riwayatSebelumnya.map((r, i) => (
+                    <tr key={i} style={{ borderBottom: '1px solid #1f2937' }}>
+                      <td style={{ padding: '8px' }}>
+                        {new Date(r.tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </td>
+                      <td style={{ padding: '8px' }}>{r.nilai}/100</td>
+                      <td style={{ padding: '8px' }}>{r.capaian || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <button
+            onClick={onKembali}
+            className="btn-nav"
+            style={{ marginTop: '20px' }}
+          >
+            Kembali ke Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const soal = soalList[nomorSoal];
 
@@ -110,6 +248,17 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
       <div className="soal-container">
         <div className="soal-item">
+          <div className="meta-badges" style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
+            <span style={{ background: '#4338ca', color: '#fff', padding: '4px 10px', borderRadius: '999px', fontSize: '12px' }}>
+              📂 {soal.elemen}
+            </span>
+            <span style={{ background: '#0369a1', color: '#fff', padding: '4px 10px', borderRadius: '999px', fontSize: '12px' }}>
+              🎓 Fase {soal.fase}
+            </span>
+            <span style={{ background: '#b45309', color: '#fff', padding: '4px 10px', borderRadius: '999px', fontSize: '12px' }}>
+              🧠 {soal.taxonomiBloom}
+            </span>
+          </div>
           <p className="pertanyaan">
             <span className="nomor">Soal {nomorSoal + 1}/{soalList.length}</span>
             <br />
