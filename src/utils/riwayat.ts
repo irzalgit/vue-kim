@@ -1,53 +1,65 @@
+// utils/riwayat.ts
+
 export interface RiwayatEntry {
-  tanggal: string; // ISO string
+  tanggal: string;
   mataPelajaran: string;
-  nilai: number; // 0-100
-  capaian?: string; // ringkasan singkat, misal "Baik", "Perlu Peningkatan"
+  nilai: number;
+  capaian?: string;
+  statistikElemen?: Record<string, { benar: number; total: number }>;
 }
 
-const STORAGE_KEY = 'riwayat-belajar';
+const STORAGE_KEY = 'riwayat';
 
-function bacaSemua(): RiwayatEntry[] {
+// Ambil semua riwayat
+const getSemuaRiwayat = (): RiwayatEntry[] => {
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (!stored) return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch (e) {
-    console.error('Gagal membaca riwayat belajar:', e);
+    return JSON.parse(stored);
+  } catch {
     return [];
   }
-}
+};
 
-export function getRiwayat(mataPelajaran?: string): RiwayatEntry[] {
-  const semua = bacaSemua();
-  const hasil = mataPelajaran
-    ? semua.filter((r) => r.mataPelajaran === mataPelajaran)
-    : semua;
+// Simpan semua riwayat
+const simpanSemuaRiwayat = (data: RiwayatEntry[]): void => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+};
 
-  // urutkan dari yang terbaru
-  return hasil.sort(
-    (a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+// Ambil riwayat untuk satu mapel (urut dari terbaru)
+export const getRiwayat = (mataPelajaran: string): RiwayatEntry[] => {
+  const semua = getSemuaRiwayat();
+  return semua
+    .filter(entry => entry.mataPelajaran === mataPelajaran)
+    .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime());
+};
+
+// Tambah riwayat baru
+export const tambahRiwayat = (entry: RiwayatEntry): void => {
+  const semua = getSemuaRiwayat();
+  semua.push(entry);
+  simpanSemuaRiwayat(semua);
+};
+
+// Perbarui field "capaian" pada satu entri riwayat (dicocokkan lewat mataPelajaran + tanggal)
+export const perbaruiCapaian = (mataPelajaran: string, tanggal: string, capaian?: string): void => {
+  const semua = getSemuaRiwayat();
+  const diperbarui = semua.map((entry) =>
+    entry.mataPelajaran === mataPelajaran && entry.tanggal === tanggal
+      ? { ...entry, capaian }
+      : entry
   );
-}
+  simpanSemuaRiwayat(diperbarui);
+};
 
-export function tambahRiwayat(entry: RiwayatEntry) {
-  try {
-    const semua = bacaSemua();
-    semua.push(entry);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(semua));
-  } catch (e) {
-    console.error('Gagal menyimpan riwayat belajar:', e);
-  }
-}
+// Hapus semua riwayat untuk satu mapel (per mapel)
+export const hapusRiwayatMapel = (mataPelajaran: string): void => {
+  const semua = getSemuaRiwayat();
+  const tersisa = semua.filter(entry => entry.mataPelajaran !== mataPelajaran);
+  simpanSemuaRiwayat(tersisa);
+};
 
-export function hapusRiwayat(mataPelajaran?: string) {
-  try {
-    if (!mataPelajaran) {
-      localStorage.removeItem(STORAGE_KEY);
-      return;
-    }
-    const semua = bacaSemua().filter((r) => r.mataPelajaran !== mataPelajaran);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(semua));
-  } catch (e) {
-    console.error('Gagal menghapus riwayat belajar:', e);
-  }
-}
+// (Opsional) Reset total semua riwayat
+export const resetTotalRiwayat = (): void => {
+  simpanSemuaRiwayat([]);
+};

@@ -9,6 +9,7 @@
       "jawaban_benar": "7",
       "elemen": "Bilangan",
       "fase": "A",
+      "kelas": 1,
       "taxonomiBloom": "C1"
     },
     {
@@ -17,6 +18,7 @@
       "jawaban_benar": "15",
       "elemen": "Bilangan",
       "fase": "A",
+      "kelas": 2,
       "taxonomiBloom": "C2"
     },
     {
@@ -25,46 +27,53 @@
       "jawaban_benar": "30",
       "elemen": "Bilangan",
       "fase": "B",
+      "kelas": 3,
       "taxonomiBloom": "C2"
-    },
-    {
-      "pertanyaan": "Berapakah hasil dari 8 × 7?",
-      "pilihan": ["54", "56", "58", "64"],
-      "jawaban_benar": "56",
-      "elemen": "Bilangan",
-      "fase": "B",
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
-      "pilihan": ["6", "7", "8", "9"],
-      "jawaban_benar": "8",
-      "elemen": "Aljabar",
-      "fase": "C",
-      "taxonomiBloom": "C3"
     },
     {
       "pertanyaan": "Berapakah luas persegi dengan panjang sisi 5 cm?",
       "pilihan": ["10 cm²", "15 cm²", "20 cm²", "25 cm²"],
       "jawaban_benar": "25 cm²",
-      "elemen": "Geometri",
-      "fase": "C",
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Berapakah nilai x jika 5x + 5 = 30?",
-      "pilihan": ["5", "4", "3", "2"],
-      "jawaban_benar": "5",
-      "elemen": "Aljabar",
-      "fase": "D",
+      "elemen": "Geometri & Pengukuran",
+      "fase": "B",
+      "kelas": 4,
       "taxonomiBloom": "C3"
     },
     {
       "pertanyaan": "Median dari data 3, 5, 7, 9, 11 adalah?",
       "pilihan": ["5", "7", "9", "11"],
       "jawaban_benar": "7",
+      "elemen": "Data",
+      "fase": "C",
+      "kelas": 5,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Berapakah hasil dari 100 dibagi 4?",
+      "pilihan": ["20", "25", "30", "35"],
+      "jawaban_benar": "25",
+      "elemen": "Bilangan",
+      "fase": "C",
+      "kelas": 6,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
+      "pilihan": ["6", "7", "8", "9"],
+      "jawaban_benar": "8",
+      "elemen": "Aljabar",
+      "subElemen": "Persamaan Linear",
+      "fase": "D",
+      "kelas": 9,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Modus dari data 2, 3, 3, 4, 5 adalah?",
+      "pilihan": ["2", "3", "4", "5"],
+      "jawaban_benar": "3",
       "elemen": "Data & Peluang",
       "fase": "D",
+      "kelas": 8,
       "taxonomiBloom": "C3"
     },
     {
@@ -73,14 +82,17 @@
       "jawaban_benar": "1/2",
       "elemen": "Trigonometri",
       "fase": "E",
+      "kelas": 10,
       "taxonomiBloom": "C1"
     },
     {
       "pertanyaan": "Diketahui matriks A = [[1,2],[3,4]] dan B = [[5,6],[7,8]]. Hasil dari A + B adalah?",
       "pilihan": ["[[6,8],[10,12]]", "[[5,6],[7,8]]", "[[4,4],[4,4]]", "[[1,2],[3,4]]"],
       "jawaban_benar": "[[6,8],[10,12]]",
-      "elemen": "Aljabar",
+      "elemen": "Aljabar & Fungsi",
+      "subElemen": "Matriks",
       "fase": "F",
+      "kelas": 11,
       "taxonomiBloom": "C3"
     }
   ]
