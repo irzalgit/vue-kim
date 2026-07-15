@@ -1,49 +1,134 @@
 import { useState, useEffect } from 'react';
 import './SoalPage.css';
 import { generateRaport } from '../agent/raport';
-import { generateSoalAdaptif } from '../agent/generateSoal';
-import { getRiwayat, tambahRiwayat, hapusRiwayatMapel, perbaruiCapaian, type RiwayatEntry } from '../utils/riwayat';
+import { generateSoalAdaptif, generateSoalBerbasisPosisi, type SoalItemGenerated } from '../agent/generateSoal';
+import {
+  getRiwayat,
+  tambahRiwayat,
+  hapusRiwayatMapel,
+  perbaruiCapaian,
+  type RiwayatEntry,
+  type DetailSoalEntry,
+} from '../utils/riwayat';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
-// ==================== HELPER RENDER LATEX PALING LENGKAP ====================
+// ============================================================
+//  HELPER: PENGACAK PILIHAN (FISHER-YATES SHUFFLE)
+// ============================================================
+function acakPilihan(pilihan: string[]): string[] {
+  const arr = [...pilihan];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ============================================================
+//  HELPER: ESCAPE HTML
+// ============================================================
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// ============================================================
+//  HELPER: RENDER LATEX (CAMPURAN TEKS + RUMUS)
+// ============================================================
 function renderLatex(teks: string): string {
   if (!teks) return '';
 
-  // 1. Handle semua kemungkinan format LaTeX
-  // Urutan penting: $$...$$ (display) harus lebih dulu dari $...$ (inline)
-  const patterns = [
-    { regex: /\\\[(.*?)\\\]/gs, display: true },   // \[ ... \]
-    { regex: /\$\$(.*?)\$\$/gs, display: true },    // $$ ... $$
-    { regex: /\\\((.*?)\\\)/gs, display: false },   // \( ... \)
-    { regex: /\$(.*?)\$/gs, display: false },       // $ ... $
-    { regex: /\\begin\{(.*?)\}(.*?)\\end\{\1\}/gs, display: true }, // \begin{...} ... \end{...}
-  ];
+  try {
+    const regex = /(\$\$[\s\S]*?\$\$|\$[^$]*?\$)/g;
+    const bagian = teks.split(regex);
 
-  let hasil = teks;
-  for (const p of patterns) {
-    hasil = hasil.replace(p.regex, (match, ...args) => {
-      // Ambil konten matematika
-      const math = args[0];
-      try {
-        return katex.renderToString(math, {
-          throwOnError: false,
-          displayMode: p.display,
-          trust: true, // izinkan perintah custom
-        });
-      } catch (err) {
-        console.warn('[KaTeX] Gagal render:', math, err);
-        return match; // fallback ke teks asli
-      }
-    });
+    return bagian
+      .map((bag) => {
+        if (!bag) return '';
+
+        // Display $$...$$
+        if (bag.startsWith('$$') && bag.endsWith('$$')) {
+          const rumus = bag.slice(2, -2).trim();
+          try {
+            return katex.renderToString(rumus, {
+              throwOnError: false,
+              displayMode: true,
+              trust: true,
+              strict: false,
+            });
+          } catch {
+            return `<span style="color: #f87171;">${escapeHtml(bag)}</span>`;
+          }
+        }
+
+        // Inline $...$
+        if (bag.startsWith('$') && bag.endsWith('$')) {
+          const rumus = bag.slice(1, -1).trim();
+          try {
+            return katex.renderToString(rumus, {
+              throwOnError: false,
+              displayMode: false,
+              trust: true,
+              strict: false,
+            });
+          } catch {
+            return `<span style="color: #f87171;">${escapeHtml(bag)}</span>`;
+          }
+        }
+
+        // Teks biasa
+        return escapeHtml(bag).replace(/\n/g, '<br/>');
+      })
+      .join('');
+  } catch (error) {
+    console.error('Error rendering:', error);
+    return escapeHtml(teks);
   }
-
-  // 2. Bersihkan sisa simbol yang tidak ter-render (opsional)
-  // hasil = hasil.replace(/\\\(/g, '').replace(/\\\)/g, '');
-  return hasil;
 }
 
-// ==================== INTERFACE ====================
+// ============================================================
+//  DETEKSI RUMUS MURNI (BUKAN KALIMAT)
+// ============================================================
+function isFormulaMurni(teks: string): boolean {
+  const punyaCommandLatex = /\\[a-zA-Z]+/.test(teks);
+  const jumlahKata = teks.trim().split(/\s+/).length;
+
+  const adaKataKalimat = /\b(yang|adalah|berapa|jika|maka|dengan|dari|nilai|hitunglah|tentukan|berikut|manakah|apa|sebuah|di|ke|pada|untuk|dan|atau)\b/i.test(teks);
+  if (adaKataKalimat) return false;
+
+  const hanyaKarakterMatematis = /^[\d\s+\-*/=.,()^_{}\\a-zA-Z<>≤≥±√π%]+$/.test(teks);
+
+  if (punyaCommandLatex && jumlahKata <= 8) return true;
+  if (!punyaCommandLatex && hanyaKarakterMatematis && jumlahKata <= 6) return true;
+
+  return false;
+}
+
+// ============================================================
+//  NORMALISASI TEKS SOAL (BUNGKUS RUMUS DENGAN $...$)
+// ============================================================
+function normalisasiTeksSoal(teks: string): string {
+  if (!teks) return '';
+
+  if (teks.includes('\\begin{') || teks.includes('$')) {
+    return teks;
+  }
+
+  if (isFormulaMurni(teks)) {
+    return `$${teks}$`;
+  }
+
+  return teks;
+}
+
+// ============================================================
+//  INTERFACE
+// ============================================================
 interface SoalData {
   judul: string;
   kode: string;
@@ -65,6 +150,9 @@ interface SoalPageProps {
   onKembali: () => void;
 }
 
+// ============================================================
+//  KOMPONEN UTAMA
+// ============================================================
 export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -81,10 +169,12 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
   const [riwayatSebelumnya, setRiwayatSebelumnya] = useState<RiwayatEntry[]>([]);
 
   const [sumberSoal, setSumberSoal] = useState<'hardcode' | 'adaptif'>('hardcode');
-  const [kelasTargetSesi, setKelasTargetSesi] = useState<number | undefined>(undefined);
+  // Ubah menjadi:
+
   const [sesiUjian, setSesiUjian] = useState<number>(1);
   const [loadingMessage, setLoadingMessage] = useState<string>('Memuat soal...');
 
+  // Timer otomatis
   useEffect(() => {
     const timer = setInterval(() => {
       setWaktu((prev) => {
@@ -103,10 +193,9 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
   // ==================== MUAT SOAL ====================
   const muatSoal = async () => {
-    console.log('[DEBUG-SOALPAGE] muatSoal dijalankan, kodeSoal:', kodeSoal);
     setLoading(true);
     setLoadingMessage('Memuat soal...');
-    
+
     try {
       const base = import.meta.env.BASE_URL || '/vue-kim/';
       const response = await fetch(`${base}data/soal-${kodeSoal}.json`);
@@ -120,7 +209,7 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         .map((s) => s.kelas)
         .filter((k): k is number => typeof k === 'number');
       const kelasTargetHitung = kelasValues.length > 0 ? Math.max(...kelasValues) : undefined;
-      setKelasTargetSesi(kelasTargetHitung);
+
 
       const riwayat = getRiwayat(data.judul);
       const sesiSaatIni = riwayat.length + 1;
@@ -129,58 +218,62 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
       const cacheKey = `soal_adaptif_${data.judul}`;
       const cachedSoal = localStorage.getItem(cacheKey);
 
+      let soalProses: SoalData['soal'] = [];
+
       if (sesiSaatIni === 1) {
         setSumberSoal('hardcode');
-        setSoalList(data.soal);
-        setJawaban(new Array(data.soal.length).fill(''));
-        setLoading(false);
-        return;
-      }
-
-      if (cachedSoal) {
-        const soalDariCache = JSON.parse(cachedSoal);
+        soalProses = data.soal;
+      } else if (cachedSoal) {
         setSumberSoal('adaptif');
-        setSoalList(soalDariCache);
-        setJawaban(new Array(soalDariCache.length).fill(''));
-        setLoading(false);
-        return;
-      }
+        soalProses = JSON.parse(cachedSoal);
+      } else {
+        setLoadingMessage(' AI sedang menyusun soal personalisasi untukmu...');
+        try {
+          const riwayatTerbaru = riwayat[0];
+          const detailSoalSebelumnya = riwayatTerbaru?.detailSoal;
 
-      setLoadingMessage('🤖 AI sedang menyusun soal personalisasi untukmu...');
-      try {
-        const riwayatTerakhir = riwayat[riwayat.length - 1];
-        const statistikDariRiwayat = riwayatTerakhir?.statistikElemen || {};
-        
-        const soalAI = await generateSoalAdaptif(
-          data.judul,
-          data.soal.length,
-          statistikDariRiwayat,
-          kelasTargetHitung,
-          'sampai'
-        );
+          let soalAI: SoalItemGenerated[];
 
-        if (soalAI && soalAI.length > 0) {
-          setSumberSoal('adaptif');
-          setSoalList(soalAI);
-          setJawaban(new Array(soalAI.length).fill(''));
-          localStorage.setItem(cacheKey, JSON.stringify(soalAI));
-          setLoading(false);
-          return;
-        } else {
-          throw new Error('Soal AI kosong');
+          if (detailSoalSebelumnya && detailSoalSebelumnya.length > 0) {
+            soalAI = await generateSoalBerbasisPosisi(data.judul, detailSoalSebelumnya);
+          } else {
+            const statistikDariRiwayat = riwayatTerbaru?.statistikElemen || {};
+            soalAI = await generateSoalAdaptif(
+              data.judul,
+              data.soal.length,
+              statistikDariRiwayat,
+              kelasTargetHitung,
+              'sampai'
+            );
+          }
+
+          if (soalAI && soalAI.length > 0) {
+            setSumberSoal('adaptif');
+            soalProses = soalAI;
+            localStorage.setItem(cacheKey, JSON.stringify(soalAI));
+          } else {
+            throw new Error('Soal AI kosong');
+          }
+        } catch (aiErr: any) {
+          console.warn('[DEBUG] Gagal generate soal AI, fallback ke hardcode:', aiErr);
+          setSumberSoal('hardcode');
+          soalProses = data.soal;
+          setError('Soal AI gagal dimuat, menggunakan soal standar. Error: ' + aiErr.message);
         }
-      } catch (aiErr: any) {
-        console.warn('[DEBUG-SOALPAGE] Gagal generate soal AI, fallback ke hardcode:', aiErr);
-        setSumberSoal('hardcode');
-        setSoalList(data.soal);
-        setJawaban(new Array(data.soal.length).fill(''));
-        setError('Soal AI gagal dimuat, menggunakan soal standar. Error: ' + aiErr.message);
-        setLoading(false);
-        return;
       }
 
+      // Normalisasi teks & acak pilihan (urutan opsi divariasikan)
+      const soalFinal = soalProses.map((s) => ({
+        ...s,
+        pertanyaan: normalisasiTeksSoal(s.pertanyaan),
+        pilihan: acakPilihan(s.pilihan.map(normalisasiTeksSoal)),
+      }));
+
+      setSoalList(soalFinal);
+      setJawaban(new Array(soalFinal.length).fill(''));
+      setLoading(false);
     } catch (err: any) {
-      console.error('[DEBUG-SOALPAGE] Gagal memuat soal:', err);
+      console.error('[DEBUG] Gagal memuat soal:', err);
       setError('Gagal memuat soal: ' + err.message);
     } finally {
       setLoading(false);
@@ -194,15 +287,11 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
   };
 
   const navigasiSoal = (arah: 'prev' | 'next') => {
-    if (arah === 'prev' && nomorSoal > 0) {
-      setNomorSoal(nomorSoal - 1);
-    } else if (arah === 'next' && nomorSoal < soalList.length - 1) {
-      setNomorSoal(nomorSoal + 1);
-    }
+    if (arah === 'prev' && nomorSoal > 0) setNomorSoal(nomorSoal - 1);
+    else if (arah === 'next' && nomorSoal < soalList.length - 1) setNomorSoal(nomorSoal + 1);
   };
 
   const kirimJawaban = async () => {
-    console.log('[DEBUG-SOALPAGE] kirimJawaban dipanggil');
     const total = soalList.length;
     const benar = soalList.filter((s, i) => s.jawaban_benar === jawaban[i]).length;
     const nilai = total > 0 ? Math.round((benar / total) * 100) : 0;
@@ -215,9 +304,18 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
       if (s.jawaban_benar === jawaban[i]) statistikElemen[s.elemen].benar += 1;
     });
 
+    const detailSoal: DetailSoalEntry[] = soalList.map((s, i) => ({
+      nomor: i + 1,
+      elemen: s.elemen,
+      subElemen: s.subElemen || '',
+      fase: s.fase,
+      kelas: s.kelas ?? 0,
+      taxonomiBloom: s.taxonomiBloom,
+      benar: s.jawaban_benar === jawaban[i],
+    }));
+
     const riwayatSebelum = getRiwayat(judul);
     setRiwayatSebelumnya(riwayatSebelum);
-
     setAnalisisLoading(true);
     setAnalisisError('');
 
@@ -226,12 +324,13 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
       mataPelajaran: judul,
       nilai,
       statistikElemen,
+      detailSoal,
     };
 
     try {
       tambahRiwayat(riwayatBaru);
-    } catch (err: any) {
-      console.error('[DEBUG-SOALPAGE] Gagal menyimpan riwayat:', err);
+    } catch (err) {
+      console.error('Gagal menyimpan riwayat:', err);
     }
 
     const cacheKey = `soal_adaptif_${judul}`;
@@ -250,12 +349,18 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
     const [hasilRaport, hasilSoalBaru] = await Promise.allSettled([
       generateRaport(judul, items, riwayatSebelum),
-      generateSoalAdaptif(judul, soalList.length, statistikElemen, kelasTargetSesi, 'sampai'),
+      generateSoalBerbasisPosisi(judul, detailSoal),
     ]);
 
     if (hasilSoalBaru.status === 'fulfilled') {
-      localStorage.setItem(cacheKey, JSON.stringify(hasilSoalBaru.value));
+      const soalNormal = hasilSoalBaru.value.map((s: any) => ({
+        ...s,
+        pertanyaan: normalisasiTeksSoal(s.pertanyaan),
+        pilihan: s.pilihan.map(normalisasiTeksSoal),
+      }));
+      localStorage.setItem(cacheKey, JSON.stringify(soalNormal));
     } else {
+      console.warn('[DEBUG] Gagal generate soal berikutnya (berbasis posisi):', hasilSoalBaru.reason);
       localStorage.removeItem(cacheKey);
     }
 
@@ -267,7 +372,7 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
       const capaian = capaianMatch ? capaianMatch[1].trim() : undefined;
       perbaruiCapaian(judul, riwayatBaru.tanggal, capaian);
     } catch (err: any) {
-      console.error('[DEBUG-SOALPAGE] Gagal analisis rapor:', err);
+      console.error('Gagal analisis rapor:', err);
       setAnalisisError('Gagal menganalisis hasil: ' + (err?.message ?? String(err)));
     } finally {
       setAnalisisLoading(false);
@@ -286,20 +391,25 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
   const formatWaktu = (): string => {
     const menit = Math.floor(waktu / 60);
     const detik = waktu % 60;
-    return `${menit.toString().padStart(2, '0')}:${detik.toString().padStart(2, '0')}`;
+    return `${String(menit).padStart(2, '0')}:${String(detik).padStart(2, '0')}`;
   };
 
-  // ==================== LOADING & ERROR ====================
-  if (loading) return (
-    <div className="loading">
-      <p>{loadingMessage}</p>
-      {sesiUjian > 1 && <p style={{ fontSize: '14px', opacity: 0.7 }}>Sesi ke-{sesiUjian} • Mohon tunggu sebentar</p>}
-    </div>
-  );
-  
+  // ============================================================
+  //  RENDER
+  // ============================================================
+
+  if (loading) {
+    return (
+      <div className="loading">
+        <p>{loadingMessage}</p>
+        {sesiUjian > 1 && <p style={{ fontSize: '14px', opacity: 0.7 }}>Sesi ke-{sesiUjian} • Mohon tunggu sebentar</p>}
+      </div>
+    );
+  }
+
   if (error) return <div className="error">{error}</div>;
 
-  // ==================== HALAMAN RAPOR ====================
+  // ========== HALAMAN RAPOR ==========
   if (analisisLoading || raport !== null || analisisError) {
     return (
       <div className="soal-page">
@@ -331,7 +441,6 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
                 }}
                 dangerouslySetInnerHTML={{ __html: renderLatex(raport) }}
               />
-
               <button
                 onClick={handleHapusRiwayat}
                 style={{
@@ -391,8 +500,9 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
     );
   }
 
-  // ==================== HALAMAN PENGERJAAN SOAL ====================
+  // ========== HALAMAN PENGERJAAN SOAL ==========
   const soal = soalList[nomorSoal];
+
   return (
     <div className="soal-page">
       <div className="header">
@@ -401,10 +511,19 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         <div className="timer">⏱️ {formatWaktu()}</div>
       </div>
 
-      {/* Badge Sumber Soal & Sesi + Info Kelas & Sub-elemen */}
+      {/* Badge header */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', margin: '10px 0', flexWrap: 'wrap' }}>
-        <span style={{ background: sumberSoal === 'adaptif' ? '#10b981' : '#6b7280', color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 'bold' }}>
-          {sumberSoal === 'adaptif' ? '🤖 Soal AI' : '📚 Soal Standar'}
+        <span
+          style={{
+            background: sumberSoal === 'adaptif' ? '#10b981' : '#6b7280',
+            color: '#fff',
+            padding: '4px 12px',
+            borderRadius: '999px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+          }}
+        >
+          {sumberSoal === 'adaptif' ? ' Soal AI' : '📚 Soal Standar'}
         </span>
         <span style={{ background: '#4338ca', color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '12px' }}>
           Sesi ke-{sesiUjian}
@@ -416,7 +535,7 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         )}
         {soal.subElemen && (
           <span style={{ background: '#0d9488', color: '#fff', padding: '4px 12px', borderRadius: '999px', fontSize: '12px' }}>
-            📌 {soal.subElemen}
+             {soal.subElemen}
           </span>
         )}
       </div>
@@ -427,7 +546,7 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
       <div className="soal-container">
         <div className="soal-item">
-          {/* Meta Badges */}
+          {/* Meta badges */}
           <div className="meta-badges" style={{ display: 'flex', gap: '8px', marginBottom: '12px', flexWrap: 'wrap' }}>
             <span style={{ background: '#4338ca', color: '#fff', padding: '4px 10px', borderRadius: '999px', fontSize: '12px' }}>
               📂 {soal.elemen}
@@ -450,14 +569,14 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
             )}
           </div>
 
-          {/* Pertanyaan - RENDER LATEX */}
+          {/* Pertanyaan */}
           <p className="pertanyaan">
             <span className="nomor">Soal {nomorSoal + 1}/{soalList.length}</span>
             <br />
             <span dangerouslySetInnerHTML={{ __html: renderLatex(soal.pertanyaan) }} />
           </p>
 
-          {/* Pilihan Jawaban - RENDER LATEX */}
+          {/* Pilihan */}
           <div className="pilihan">
             {soal.pilihan.map((pilihan, pIndex) => (
               <label key={pIndex} className={jawaban[nomorSoal] === pilihan ? 'dipilih' : ''}>
@@ -474,7 +593,6 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
           </div>
         </div>
 
-        {/* Navigasi */}
         <div className="navigasi">
           <button onClick={() => navigasiSoal('prev')} disabled={nomorSoal === 0} className="btn-nav">
             ← Sebelumnya
@@ -487,7 +605,6 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         </div>
       </div>
 
-      {/* Navigator Nomor Soal */}
       <div className="nomor-navigasi">
         {soalList.map((_, i) => (
           <button
