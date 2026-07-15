@@ -58,6 +58,15 @@
       "taxonomiBloom": "C2"
     },
     {
+      "pertanyaan": "Modus dari data 2, 3, 3, 4, 5 adalah?",
+      "pilihan": ["2", "3", "4", "5"],
+      "jawaban_benar": "3",
+      "elemen": "Data & Peluang",
+      "fase": "D",
+      "kelas": 8,
+      "taxonomiBloom": "C3"
+    },
+    {
       "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
       "pilihan": ["6", "7", "8", "9"],
       "jawaban_benar": "8",
@@ -65,15 +74,6 @@
       "subElemen": "Persamaan Linear",
       "fase": "D",
       "kelas": 9,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Modus dari data 2, 3, 3, 4, 5 adalah?",
-      "pilihan": ["2", "3", "4", "5"],
-      "jawaban_benar": "3",
-      "elemen": "Data & Peluang",
-      "fase": "D",
-      "kelas": 8,
       "taxonomiBloom": "C3"
     },
     {
@@ -86,14 +86,58 @@
       "taxonomiBloom": "C1"
     },
     {
-      "pertanyaan": "Diketahui matriks A = [[1,2],[3,4]] dan B = [[5,6],[7,8]]. Hasil dari A + B adalah?",
-      "pilihan": ["[[6,8],[10,12]]", "[[5,6],[7,8]]", "[[4,4],[4,4]]", "[[1,2],[3,4]]"],
-      "jawaban_benar": "[[6,8],[10,12]]",
-      "elemen": "Aljabar & Fungsi",
-      "subElemen": "Matriks",
+      "pertanyaan": "Bentuk apa yang diperoleh persegi setelah diputar $90^\\circ$ tentang pusatnya?",
+      "pilihan": ["bentuk sama", "bentuk terputar tetapi berbeda", "bentuk cermin", "bentuk terstruktur ulang"],
+      "jawaban_benar": "bentuk sama",
+      "elemen": "Geometri",
+      "fase": "E",
+      "kelas": 10,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Diketahui matriks $A = \\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$ dan $B = \\begin{pmatrix} 5 & 6 \\\\ 7 & 8 \\end{pmatrix}$. Hasil dari $A + B$ adalah?",
+      "pilihan": [
+        "$\\begin{pmatrix} 6 & 8 \\\\ 10 & 12 \\end{pmatrix}$",
+        "$\\begin{pmatrix} 5 & 6 \\\\ 7 & 8 \\end{pmatrix}$",
+        "$\\begin{pmatrix} 4 & 4 \\\\ 4 & 4 \\end{pmatrix}$",
+        "$\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$"
+      ],
+      "jawaban_benar": "$\\begin{pmatrix} 6 & 8 \\\\ 10 & 12 \\end{pmatrix}$",
+      "elemen": "Aljabar",
+      "subElemen": "Matriks lanjut",
       "fase": "F",
       "kelas": 11,
       "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Determinan dari matriks $\\begin{pmatrix} 2 & 3 \\\\ 1 & 4 \\end{pmatrix}$ adalah?",
+      "pilihan": ["5", "8", "11", "-5"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "subElemen": "Determinan matriks",
+      "fase": "F",
+      "kelas": 11,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Hasil dari $\\int 2x \\, dx$ adalah?",
+      "pilihan": ["$x^2 + C$", "$2x^2 + C$", "$x + C$", "$x^2/2 + C$"],
+      "jawaban_benar": "$x^2 + C$",
+      "elemen": "Kalkulus",
+      "subElemen": "Integral tak tentu",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai dari $\\int_{0}^{2} x^2 \\, dx$ adalah?",
+      "pilihan": ["8/3", "4", "8", "2/3"],
+      "jawaban_benar": "8/3",
+      "elemen": "Kalkulus",
+      "subElemen": "Integral tentu",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
     }
   ]
 }
