@@ -33,3 +33,21 @@ export async function getFreeModels(): Promise<string[]> {
 
   return models;
 }
+
+export async function getFallbackFreeModel(
+  failedModel?: string
+): Promise<string | null> {
+
+  const models = await getFreeModels();
+
+  const availableModels =
+    models.filter(
+      (model) => model !== failedModel
+    );
+
+  if (availableModels.length === 0) {
+    return null;
+  }
+
+  return availableModels[0];
+}

@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import './SoalPage.css';
 import { generateRaport } from '../agent/raport';
 import { generateSoalAdaptif, generateSoalBerbasisPosisi, type SoalItemGenerated } from '../agent/generateSoal';
+import { QUOTA_EXCEEDED_ERROR } from '../agent/providers/gemini';
+import { usePayment } from '../App';
 import {
   getRiwayat,
   tambahRiwayat,
@@ -154,6 +156,7 @@ interface SoalPageProps {
 //  KOMPONEN UTAMA
 // ============================================================
 export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
+  const { triggerPayment } = usePayment();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [judul, setJudul] = useState<string>('');
@@ -373,6 +376,9 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
       perbaruiCapaian(judul, riwayatBaru.tanggal, capaian);
     } catch (err: any) {
       console.error('Gagal analisis rapor:', err);
+      if (err?.message === QUOTA_EXCEEDED_ERROR) {
+        triggerPayment();
+      }
       setAnalisisError('Gagal menganalisis hasil: ' + (err?.message ?? String(err)));
     } finally {
       setAnalisisLoading(false);

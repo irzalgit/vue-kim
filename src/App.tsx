@@ -1,6 +1,6 @@
 
 // Ubah baris pertama di App.tsx menjadi:
-import { useEffect, Component } from 'react';
+import { useEffect, Component, createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
 
 
@@ -10,6 +10,11 @@ import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
+import { PaymentModal } from './components/PaymentModal';
+
+// --- Context ---
+const PaymentContext = createContext<{ triggerPayment: () => void } | null>(null);
+export const usePayment = () => useContext(PaymentContext)!;
 
 // --- ErrorBoundary ---
 interface ErrorBoundaryProps {
@@ -59,6 +64,7 @@ function SoalPageWrapper() {
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [showPayment, setShowPayment] = useState(false);
 
   const currentView = location.pathname.startsWith('/soal')
     ? 'soal'
@@ -73,33 +79,36 @@ function AppContent() {
   }, [location.pathname]);
 
   return (
-    <div
-      className="min-h-screen text-white transition-colors duration-500 pt-16 relative"
-      style={{
-        backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
-      }}
-    >
-      {/* Panel Debug */}
-      <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
-        <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
-        <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
-        <span className="rounded bg-black/30 px-3 py-2">View: <strong>{currentView}</strong></span>
-      </div>
+    <PaymentContext.Provider value={{ triggerPayment: () => setShowPayment(true) }}>
+      <div
+        className="min-h-screen text-white transition-colors duration-500 pt-16 relative"
+        style={{
+          backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
+        }}
+      >
+        {/* Panel Debug */}
+        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
+          <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
+          <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
+          <span className="rounded bg-black/30 px-3 py-2">View: <strong>{currentView}</strong></span>
+        </div>
 
-      <Routes>
-        <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
-        <Route 
-          path="/dashboard" 
-          element={
-            <DashboardPage 
-              onBukaSoal={(kode: string) => navigate(`/soal/${kode}`)} 
-              onKembaliKeLanding={() => navigate('/')} 
-            />
-          } 
-        />
-        <Route path="/soal/:kode" element={<SoalPageWrapper />} />
-      </Routes>
-    </div>
+        <Routes>
+          <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <DashboardPage 
+                onBukaSoal={(kode: string) => navigate(`/soal/${kode}`)} 
+                onKembaliKeLanding={() => navigate('/')} 
+              />
+            } 
+          />
+          <Route path="/soal/:kode" element={<SoalPageWrapper />} />
+        </Routes>
+        <PaymentModal open={showPayment} onOpenChange={setShowPayment} />
+      </div>
+    </PaymentContext.Provider>
   );
 }
 

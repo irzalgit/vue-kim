@@ -1,24 +1,26 @@
 import { AI_CONFIG } from "../config";
 
+export const QUOTA_EXCEEDED_ERROR = "QUOTA_EXCEEDED";
+
 export const geminiProvider = {
   async generate(prompt: string, systemPrompt?: string): Promise<string> {
     const apiKey = AI_CONFIG.apiKey;
-    // Menggunakan model dari config, default ke gemini-2.0-flash
-    const model = AI_CONFIG.model || "gemini-2.0-flash"; 
-
-    // Menggunakan v1beta agar mendukung model terbaru
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    const model = AI_CONFIG.model || "gemini-2.0-flash";
+    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined
+        systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 429) {
+        throw new Error(QUOTA_EXCEEDED_ERROR);
+      }
       const err = await response.json();
       throw new Error(err?.error?.message || "Gagal menghubungi Gemini");
     }
