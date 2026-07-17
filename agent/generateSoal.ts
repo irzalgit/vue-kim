@@ -68,33 +68,102 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai')
   return lines.join('\n');
 }
 
+// Meng-escape newline/tab/karakter kontrol HANYA jika berada di dalam string JSON
+// (di antara tanda kutip ganda), agar tidak merusak whitespace pemformatan
+// yang berada di luar string (antar { } [ ] , :).
+function escapeControlCharsInStrings(input: string): string {
+  let result = '';
+  let insideString = false;
+  let isEscaped = false;
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+
+    if (insideString) {
+      if (isEscaped) {
+        // Karakter ini sudah didahului backslash, biarkan apa adanya
+        result += ch;
+        isEscaped = false;
+        continue;
+      }
+      if (ch === '\\') {
+        result += ch;
+        isEscaped = true;
+        continue;
+      }
+      if (ch === '"') {
+        insideString = false;
+        result += ch;
+        continue;
+      }
+      // Escape karakter kontrol mentah (newline, tab, CR, dll) di dalam string
+      switch (ch) {
+        case '\n':
+          result += '\\n';
+          break;
+        case '\r':
+          result += '\\r';
+          break;
+        case '\t':
+          result += '\\t';
+          break;
+        default:
+          if (ch.charCodeAt(0) <= 0x1f) {
+            // buang karakter kontrol lain yang tidak dikenal
+          } else {
+            result += ch;
+          }
+      }
+      continue;
+    }
+
+    // Di luar string
+    if (ch === '"') {
+      insideString = true;
+      result += ch;
+      continue;
+    }
+    result += ch;
+  }
+
+  return result;
+}
+
 function parseJSONSoal(hasilMentah: string): any[] {
   console.log('[DEBUG-PARSE] Input mentah (first 200 chars):', hasilMentah.substring(0, 200));
-  let jsonString = hasilMentah;
-  jsonString = jsonString.replace(/```(?:json)?\s*/gi, "");
-  jsonString = jsonString.replace(/```\s*$/gi, "");
-  jsonString = jsonString.replace(/```/g, "");
+  
+  // 1. Bersihkan markup markdown
+  let jsonString = hasilMentah
+    .replace(/```(?:json)?\s*/gi, "")
+    .replace(/```\s*$/gi, "")
+    .trim();
+
+  // 2. Cari kurung siku pertama dan terakhir
   const startIdx = jsonString.indexOf('[');
   const endIdx = jsonString.lastIndexOf(']');
   if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-    console.error('[DEBUG-PARSE] Tidak menemukan tanda [ atau ]');
-    throw new Error('Tidak menemukan array JSON dalam respons');
+    throw new Error('Tidak menemukan struktur array JSON ([...]) dalam respons');
   }
+  
   jsonString = jsonString.substring(startIdx, endIdx + 1);
+
+  // 3. Normalisasi karakter kontrol dan kutipan
+  // Menghapus karakter kontrol (00-1F) kecuali newline agar JSON tidak rusak
+  jsonString = jsonString.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  
+  // Memperbaiki kutipan tunggal menjadi kutipan ganda (sering terjadi jika AI tidak konsisten)
   jsonString = jsonString
-    .replace(/,\s*([}\]])/g, '$1')
     .replace(/([{,]\s*)'([^']*)':/g, '$1"$2":')
-    .replace(/:\s*'([^']*)'/g, ':"$1"')
-    .replace(/\n/g, '\\n')
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+    .replace(/:\s*'([^']*)'/g, ':"$1"');
+
+  // 4. Gunakan helper escape untuk string di dalam
+  jsonString = escapeControlCharsInStrings(jsonString);
+
   try {
-    const parsed = JSON.parse(jsonString);
-    console.log('[DEBUG-PARSE] Parse berhasil, tipe:', typeof parsed, 'isArray:', Array.isArray(parsed));
-    return parsed;
+    return JSON.parse(jsonString);
   } catch (parseErr: any) {
-    console.error('[DEBUG-PARSE] Parse gagal:', parseErr.message);
-    console.error('[DEBUG-PARSE] String yang dicoba:', jsonString.substring(0, 500));
-    throw parseErr;
+    console.error('[DEBUG-PARSE] Parse gagal. String yang diproses:', jsonString.substring(0, 500));
+    throw new Error(`Gagal memparsing JSON: ${parseErr.message}`);
   }
 }
 
