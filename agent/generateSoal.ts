@@ -1,4 +1,3 @@
-// agent/generateSoal.ts
 import { askLLM } from "./llm";
 import { pilihPrompt } from "./promptSelector";
 import {
@@ -22,7 +21,8 @@ export interface SoalItemGenerated {
   taxonomiBloom: string;
 }
 
-// ==================== HELPER (tidak berubah) ====================
+// ==================== HELPER ====================
+
 function getSubElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai'): string {
   if (!kelasTarget) return buatRingkasanSubElemen();
   const kelasRange = modeFilter === 'hanya' ? [kelasTarget] : Array.from({ length: kelasTarget }, (_, i) => i + 1);
@@ -68,102 +68,70 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai')
   return lines.join('\n');
 }
 
-// Meng-escape newline/tab/karakter kontrol HANYA jika berada di dalam string JSON
-// (di antara tanda kutip ganda), agar tidak merusak whitespace pemformatan
-// yang berada di luar string (antar { } [ ] , :).
-function escapeControlCharsInStrings(input: string): string {
-  let result = '';
-  let insideString = false;
-  let isEscaped = false;
-
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i];
-
-    if (insideString) {
-      if (isEscaped) {
-        // Karakter ini sudah didahului backslash, biarkan apa adanya
-        result += ch;
-        isEscaped = false;
-        continue;
-      }
-      if (ch === '\\') {
-        result += ch;
-        isEscaped = true;
-        continue;
-      }
-      if (ch === '"') {
-        insideString = false;
-        result += ch;
-        continue;
-      }
-      // Escape karakter kontrol mentah (newline, tab, CR, dll) di dalam string
-      switch (ch) {
-        case '\n':
-          result += '\\n';
-          break;
-        case '\r':
-          result += '\\r';
-          break;
-        case '\t':
-          result += '\\t';
-          break;
-        default:
-          if (ch.charCodeAt(0) <= 0x1f) {
-            // buang karakter kontrol lain yang tidak dikenal
-          } else {
-            result += ch;
-          }
-      }
-      continue;
-    }
-
-    // Di luar string
-    if (ch === '"') {
-      insideString = true;
-      result += ch;
-      continue;
-    }
-    result += ch;
-  }
-
-  return result;
-}
-
+/**
+ * PERBAIKAN KRITIS: Parser JSON yang sangat toleran
+ * Menangani: Markdown blocks, single quotes, trailing commas, 
+ * dan karakter kontrol tersembunyi yang menyebabkan "Unexpected token"
+ */
 function parseJSONSoal(hasilMentah: string): any[] {
-  console.log('[DEBUG-PARSE] Input mentah (first 200 chars):', hasilMentah.substring(0, 200));
+  console.log('[DEBUG-PARSE] Raw input length:', hasilMentah.length);
   
-  // 1. Bersihkan markup markdown
-  let jsonString = hasilMentah
-    .replace(/```(?:json)?\s*/gi, "")
-    .replace(/```\s*$/gi, "")
-    .trim();
+  let jsonString = hasilMentah.trim();
 
-  // 2. Cari kurung siku pertama dan terakhir
-  const startIdx = jsonString.indexOf('[');
-  const endIdx = jsonString.lastIndexOf(']');
-  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-    throw new Error('Tidak menemukan struktur array JSON ([...]) dalam respons');
+  // 1. Hapus Markdown Code Blocks (```json ... ```)
+  jsonString = jsonString.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+
+  // 2. Ekstrak Array JSON Terdalam
+  // Regex ini mencari [...] termasuk nested objects/arrays di dalamnya
+  // Flag 's' membuat . match newline juga
+  const jsonMatch = jsonString.match(/$$\s*\{.*\}\s*$$/s);
+  
+  if (!jsonMatch) {
+    console.error('[DEBUG-PARSE] Tidak menemukan pola array JSON. Input:', jsonString.substring(0, 200));
+    throw new Error('Format respons AI tidak mengandung array soal yang valid.');
   }
   
-  jsonString = jsonString.substring(startIdx, endIdx + 1);
+  jsonString = jsonMatch[0];
 
-  // 3. Normalisasi karakter kontrol dan kutipan
-  // Menghapus karakter kontrol (00-1F) kecuali newline agar JSON tidak rusak
-  jsonString = jsonString.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "");
+  // 3. Sanitasi Agresif untuk Mencegah "Unexpected token"
   
-  // Memperbaiki kutipan tunggal menjadi kutipan ganda (sering terjadi jika AI tidak konsisten)
+  // a. Ganti Single Quote menjadi Double Quote (Hanya untuk key/value, bukan apostrof)
+  // Pola: ,'key': atau {'key': atau :"value"
   jsonString = jsonString
-    .replace(/([{,]\s*)'([^']*)':/g, '$1"$2":')
+    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
     .replace(/:\s*'([^']*)'/g, ':"$1"');
 
-  // 4. Gunakan helper escape untuk string di dalam
-  jsonString = escapeControlCharsInStrings(jsonString);
+  // b. Hapus Trailing Commas (,{ ,} -> {)
+  jsonString = jsonString.replace(/,\s*([}$$])/g, '$1');
 
+  // c. Hapus Karakter Kontrol Non-Printable (kecuali \n, \r, \t yang valid dalam string)
+  // Ini adalah penyebab utama error "Unexpected token '\'" jika ada karakter biner tersembunyi
+  jsonString = jsonString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // d. Normalisasi Escape Sequence yang Rusak
+  // Kadang AI menulis \\n (double backslash) alih-alih \n, atau sebaliknya
+  // Kita biarkan JSON.parse menanganinya, tapi pastikan tidak ada backslash telanjang sebelum { atau [
+  // Regex ini memperbaiki kasus: \n { -> newline { (yang valid secara visual tapi invalid JSON jika \n literal)
+  // Solusi terbaik: Biarkan JSON.parse mencoba dulu, jika gagal baru lakukan pembersihan ekstrem
+  
   try {
     return JSON.parse(jsonString);
-  } catch (parseErr: any) {
-    console.error('[DEBUG-PARSE] Parse gagal. String yang diproses:', jsonString.substring(0, 500));
-    throw new Error(`Gagal memparsing JSON: ${parseErr.message}`);
+  } catch (primaryErr: any) {
+    console.warn('[DEBUG-PARSE] Parse awal gagal, mencoba sanitasi lanjutan...', primaryErr.message);
+    
+    // FALLBACK: Bersihkan semua newline literal yang berada DI LUAR string
+    // Ini tricky, jadi kita gunakan pendekatan replace sederhana untuk kasus umum
+    // Mengganti \n yang diikuti oleh { atau [ dengan spasi (memisahkan objek)
+    const sanitized = jsonString
+      .replace(/\\n\s*([{$$])/g, ' $1') 
+      .replace(/\n\s*([{$$])/g, ' $1');
+
+    try {
+      return JSON.parse(sanitized);
+    } catch (fallbackErr: any) {
+      console.error('[DEBUG-PARSE] Gagal total. String terakhir (first 600):', sanitized.substring(0, 600));
+      throw new Error(`Gagal memparsing JSON: ${fallbackErr.message}`);
+    }
   }
 }
 
@@ -184,7 +152,7 @@ function perbaikiJawabanBenar(s: any, i: number) {
   }
 }
 
-// ==================== FUNGSI UTAMA (dengan parameter bloomTarget) ====================
+// ==================== FUNGSI UTAMA ====================
 export async function generateSoalAdaptif(
   mataPelajaran: string,
   jumlahSoal: number,
@@ -318,11 +286,8 @@ export async function generateSoalBerbasisPosisi(
   modeFilter?: 'hanya' | 'sampai',
   selectedModel?: string
 ): Promise<SoalItemGenerated[]> {
-  // Gunakan posisi untuk logging / penyesuaian prompt jika diperlukan
   console.log(`[DEBUG-GENERATE] generateSoalBerbasisPosisi dipanggil, posisi: ${posisi}`);
 
-  // Delegasi ke generateSoalAdaptif dengan statistik kosong
-  // Jumlah soal default 1 untuk generate berbasis posisi
   const jumlahSoal = detailSoal?.jumlahSoal ?? 1;
   return generateSoalAdaptif(
     mataPelajaran,
