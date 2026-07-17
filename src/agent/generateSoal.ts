@@ -1,4 +1,3 @@
-// agent/generateSoal.ts
 import { askLLM } from "./llm";
 import { pilihPrompt } from "./promptSelector";
 import {
@@ -22,7 +21,8 @@ export interface SoalItemGenerated {
   taxonomiBloom: string;
 }
 
-// ==================== HELPER (tidak berubah) ====================
+// ==================== HELPER ====================
+
 function getSubElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai'): string {
   if (!kelasTarget) return buatRingkasanSubElemen();
   const kelasRange = modeFilter === 'hanya' ? [kelasTarget] : Array.from({ length: kelasTarget }, (_, i) => i + 1);
@@ -68,36 +68,62 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai')
   return lines.join('\n');
 }
 
+/**
+ * PARSER JSON SUPER-ROBUST
+ * Menangani: Markdown blocks, single quotes, trailing commas, 
+ * newline literal antar objek, dan karakter kontrol tersembunyi.
+ */
 function parseJSONSoal(hasilMentah: string): any[] {
-  console.log('[DEBUG-PARSE] Input mentah (first 200 chars):', hasilMentah.substring(0, 200));
-  let jsonString = hasilMentah;
-  jsonString = jsonString.replace(/```(?:json)?\s*/gi, "");
-  jsonString = jsonString.replace(/```\s*$/gi, "");
-  jsonString = jsonString.replace(/```/g, "");
-  const startIdx = jsonString.indexOf('[');
-  const endIdx = jsonString.lastIndexOf(']');
-  if (startIdx === -1 || endIdx === -1 || endIdx < startIdx) {
-    console.error('[DEBUG-PARSE] Tidak menemukan tanda [ atau ]');
-    throw new Error('Tidak menemukan array JSON dalam respons');
+  console.log("[DEBUG-PARSE] Raw input length:", hasilMentah.length);
+
+  // Hilangkan markdown ```json ... ```
+  let text = hasilMentah
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  // Ambil array JSON pertama
+  const match = text.match(/\[\s*[\s\S]*\]/);
+
+  if (!match) {
+    console.error("[DEBUG-PARSE] JSON tidak ditemukan");
+    console.error(text.substring(0, 500));
+    throw new Error("AI tidak mengembalikan array JSON.");
   }
-  jsonString = jsonString.substring(startIdx, endIdx + 1);
+
+  let jsonString = match[0];
+
+  // Perbaikan ringan
   jsonString = jsonString
-    .replace(/,\s*([}\]])/g, '$1')
-    .replace(/([{,]\s*)'([^']*)':/g, '$1"$2":')
+    // ubah key/value yang memakai single quote
+    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
     .replace(/:\s*'([^']*)'/g, ':"$1"')
-    .replace(/\n/g, '\\n')
-    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '');
+
+    // hapus trailing comma
+    .replace(/,\s*([}\]])/g, "$1")
+
+    // hapus carriage return
+    .replace(/\r/g, "")
+
+    .trim();
+
+  console.log("[DEBUG-PARSE] JSON:");
+  console.log(jsonString.substring(0, 500));
+
   try {
-    const parsed = JSON.parse(jsonString);
-    console.log('[DEBUG-PARSE] Parse berhasil, tipe:', typeof parsed, 'isArray:', Array.isArray(parsed));
-    return parsed;
-  } catch (parseErr: any) {
-    console.error('[DEBUG-PARSE] Parse gagal:', parseErr.message);
-    console.error('[DEBUG-PARSE] String yang dicoba:', jsonString.substring(0, 500));
-    throw parseErr;
+    const hasil = JSON.parse(jsonString);
+
+    if (!Array.isArray(hasil)) {
+      throw new Error("Respons AI bukan array.");
+    }
+
+    return hasil;
+  } catch (err: any) {
+    console.error("[DEBUG-PARSE] JSON Parse Error:", err.message);
+    console.error(jsonString.substring(0, 1000));
+    throw new Error(`AI mengembalikan format soal yang tidak valid. ${err.message}`);
   }
 }
-
 function perbaikiJawabanBenar(s: any, i: number) {
   if (!s.pilihan.includes(s.jawaban_benar)) {
     console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
@@ -115,7 +141,7 @@ function perbaikiJawabanBenar(s: any, i: number) {
   }
 }
 
-// ==================== FUNGSI UTAMA (dengan parameter bloomTarget) ====================
+// ==================== FUNGSI UTAMA ====================
 export async function generateSoalAdaptif(
   mataPelajaran: string,
   jumlahSoal: number,
@@ -249,12 +275,11 @@ export async function generateSoalBerbasisPosisi(
   modeFilter?: 'hanya' | 'sampai',
   selectedModel?: string
 ): Promise<SoalItemGenerated[]> {
-  // Gunakan posisi untuk logging / penyesuaian prompt jika diperlukan
   console.log(`[DEBUG-GENERATE] generateSoalBerbasisPosisi dipanggil, posisi: ${posisi}`);
 
-  // Delegasi ke generateSoalAdaptif dengan statistik kosong
-  // Jumlah soal default 1 untuk generate berbasis posisi
-  const jumlahSoal = detailSoal?.jumlahSoal ?? 1;
+  // Mengubah fallback dari 1 menjadi 10
+  const jumlahSoal = detailSoal?.jumlahSoal ?? 10; 
+  
   return generateSoalAdaptif(
     mataPelajaran,
     jumlahSoal,

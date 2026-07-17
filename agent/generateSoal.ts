@@ -69,72 +69,61 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai')
 }
 
 /**
- * PERBAIKAN KRITIS: Parser JSON yang sangat toleran
+ * PARSER JSON SUPER-ROBUST
  * Menangani: Markdown blocks, single quotes, trailing commas, 
- * dan karakter kontrol tersembunyi yang menyebabkan "Unexpected token"
+ * newline literal antar objek, dan karakter kontrol tersembunyi.
  */
 function parseJSONSoal(hasilMentah: string): any[] {
-  console.log('[DEBUG-PARSE] Raw input length:', hasilMentah.length);
-  
-  let jsonString = hasilMentah.trim();
+  console.log("[DEBUG-PARSE] Raw input length:", hasilMentah.length);
 
-  // 1. Hapus Markdown Code Blocks (```json ... ```)
-  jsonString = jsonString.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '');
+  // Hilangkan markdown ```json ... ```
+  let text = hasilMentah
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
 
-  // 2. Ekstrak Array JSON Terdalam
-  // Regex ini mencari [...] termasuk nested objects/arrays di dalamnya
-  // Flag 's' membuat . match newline juga
-  const jsonMatch = jsonString.match(/$$\s*\{.*\}\s*$$/s);
-  
-  if (!jsonMatch) {
-    console.error('[DEBUG-PARSE] Tidak menemukan pola array JSON. Input:', jsonString.substring(0, 200));
-    throw new Error('Format respons AI tidak mengandung array soal yang valid.');
+  // Ambil array JSON pertama
+  const match = text.match(/\[\s*[\s\S]*\]/);
+
+  if (!match) {
+    console.error("[DEBUG-PARSE] JSON tidak ditemukan");
+    console.error(text.substring(0, 500));
+    throw new Error("AI tidak mengembalikan array JSON.");
   }
-  
-  jsonString = jsonMatch[0];
 
-  // 3. Sanitasi Agresif untuk Mencegah "Unexpected token"
-  
-  // a. Ganti Single Quote menjadi Double Quote (Hanya untuk key/value, bukan apostrof)
-  // Pola: ,'key': atau {'key': atau :"value"
+  let jsonString = match[0];
+
+  // Perbaikan ringan
   jsonString = jsonString
+    // ubah key/value yang memakai single quote
     .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
-    .replace(/:\s*'([^']*)'/g, ':"$1"');
+    .replace(/:\s*'([^']*)'/g, ':"$1"')
 
-  // b. Hapus Trailing Commas (,{ ,} -> {)
-  jsonString = jsonString.replace(/,\s*([}$$])/g, '$1');
+    // hapus trailing comma
+    .replace(/,\s*([}\]])/g, "$1")
 
-  // c. Hapus Karakter Kontrol Non-Printable (kecuali \n, \r, \t yang valid dalam string)
-  // Ini adalah penyebab utama error "Unexpected token '\'" jika ada karakter biner tersembunyi
-  jsonString = jsonString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+    // hapus carriage return
+    .replace(/\r/g, "")
 
-  // d. Normalisasi Escape Sequence yang Rusak
-  // Kadang AI menulis \\n (double backslash) alih-alih \n, atau sebaliknya
-  // Kita biarkan JSON.parse menanganinya, tapi pastikan tidak ada backslash telanjang sebelum { atau [
-  // Regex ini memperbaiki kasus: \n { -> newline { (yang valid secara visual tapi invalid JSON jika \n literal)
-  // Solusi terbaik: Biarkan JSON.parse mencoba dulu, jika gagal baru lakukan pembersihan ekstrem
-  
+    .trim();
+
+  console.log("[DEBUG-PARSE] JSON:");
+  console.log(jsonString.substring(0, 500));
+
   try {
-    return JSON.parse(jsonString);
-  } catch (primaryErr: any) {
-    console.warn('[DEBUG-PARSE] Parse awal gagal, mencoba sanitasi lanjutan...', primaryErr.message);
-    
-    // FALLBACK: Bersihkan semua newline literal yang berada DI LUAR string
-    // Ini tricky, jadi kita gunakan pendekatan replace sederhana untuk kasus umum
-    // Mengganti \n yang diikuti oleh { atau [ dengan spasi (memisahkan objek)
-    const sanitized = jsonString
-      .replace(/\\n\s*([{$$])/g, ' $1') 
-      .replace(/\n\s*([{$$])/g, ' $1');
+    const hasil = JSON.parse(jsonString);
 
-    try {
-      return JSON.parse(sanitized);
-    } catch (fallbackErr: any) {
-      console.error('[DEBUG-PARSE] Gagal total. String terakhir (first 600):', sanitized.substring(0, 600));
-      throw new Error(`Gagal memparsing JSON: ${fallbackErr.message}`);
+    if (!Array.isArray(hasil)) {
+      throw new Error("Respons AI bukan array.");
     }
+
+    return hasil;
+  } catch (err: any) {
+    console.error("[DEBUG-PARSE] JSON Parse Error:", err.message);
+    console.error(jsonString.substring(0, 1000));
+    throw new Error(`AI mengembalikan format soal yang tidak valid. ${err.message}`);
   }
 }
-
 function perbaikiJawabanBenar(s: any, i: number) {
   if (!s.pilihan.includes(s.jawaban_benar)) {
     console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
@@ -288,7 +277,9 @@ export async function generateSoalBerbasisPosisi(
 ): Promise<SoalItemGenerated[]> {
   console.log(`[DEBUG-GENERATE] generateSoalBerbasisPosisi dipanggil, posisi: ${posisi}`);
 
-  const jumlahSoal = detailSoal?.jumlahSoal ?? 1;
+  // Mengubah fallback dari 1 menjadi 10
+  const jumlahSoal = detailSoal?.jumlahSoal ?? 10; 
+  
   return generateSoalAdaptif(
     mataPelajaran,
     jumlahSoal,
