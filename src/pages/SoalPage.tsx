@@ -16,18 +16,6 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 
 // ============================================================
-//  HELPER: PENGACAK PILIHAN (FISHER-YATES SHUFFLE)
-// ============================================================
-function acakPilihan(pilihan: string[]): string[] {
-  const arr = [...pilihan];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// ============================================================
 //  HELPER: ESCAPE HTML
 // ============================================================
 function escapeHtml(str: string): string {
@@ -265,11 +253,16 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         }
       }
 
-      // Normalisasi teks & acak pilihan (urutan opsi divariasikan)
+      // Normalisasi teks (urutan pilihan TIDAK diacak, mengikuti urutan asli data)
+      // PENTING: jawaban_benar juga harus dinormalisasi dengan cara yang SAMA
+      // seperti pilihan, agar perbandingan "jawaban_benar === pilihan yang dipilih"
+      // selalu cocok (mencegah nilai salah hitung akibat format teks berbeda,
+      // misal "x^2" vs "$x^2$").
       const soalFinal = soalProses.map((s) => ({
         ...s,
         pertanyaan: normalisasiTeksSoal(s.pertanyaan),
-        pilihan: acakPilihan(s.pilihan.map(normalisasiTeksSoal)),
+        pilihan: s.pilihan.map(normalisasiTeksSoal),
+        jawaban_benar: normalisasiTeksSoal(s.jawaban_benar),
       }));
 
       setSoalList(soalFinal);
@@ -296,8 +289,18 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
 
   const kirimJawaban = async () => {
     const total = soalList.length;
-    const benar = soalList.filter((s, i) => s.jawaban_benar === jawaban[i]).length;
-    const nilai = total > 0 ? Math.round((benar / total) * 100) : 0;
+    const nilaiPerSoal = total > 0 ? 100 / total : 0;
+
+    // Setiap jawaban benar menambah nilai sebesar (100 / jumlah soal)
+    let nilai = 0;
+    let benar = 0;
+    soalList.forEach((s, i) => {
+      if (s.jawaban_benar === jawaban[i]) {
+        nilai += nilaiPerSoal;
+        benar += 1;
+      }
+    });
+    nilai = Math.round(nilai);
     setNilaiAkhir(nilai);
 
     const statistikElemen: Record<string, { benar: number; total: number }> = {};
@@ -360,6 +363,7 @@ export default function SoalPage({ kodeSoal, onKembali }: SoalPageProps) {
         ...s,
         pertanyaan: normalisasiTeksSoal(s.pertanyaan),
         pilihan: s.pilihan.map(normalisasiTeksSoal),
+        jawaban_benar: normalisasiTeksSoal(s.jawaban_benar),
       }));
       localStorage.setItem(cacheKey, JSON.stringify(soalNormal));
     } else {
