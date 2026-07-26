@@ -1,0 +1,547 @@
+// components/SoalGeneratorWithChecklist.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronRight, Check, Square, Minus } from 'lucide-react';
+import { 
+  KISI_MATEMATIKA, 
+  Fase, 
+  Elemen, 
+  SubElemen, 
+  SubSubElemen,
+  getFaseDariKelas 
+} from '../config/kisiTKA';
+
+// ==================== TIPE DATA ====================
+interface SelectedItem {
+  id: string;
+  type: 'elemen' | 'subElemen' | 'subSubElemen';
+  nama: string;
+  elemenNama?: string;
+  subElemenNama?: string;
+  fase: Fase;
+  kelas: number[];
+  bloomTarget: string[];
+  path: string; // Untuk display
+}
+
+interface SesiBelajar {
+  sesiKe: number; // 1-10
+  selectedItems: SelectedItem[];
+  soalTerakhir?: any;
+  riwayatJawaban: any[];
+  levelSaatIni: number;
+}
+
+// ==================== KOMPONEN CHECKLIST BERJENJANG ====================
+function ChecklistItem({ 
+  label, 
+  level, 
+  checked, 
+  indeterminate, 
+  onChange, 
+  children,
+  expanded,
+  onToggleExpand
+}: {
+  label: string;
+  level: number;
+  checked: boolean;
+  indeterminate?: boolean;
+  onChange: () => void;
+  children?: React.ReactNode;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
+}) {
+  const paddingLeft = level * 20;
+  const hasChildren = !!children;
+
+  return (
+    <div className="select-none">
+      <div 
+        className={`flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-slate-50 transition-colors`}
+        style={{ paddingLeft: `${paddingLeft + 8}px` }}
+      >
+        {hasChildren && (
+          <button
+            onClick={onToggleExpand}
+            className="text-slate-400 hover:text-slate-600 transition-transform"
+            style={{ transform: expanded ? 'rotate(90deg)' : 'none' }}
+          >
+            <ChevronRight size={16} />
+          </button>
+        )}
+        
+        <button
+          onClick={onChange}
+          className="flex items-center gap-2 flex-1"
+        >
+          <div className="w-5 h-5 flex items-center justify-center">
+            {checked && <Check size={16} className="text-emerald-600" />}
+            {indeterminate && <Minus size={16} className="text-amber-600" />}
+            {!checked && !indeterminate && <Square size={16} className="text-slate-300" />}
+          </div>
+          <span className={`text-sm ${checked ? 'text-emerald-700 font-medium' : 'text-slate-700'}`}>
+            {label}
+          </span>
+        </button>
+      </div>
+      {hasChildren && expanded && (
+        <div className="ml-2 border-l-2 border-slate-200">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==================== KOMPONEN UTAMA ====================
+export default function SoalGeneratorWithChecklist() {
+  // State untuk checklist
+  const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  
+  // State untuk sesi
+  const [sesiKe, setSesiKe] = useState<number>(0);
+  const [isSesiAktif, setIsSesiAktif] = useState<boolean>(false);
+  const [soalSaatIni, setSoalSaatIni] = useState<any>(null);
+  const [riwayatSesi, setRiwayatSesi] = useState<SesiBelajar[]>([]);
+  const [jawabanUser, setJawabanUser] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>('');
+
+  // ==================== FUNGSI CHECKLIST ====================
+  
+  // Mendapatkan semua item dari kisi-kisi
+  const getAllItems = useCallback((): SelectedItem[] => {
+    const items: SelectedItem[] = [];
+    
+    KISI_MATEMATIKA.forEach(elemen => {
+      // Level 1: Elemen
+      items.push({
+        id: `elemen-${elemen.nama}-${elemen.fase.join('-')}`,
+        type: 'elemen',
+        nama: elemen.nama,
+        fase: elemen.fase[0],
+        kelas: [],
+        bloomTarget: [],
+        path: elemen.nama
+      });
+
+      elemen.subElemen.forEach(sub => {
+        // Level 2: Sub-Elemen
+        items.push({
+          id: `sub-${elemen.nama}-${sub.nama}-${elemen.fase.join('-')}`,
+          type: 'subElemen',
+          nama: sub.nama,
+          elemenNama: elemen.nama,
+          fase: elemen.fase[0],
+          kelas: sub.kelas,
+          bloomTarget: sub.bloomTarget,
+          path: `${elemen.nama} > ${sub.nama}`
+        });
+
+        // Level 3: Sub-Sub-Elemen
+        if (sub.subSubElemen) {
+          sub.subSubElemen.forEach(ss => {
+            items.push({
+              id: `subsub-${elemen.nama}-${sub.nama}-${ss.nama}-${elemen.fase.join('-')}`,
+              type: 'subSubElemen',
+              nama: ss.nama,
+              elemenNama: elemen.nama,
+              subElemenNama: sub.nama,
+              fase: elemen.fase[0],
+              kelas: ss.kelas,
+              bloomTarget: ss.bloomTarget,
+              path: `${elemen.nama} > ${sub.nama} > ${ss.nama}`
+            });
+          });
+        }
+      });
+    });
+    
+    return items;
+  }, []);
+
+  // Cek apakah item dipilih
+  const isItemSelected = useCallback((itemId: string): boolean => {
+    return selectedItems.some(item => item.id === itemId);
+  }, [selectedItems]);
+
+  // Toggle item
+  const toggleItem = useCallback((itemId: string) => {
+    if (isSesiAktif) return; // ❌ Tidak bisa diubah saat sesi aktif
+
+    setSelectedItems(prev => {
+      const exists = prev.some(item => item.id === itemId);
+      if (exists) {
+        return prev.filter(item => item.id !== itemId);
+      } else {
+        const allItems = getAllItems();
+        const item = allItems.find(i => i.id === itemId);
+        return item ? [...prev, item] : prev;
+      }
+    });
+  }, [isSesiAktif, getAllItems]);
+
+  // Toggle semua item di fase tertentu
+  const toggleFase = useCallback((fase: Fase) => {
+    if (isSesiAktif) return;
+
+    const allItems = getAllItems();
+    const faseItems = allItems.filter(item => item.fase === fase);
+    const allSelected = faseItems.every(item => selectedItems.some(s => s.id === item.id));
+
+    if (allSelected) {
+      setSelectedItems(prev => prev.filter(item => item.fase !== fase));
+    } else {
+      setSelectedItems(prev => {
+        const newItems = [...prev];
+        faseItems.forEach(item => {
+          if (!newItems.some(s => s.id === item.id)) {
+            newItems.push(item);
+          }
+        });
+        return newItems;
+      });
+    }
+  }, [isSesiAktif, selectedItems, getAllItems]);
+
+  // ==================== FUNGSI SESI ====================
+
+  // Mulai sesi (hanya jika ada item terpilih)
+  const mulaiSesi = useCallback(() => {
+    if (selectedItems.length === 0) {
+      alert('Pilih minimal 1 topik terlebih dahulu!');
+      return;
+    }
+
+    if (isSesiAktif) return;
+
+    setIsSesiAktif(true);
+    setSesiKe(1);
+    setRiwayatSesi([]);
+    setSoalSaatIni(null);
+    setJawabanUser('');
+    setFeedback('');
+
+    // Generate soal pertama
+    generateSoalSesi(1, selectedItems);
+  }, [selectedItems, isSesiAktif]);
+
+  // Generate soal untuk sesi tertentu
+  const generateSoalSesi = useCallback(async (sesi: number, items: SelectedItem[]) => {
+    // Pilih item berdasarkan sesi (rolling)
+    const itemIndex = (sesi - 1) % items.length;
+    const selectedItem = items[itemIndex];
+
+    // Simulasi generate soal (ganti dengan API call sebenarnya)
+    const soal = {
+      id: `soal-${Date.now()}`,
+      pertanyaan: `Soal sesi ${sesi} untuk ${selectedItem.path}`,
+      pilihan: ['A. Jawaban 1', 'B. Jawaban 2', 'C. Jawaban 3', 'D. Jawaban 4'],
+      jawaban_benar: 'A. Jawaban 1',
+      pembahasan: `Ini adalah pembahasan untuk ${selectedItem.path}`,
+      itemId: selectedItem.id,
+      selectedItem: selectedItem
+    };
+
+    setSoalSaatIni(soal);
+    setJawabanUser('');
+    setFeedback('');
+  }, []);
+
+  // Submit jawaban
+  const submitJawaban = useCallback(() => {
+    if (!soalSaatIni || !jawabanUser) return;
+
+    const benar = jawabanUser === soalSaatIni.jawaban_benar;
+
+    // Simpan riwayat
+    setRiwayatSesi(prev => {
+      const newRiwayat = [...prev, {
+        sesiKe,
+        selectedItems: selectedItems,
+        soalTerakhir: soalSaatIni,
+        riwayatJawaban: [...(prev[prev.length - 1]?.riwayatJawaban || []), {
+          soalId: soalSaatIni.id,
+          jawabanUser,
+          benar,
+          timestamp: new Date().toISOString()
+        }],
+        levelSaatIni: prev.length > 0 ? prev[prev.length - 1].levelSaatIni + (benar ? 1 : 0) : 1
+      }];
+      return newRiwayat;
+    });
+
+    setFeedback(benar ? '✅ Jawaban benar!' : '❌ Jawaban salah. Coba lagi!');
+
+    // Jika sudah sesi ke-10, selesai
+    if (sesiKe >= 10) {
+      setTimeout(() => {
+        setIsSesiAktif(false);
+        setSesiKe(0);
+        setSoalSaatIni(null);
+        alert('🎉 Sesi 1-10 selesai! Silakan pilih topik baru untuk memulai ulang.');
+      }, 2000);
+      return;
+    }
+
+    // Lanjut ke sesi berikutnya setelah delay
+    setTimeout(() => {
+      const nextSesi = sesiKe + 1;
+      setSesiKe(nextSesi);
+      generateSoalSesi(nextSesi, selectedItems);
+    }, 1500);
+
+  }, [soalSaatIni, jawabanUser, sesiKe, selectedItems, generateSoalSesi]);
+
+  // ==================== RENDER ====================
+
+  return (
+    <div className="max-w-6xl mx-auto p-6 bg-white rounded-xl shadow-lg">
+      <h1 className="text-2xl font-bold text-slate-800 mb-6">
+        🎯 Generator Soal Interaktif
+      </h1>
+
+      {/* Status Sesi */}
+      <div className="flex items-center justify-between mb-6 p-4 bg-slate-50 rounded-lg">
+        <div>
+          <span className="text-sm text-slate-600">Status:</span>
+          {isSesiAktif ? (
+            <span className="ml-2 text-emerald-600 font-medium">
+              🔴 Sesi Aktif {sesiKe}/10
+            </span>
+          ) : (
+            <span className="ml-2 text-slate-400 font-medium">
+              ⏸️ Pilih topik & mulai sesi
+            </span>
+          )}
+        </div>
+        <div>
+          <span className="text-sm text-slate-600">Topik dipilih:</span>
+          <span className="ml-2 font-medium">{selectedItems.length}</span>
+        </div>
+        <button
+          onClick={mulaiSesi}
+          disabled={isSesiAktif || selectedItems.length === 0}
+          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+            isSesiAktif || selectedItems.length === 0
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700'
+          }`}
+        >
+          {isSesiAktif ? 'Sesi Berjalan...' : '🚀 Mulai Sesi'}
+        </button>
+      </div>
+
+      {/* Checklist Berjenjang */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Kolom Kiri: Checklist */}
+        <div className={`border rounded-lg p-4 ${isSesiAktif ? 'bg-slate-50 opacity-75' : 'bg-white'}`}>
+          <h2 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+            📋 Pilih Topik
+            {isSesiAktif && (
+              <span className="text-xs text-amber-600 font-normal">(🔒 Terkunci selama sesi)</span>
+            )}
+          </h2>
+          
+          <div className="max-h-[600px] overflow-y-auto pr-2">
+            {KISI_MATEMATIKA.map((elemen) => {
+              const faseKey = `fase-${elemen.fase.join('-')}`;
+              const isFaseExpanded = expandedNodes.has(faseKey);
+              const allFaseItems = getAllItems().filter(item => item.fase === elemen.fase[0]);
+              const faseSelected = allFaseItems.every(item => isItemSelected(item.id));
+              const fasePartial = allFaseItems.some(item => isItemSelected(item.id)) && !faseSelected;
+
+              return (
+                <ChecklistItem
+                  key={faseKey}
+                  level={0}
+                  label={`Fase ${elemen.fase.join(', ')}`}
+                  checked={faseSelected}
+                  indeterminate={fasePartial}
+                  onChange={() => toggleFase(elemen.fase[0])}
+                  expanded={isFaseExpanded}
+                  onToggleExpand={() => {
+                    setExpandedNodes(prev => {
+                      const next = new Set(prev);
+                      if (next.has(faseKey)) next.delete(faseKey);
+                      else next.add(faseKey);
+                      return next;
+                    });
+                  }}
+                >
+                  {elemen.subElemen.map((sub, idx) => {
+                    const subKey = `sub-${elemen.nama}-${sub.nama}-${elemen.fase.join('-')}`;
+                    const isSubExpanded = expandedNodes.has(subKey);
+                    const subItemId = `sub-${elemen.nama}-${sub.nama}-${elemen.fase.join('-')}`;
+                    const subSelected = isItemSelected(subItemId);
+
+                    // Sub-sub elemen
+                    const subSubItems = sub.subSubElemen || [];
+                    const allSubSubSelected = subSubItems.every(ss => 
+                      isItemSelected(`subsub-${elemen.nama}-${sub.nama}-${ss.nama}-${elemen.fase.join('-')}`)
+                    );
+                    const subSubPartial = subSubItems.some(ss => 
+                      isItemSelected(`subsub-${elemen.nama}-${sub.nama}-${ss.nama}-${elemen.fase.join('-')}`)
+                    ) && !allSubSubSelected;
+
+                    return (
+                      <ChecklistItem
+                        key={subKey}
+                        level={1}
+                        label={sub.nama}
+                        checked={subSelected && (subSubItems.length === 0 || allSubSubSelected)}
+                        indeterminate={subSubPartial || (subSelected && !allSubSubSelected && subSubItems.length > 0)}
+                        onChange={() => toggleItem(subItemId)}
+                        expanded={isSubExpanded}
+                        onToggleExpand={() => {
+                          setExpandedNodes(prev => {
+                            const next = new Set(prev);
+                            if (next.has(subKey)) next.delete(subKey);
+                            else next.add(subKey);
+                            return next;
+                          });
+                        }}
+                      >
+                        {subSubItems.map(ss => {
+                          const ssId = `subsub-${elemen.nama}-${sub.nama}-${ss.nama}-${elemen.fase.join('-')}`;
+                          const ssSelected = isItemSelected(ssId);
+                          return (
+                            <ChecklistItem
+                              key={ssId}
+                              level={2}
+                              label={ss.nama}
+                              checked={ssSelected}
+                              onChange={() => toggleItem(ssId)}
+                            />
+                          );
+                        })}
+                      </ChecklistItem>
+                    );
+                  })}
+                </ChecklistItem>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Kolom Kanan: Soal & Interaksi */}
+        <div className="border rounded-lg p-4 bg-slate-50">
+          <h2 className="font-semibold text-slate-700 mb-3">
+            {isSesiAktif ? `📝 Sesi ${sesiKe}/10` : '📝 Soal'}
+          </h2>
+
+          {isSesiAktif && soalSaatIni ? (
+            <div>
+              {/* Info Topik */}
+              <div className="mb-3 p-2 bg-white rounded-lg border border-slate-200">
+                <p className="text-xs text-slate-500">
+                  Topik: <span className="font-medium text-slate-700">{soalSaatIni.selectedItem?.path}</span>
+                </p>
+                <p className="text-xs text-slate-500">
+                  Kelas: {soalSaatIni.selectedItem?.kelas?.join(', ') || 'Semua'}
+                </p>
+                <p className="text-xs text-slate-500">
+                  Bloom: {soalSaatIni.selectedItem?.bloomTarget?.join(', ') || '-'}
+                </p>
+              </div>
+
+              {/* Pertanyaan */}
+              <div className="mb-4 p-3 bg-white rounded-lg border border-slate-200">
+                <p className="text-sm font-medium text-slate-800">{soalSaatIni.pertanyaan}</p>
+              </div>
+
+              {/* Pilihan Jawaban */}
+              <div className="space-y-2 mb-4">
+                {soalSaatIni.pilihan?.map((p: string, i: number) => (
+                  <button
+                    key={i}
+                    onClick={() => setJawabanUser(p)}
+                    disabled={!!feedback}
+                    className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
+                      jawabanUser === p
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-slate-200 hover:border-slate-300'
+                    } ${feedback ? 'cursor-not-allowed opacity-75' : ''}`}
+                  >
+                    <span className="text-sm">{p}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Tombol Submit */}
+              {!feedback && (
+                <button
+                  onClick={submitJawaban}
+                  disabled={!jawabanUser}
+                  className="w-full py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Submit Jawaban
+                </button>
+              )}
+
+              {/* Feedback */}
+              {feedback && (
+                <div className={`mt-3 p-3 rounded-lg ${feedback.includes('benar') ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                  <p className="text-sm font-medium">{feedback}</p>
+                  <p className="text-xs mt-1 text-slate-600">{soalSaatIni.pembahasan}</p>
+                </div>
+              )}
+
+              {/* Progress Sesi */}
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-slate-500 mb-1">
+                  <span>Progress</span>
+                  <span>{sesiKe}/10</span>
+                </div>
+                <div className="w-full bg-slate-200 rounded-full h-2">
+                  <div 
+                    className="bg-emerald-500 h-2 rounded-full transition-all duration-500"
+                    style={{ width: `${(sesiKe / 10) * 100}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-slate-400">
+              {isSesiAktif ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="animate-spin rounded-full h-6 w-6 border-2 border-emerald-500 border-t-transparent" />
+                  <span>Memuat soal...</span>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-lg mb-2">📚 Pilih topik di sebelah kiri</p>
+                  <p className="text-sm">Lalu klik "Mulai Sesi" untuk memulai 10 sesi</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Riwayat Sesi (Ringkasan) */}
+      {riwayatSesi.length > 0 && (
+        <div className="mt-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+          <h3 className="font-medium text-slate-700 mb-2">📊 Riwayat Sesi</h3>
+          <div className="flex gap-2 flex-wrap">
+            {riwayatSesi.map((r, i) => {
+              const benar = r.riwayatJawaban[r.riwayatJawaban.length - 1]?.benar;
+              return (
+                <div 
+                  key={i}
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    benar === true ? 'bg-emerald-100 text-emerald-700' :
+                    benar === false ? 'bg-rose-100 text-rose-700' :
+                    'bg-slate-100 text-slate-500'
+                  }`}
+                >
+                  Sesi {i+1}: {benar ? '✅' : benar === false ? '❌' : '⏳'}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
