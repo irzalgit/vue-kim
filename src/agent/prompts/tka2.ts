@@ -18,6 +18,9 @@ Karakter soal:
 Kisi-kisi:
 {{elemenRelevan}}
 
+Sub-elemen valid (isi HANYA jika relevan dengan fokus topik):
+{{subElemenRelevan}}
+
 Performa siswa:
 {{ringkasanPerforma}}
 
@@ -30,6 +33,7 @@ Output hanya JSON:
   "jawaban_benar":"",
   "elemen":"",
   "subElemen":"",
+  "subSubElemen":"",
   "fase":"",
   "kelas":0,
   "taxonomiBloom":""

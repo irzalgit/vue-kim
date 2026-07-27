@@ -1,56 +1,6 @@
 // generatesoal.ts
 import { askLLM } from "./llm";
 import { pilihPrompt } from "./promptSelector";
-
-
-// generatesoal.ts - Tambahan untuk mendukung checklist
-
-export interface SelectedItem {
-  id: string;
-  type: 'elemen' | 'subElemen' | 'subSubElemen';
-  nama: string;
-  elemenNama?: string;
-  subElemenNama?: string;
-  fase: Fase;
-  kelas: number[];
-  bloomTarget: string[];
-  path: string;
-}
-
-export async function generateSoalDenganChecklist(
-  sessionId: string,
-  selectedItems: SelectedItem[],
-  sesiKe: number,
-  mataPelajaran: string = 'Matematika'
-): Promise<SoalItemGenerated> {
-  // Pilih item berdasarkan sesi (rolling)
-  const itemIndex = (sesiKe - 1) % selectedItems.length;
-  const selectedItem = selectedItems[itemIndex];
-
-  // Bangun prompt berdasarkan item yang dipilih
-  const prompt = `
-Buat 1 soal pilihan ganda untuk topik:
-- Nama: ${selectedItem.path}
-- Fase: ${selectedItem.fase}
-- Kelas: ${selectedItem.kelas.join(', ')}
-- Bloom Target: ${selectedItem.bloomTarget.join(', ')}
-- Sesi ke-${sesiKe} dari 10
-
-Format JSON:
-{
-  "pertanyaan": "...",
-  "pilihan": ["A. ...", "B. ...", "C. ...", "D. ..."],
-  "jawaban_benar": "A. ...",
-  "pembahasan": "..."
-}
-`;
-
-  // Panggil LLM
-  const result = await askLLM(prompt);
-  return JSON.parse(result);
-}
-
-
 import {
   buatRingkasanKisiKisi,
   buatRingkasanSubElemen,
@@ -67,6 +17,23 @@ export type Jenjang = 'SD' | 'SMP' | 'SMA';
 export type TingkatKesulitan = 'mudah' | 'sedang' | 'sulit';
 export type Level = 1 | 2 | 3 | 4 | 5;
 
+export interface SelectedItem {
+  id: string;
+  type: 'elemen' | 'subElemen' | 'subSubElemen';
+  nama: string;
+  elemenNama?: string;
+  subElemenNama?: string;
+  fase: Fase;
+  kelas: number[];
+  bloomTarget: string[];
+  path: string;
+  subSubElemen?: {
+    nama: string;
+    kelas?: number[];
+    bloomTarget?: string[];
+  }[] | undefined;
+}
+
 export interface SoalItemGenerated {
   id?: string;
   pertanyaan: string;
@@ -74,6 +41,7 @@ export interface SoalItemGenerated {
   jawaban_benar: string;
   elemen: string;
   subElemen: string;
+  subSubElemen?: string;
   fase: string;
   kelas: number;
   taxonomiBloom: string;
@@ -81,6 +49,7 @@ export interface SoalItemGenerated {
   level?: Level;
   seed?: boolean;
   sessionId?: string;
+  pembahasan?: string;
 }
 
 export interface RiwayatJawaban {
@@ -311,6 +280,58 @@ function parseJSONSoal(hasilMentah: string): any[] {
   }
 }
 
+// ==================== FUNGSI CHECKLIST ====================
+export async function generateSoalDenganChecklist(
+  sessionId: string,
+  selectedItems: SelectedItem[],
+  sesiKe: number,
+  mataPelajaran: string = 'Matematika',
+  selectedModel?: string
+): Promise<SoalItemGenerated> {
+  const itemIndex = (sesiKe - 1) % selectedItems.length;
+  const selectedItem = selectedItems[itemIndex];
+
+  const prompt = `
+Buat 1 soal pilihan ganda untuk topik:
+- Nama: ${selectedItem.path}
+- Fase: ${selectedItem.fase}
+- Kelas: ${selectedItem.kelas.join(', ')}
+- Bloom Target: ${selectedItem.bloomTarget.join(', ')}
+- Sesi ke-${sesiKe} dari 10
+
+Format JSON (dalam bentuk array atau objek tunggal yang valid):
+{
+  "pertanyaan": "...",
+  "pilihan": ["A. ...", "B. ...", "C. ...", "D. ..."],
+  "jawaban_benar": "A. ...",
+  "pembahasan": "..."
+}
+`;
+
+  const result = await askLLM(prompt, selectedModel);
+  
+  // Tangani parsing apakah hasilnya array atau objek tunggal
+  try {
+    const parsed = JSON.parse(
+      result.replace(/```json/gi, "").replace(/```/g, "").trim()
+    );
+    const soal = Array.isArray(parsed) ? parsed[0] : parsed;
+    
+    return {
+      ...soal,
+      id: soal.id || `soal-checklist-${Date.now()}`,
+      elemen: selectedItem.elemenNama || selectedItem.nama,
+      subElemen: selectedItem.subElemenNama || selectedItem.nama,
+      fase: selectedItem.fase,
+      kelas: selectedItem.kelas[0] || 1,
+      taxonomiBloom: selectedItem.bloomTarget[0] || 'C3 (Menerapkan)',
+      sessionId,
+    };
+  } catch (err) {
+    throw new Error(`Gagal memparsing hasil generateSoalDenganChecklist: ${err}`);
+  }
+}
+
 // ==================== AGENT MEMORI ====================
 class AgentMemori {
   private sessions: Map<string, SesiBelajar> = new Map();
@@ -416,7 +437,6 @@ class AgentPembangkitSoal {
   ): Promise<SoalItemGenerated[]> {
     const sesi = this.memori.ambilSesi(sessionId);
 
-    // Jika sesi belum ada atau ini sesi pertama, ambil dari seed
     if (!sesi || sesi.riwayat.length === 0) {
       const seed = this.ambilSeedSoal(sesi?.elemen, sesi?.subElemen);
       if (seed) {
@@ -424,11 +444,9 @@ class AgentPembangkitSoal {
       }
     }
 
-    // Generate soal berdasarkan level
     const level = sesi?.levelSaatIni || 1;
     const bloomTarget = LEVEL_TO_BLOOM[level as Level] || 'C3 (Menerapkan)';
 
-    // Bangun statistik elemen dari riwayat
     const statistikElemen: Record<string, { benar: number; total: number }> = {};
     if (sesi) {
       sesi.riwayat.forEach(r => {
@@ -440,7 +458,6 @@ class AgentPembangkitSoal {
       });
     }
 
-    // Panggil generateSoalAdaptif dengan parameter yang sesuai
     const soal = await this.generateSoalAdaptif(
       mataPelajaran,
       jumlahSoal,
@@ -452,7 +469,6 @@ class AgentPembangkitSoal {
       level
     );
 
-    // Tambahkan metadata sesi
     return soal.map(s => ({
       ...s,
       sessionId,
@@ -463,7 +479,6 @@ class AgentPembangkitSoal {
   }
 
   private ambilSeedSoal(elemen?: string, subElemen?: string): SoalItemGenerated | null {
-    // Cari seed berdasarkan elemen dan subElemen
     for (const [key, soals] of Object.entries(SEED_SOAL)) {
       if (elemen && subElemen) {
         const found = soals.find(s => 
@@ -471,7 +486,6 @@ class AgentPembangkitSoal {
         );
         if (found) return { ...found };
       }
-      // Jika tidak ada filter, ambil seed pertama
       if (!elemen && !subElemen) {
         return { ...soals[0] };
       }
@@ -489,7 +503,6 @@ class AgentPembangkitSoal {
     bloomTarget?: string,
     level?: Level
   ): Promise<SoalItemGenerated[]> {
-    // Panggil generateSoalAdaptif dari kode asli
     return generateSoalAdaptif(
       mataPelajaran,
       jumlahSoal,
@@ -497,7 +510,8 @@ class AgentPembangkitSoal {
       kelasTarget,
       modeFilter,
       selectedModel,
-      bloomTarget
+      bloomTarget,
+      level
     );
   }
 }
@@ -537,7 +551,6 @@ export class GenerateSoalAdaptifSystem {
     this.validator = new AgentValidator();
   }
 
-  // 1. Mulai sesi baru
   public async mulaiSesi(
     jenjang: Jenjang,
     kelasTarget: number,
@@ -557,7 +570,6 @@ export class GenerateSoalAdaptifSystem {
     return { sessionId: sesi.sessionId, soal };
   }
 
-  // 2. Lanjutkan sesi
   public async lanjutkanSesi(
     sessionId: string,
     mataPelajaran: string = 'Matematika',
@@ -575,7 +587,6 @@ export class GenerateSoalAdaptifSystem {
     return soal || null;
   }
 
-  // 3. Submit jawaban
   public submitJawaban(
     sessionId: string,
     soalId: string,
@@ -626,12 +637,10 @@ export class GenerateSoalAdaptifSystem {
     };
   }
 
-  // 4. Dapatkan status sesi
   public statusSesi(sessionId: string): SesiBelajar | null {
     return this.memori.ambilSesi(sessionId);
   }
 
-  // 5. Reset sesi
   public resetSesi(sessionId: string): boolean {
     const sesi = this.memori.ambilSesi(sessionId);
     if (!sesi) return false;
@@ -647,7 +656,6 @@ export class GenerateSoalAdaptifSystem {
     return true;
   }
 
-  // 6. Generate soal langsung (tanpa sesi)
   public async generateSoalLangsung(
     mataPelajaran: string,
     jumlahSoal: number,
@@ -681,17 +689,6 @@ export async function generateSoalAdaptif(
   bloomTarget?: string,
   level?: Level
 ): Promise<SoalItemGenerated[]> {
-  console.log('[DEBUG-GENERATE] generateSoalAdaptif dipanggil:', {
-    mataPelajaran,
-    jumlahSoal,
-    statistikElemenTerakhir,
-    kelasTarget,
-    modeFilter,
-    selectedModel,
-    bloomTarget,
-    level,
-  });
-
   const entri = Object.entries(statistikElemenTerakhir);
 
   const nilai =
@@ -748,7 +745,6 @@ export async function generateSoalAdaptif(
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    console.log(`[DEBUG-GENERATE] Attempt ${attempt}/${maxRetries}`);
     try {
       const hasilMentah = await askLLM(prompt, selectedModel);
       const parsed = parseJSONSoal(hasilMentah);
@@ -793,7 +789,6 @@ export async function generateSoalAdaptif(
 
       return soalValid;
     } catch (err: any) {
-      console.error(`[DEBUG-GENERATE] Attempt ${attempt} gagal:`, err.message);
       lastError = err;
       if (attempt < maxRetries) {
         const delayMs = Math.pow(2, attempt - 1) * 1000;
@@ -814,8 +809,6 @@ export async function generateSoalBerbasisPosisi(
   modeFilter?: 'hanya' | 'sampai',
   selectedModel?: string
 ): Promise<SoalItemGenerated[]> {
-  console.log(`[DEBUG-GENERATE] generateSoalBerbasisPosisi dipanggil, posisi: ${posisi}`);
-
   const jumlahSoal = detailSoal?.jumlahSoal ?? 10;
   
   return generateSoalAdaptif(

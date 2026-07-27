@@ -3,9 +3,15 @@ import { useState } from 'react';
 import Header from "../components/Header";
 import Agent from "../sections/Agent";
 import SoalGeneratorWithChecklist from "../components/soal/SoalGeneratorWithChecklist";
+import type { SelectedItem } from "../agent/generateSoalWithChecklist";
 
 interface DashboardPageProps {
-  onBukaSoal: (kode: string, selectedItems?: any[]) => void;
+  onBukaSoal: (
+    kode: string,
+    selectedItems?: SelectedItem[],
+    jumlahSesi?: number,
+    jumlahSoalPerSesi?: number
+  ) => void;
   onKembaliKeLanding: () => void;
 }
 
@@ -39,14 +45,22 @@ export default function DashboardPage({
     setShowChecklistModal(true);
   };
 
-  // 1. Terima selectedItems dari komponen SoalGeneratorWithChecklist
-  const handleMulaiSesi = (selectedItems: any[]) => {
+  // 1. Terima selectedItems + jumlahSesi + jumlahSoalPerSesi dari
+  //    SoalGeneratorWithChecklist (onMulaiSesi sekarang mengirim ketiganya,
+  //    sebelumnya cuma selectedItems).
+  const handleMulaiSesi = (
+    selectedItems: SelectedItem[],
+    jumlahSesi: number,
+    jumlahSoalPerSesi: number
+  ) => {
     setShowChecklistModal(false);
     setSesiDimulai(true);
 
-    // 2. Kirim kode simulasi dan selectedItems ke parent (App.tsx)
+    // 2. Kirim kode simulasi + selectedItems + jumlahSesi + jumlahSoalPerSesi
+    //    ke parent (App.tsx), yang akan membawanya lewat router state ke
+    //    SoalPage (lihat SoalPageWrapper di App.tsx).
     if (selectedSimulasi) {
-      onBukaSoal(selectedSimulasi, selectedItems);
+      onBukaSoal(selectedSimulasi, selectedItems, jumlahSesi, jumlahSoalPerSesi);
     }
   };
 
@@ -181,7 +195,7 @@ export default function DashboardPage({
               </div>
             </div>
 
-            {/* Komponen Checklist yang akan melemparkan selectedItems */}
+            {/* Komponen Checklist yang akan melemparkan selectedItems + konfigurasi sesi */}
             <SoalGeneratorWithChecklist
               onMulaiSesi={handleMulaiSesi}
               simulasiKode={selectedSimulasi}

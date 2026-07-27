@@ -2,7 +2,12 @@
 import { useState, useEffect } from 'react';
 import './SoalPage.css';
 import { generateRaport } from '../agent/raport';
-import { generateSoalAdaptif } from '../agent/generateSoal';
+import { generateSoalAdaptif, type SoalItemGenerated } from '../agent/generateSoal';
+import {
+  getDaftarTopikRotasi,
+  type SelectedItem,
+  type TopikRotasi,
+} from '../agent/generateSoalWithChecklist';
 import { QUOTA_EXCEEDED_ERROR } from '../agent/providers/gemini';
 import { usePayment } from '../App';
 import {
@@ -57,6 +62,60 @@ function normalisasiTeksSoal(teks: string): string {
   return teks;
 }
 
+// Generate soal per-topik dengan ROTASI yang sama rumusnya dengan yang
+// dipakai di SoalGeneratorWithChecklist.tsx: total soal = jumlahSesi x
+// jumlahSoalPerSesi, dikelompokkan per topik hasil rotasi (round-robin,
+// wrap-around kalau jumlahSesi > jumlah topik tercentang). Beda dengan
+// SoalGeneratorWithChecklist yang generate 1 soal per panggilan LLM, di
+// sini setiap "slot" langsung minta `jumlahSoalPerSesi` soal dalam SATU
+// panggilan (lebih efisien untuk pola load-semua-di-awal ala SoalPage),
+// dengan riwayat pertanyaan per topik tetap dilacak supaya slot berikutnya
+// untuk topik yang sama (saat wrap-around) tidak mengulang soal yang sama.
+async function buatSoalDariTopikRotasi(
+  selectedItems: SelectedItem[],
+  mataPelajaran: string,
+  jumlahSesi: number,
+  jumlahSoalPerSesi: number
+): Promise<SoalItemGenerated[]> {
+  const rotasi: TopikRotasi[] = getDaftarTopikRotasi(selectedItems);
+  if (rotasi.length === 0) return [];
+
+  const riwayatPerTopik: Record<string, string[]> = {};
+  const hasil: SoalItemGenerated[] = [];
+
+  for (let slot = 0; slot < jumlahSesi; slot++) {
+    const topik = rotasi[slot % rotasi.length];
+    const riwayatTopikIni = riwayatPerTopik[topik.id] || [];
+    const fokusSubSubElemen = topik.isSubSubElemen ? topik.namaFokus : undefined;
+
+    try {
+      const soalBatch = await generateSoalAdaptif(
+        mataPelajaran,
+        jumlahSoalPerSesi,
+        {},
+        undefined,
+        'sampai',
+        undefined,
+        undefined,
+        [topik.namaFokus],
+        riwayatTopikIni,
+        fokusSubSubElemen,
+        topik.kelasValid
+      );
+      riwayatPerTopik[topik.id] = [...riwayatTopikIni, ...soalBatch.map(s => s.pertanyaan)];
+      hasil.push(...soalBatch);
+    } catch (err) {
+      // Kalau satu slot topik gagal (misal semua retry kena validasi kelas
+      // yang gagal terus), lanjut ke slot berikutnya alih-alih membuat
+      // seluruh quiz gagal total. Slot ini akan kosong (lebih baik soal
+      // sedikit daripada error total ke user).
+      console.error(`[buatSoalDariTopikRotasi] Gagal generate untuk topik "${topik.konteksLengkap}":`, err);
+    }
+  }
+
+  return hasil;
+}
+
 interface SoalData {
   judul: string;
   kode: string;
@@ -70,16 +129,30 @@ interface SoalData {
     taxonomiBloom: string;
     kelas?: number;
     subElemen?: string;
+    subSubElemen?: string;
   }[];
 }
 
 interface SoalPageProps {
   kodeSoal: string;
-  selectedItems?: any[]; 
+  selectedItems?: SelectedItem[];
+  // Jumlah "sesi" (kelompok topik hasil rotasi) & jumlah soal per sesi —
+  // dikirim dari Dashboard (SoalGeneratorWithChecklist), sama makna &
+  // rumusnya dengan yang dipakai di sana: totalSoal = jumlahSesi * jumlahSoalPerSesi.
+  // Default 10 & 1 dipertahankan supaya caller lama yang belum mengirim
+  // prop ini tetap berjalan seperti sebelumnya (10 soal, 1 per topik).
+  jumlahSesi?: number;
+  jumlahSoalPerSesi?: number;
   onKembali: () => void;
 }
 
-export default function SoalPage({ kodeSoal, selectedItems = [], onKembali }: SoalPageProps) {
+export default function SoalPage({
+  kodeSoal,
+  selectedItems = [],
+  jumlahSesi = 10,
+  jumlahSoalPerSesi = 1,
+  onKembali,
+}: SoalPageProps) {
   const { triggerPayment } = usePayment();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -135,16 +208,23 @@ export default function SoalPage({ kodeSoal, selectedItems = [], onKembali }: So
       const riwayat = getRiwayat(data.judul);
       const sesiSaatIni = riwayat.length + 1;
 
+      // Total soal keseluruhan = jumlahSesi x jumlahSoalPerSesi (sama rumus
+      // dengan SoalGeneratorWithChecklist). Kalau parent belum mengirim
+      // prop ini, default 10 x 1 = 10, sama seperti perilaku lama.
+      const jumlahSesiValid = Math.max(1, Math.min(50, Math.round(jumlahSesi) || 10));
+      const jumlahSoalPerSesiValid = Math.max(1, Math.min(20, Math.round(jumlahSoalPerSesi) || 1));
+      const totalSoalDiminta = jumlahSesiValid * jumlahSoalPerSesiValid;
+
       let soalProses: SoalData['soal'] = [];
 
       if (selectedItems && selectedItems.length > 0) {
         setLoadingMessage('✨ AI sedang menyusun soal berdasarkan topik pilihanmu...');
         try {
-          const soalAI = await generateSoalAdaptif(data.judul, 10, {}, undefined, 'sampai');
-          console.log('[muatSoal] Hasil generateSoalAdaptif (checklist):', soalAI);
+          const soalAI = await buatSoalDariTopikRotasi(selectedItems, data.judul, jumlahSesiValid, jumlahSoalPerSesiValid);
+          console.log('[muatSoal] Hasil buatSoalDariTopikRotasi (checklist):', soalAI);
           soalProses = (soalAI && soalAI.length > 0) ? soalAI : data.soal;
         } catch (errAI) {
-          console.error('[muatSoal] generateSoalAdaptif gagal (checklist), fallback ke hardcode:', errAI);
+          console.error('[muatSoal] buatSoalDariTopikRotasi gagal (checklist), fallback ke hardcode:', errAI);
           soalProses = data.soal;
         }
       } else if (sesiSaatIni === 1) {
@@ -152,7 +232,7 @@ export default function SoalPage({ kodeSoal, selectedItems = [], onKembali }: So
       } else {
         setLoadingMessage('✨ AI sedang menyusun soal adaptif...');
         try {
-          const soalAI = await generateSoalAdaptif(data.judul, 10, {}, undefined, 'sampai');
+          const soalAI = await generateSoalAdaptif(data.judul, totalSoalDiminta, {}, undefined, 'sampai');
           console.log('[muatSoal] Hasil generateSoalAdaptif (adaptif):', soalAI);
           soalProses = (soalAI && soalAI.length > 0) ? soalAI : data.soal;
         } catch (errAI) {

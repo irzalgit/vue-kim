@@ -26,6 +26,7 @@ Ketentuan:
 4. Hanya satu jawaban benar.
 5. jawaban_benar harus sama persis dengan pilihan.
 6. Jangan membuat soal ambigu.
+7. Isi "subSubElemen" HANYA jika ada topik sub-sub-elemen spesifik yang difokuskan (lihat instruksi tambahan di bawah, jika ada). Kalau tidak ada fokus sub-sub-elemen, biarkan "subSubElemen":"" (kosong).
 
 OUTPUT HANYA JSON ARRAY:
 
@@ -41,6 +42,7 @@ OUTPUT HANYA JSON ARRAY:
   "jawaban_benar":"",
   "elemen":"",
   "subElemen":"",
+  "subSubElemen":"",
   "fase":"",
   "kelas":0,
   "taxonomiBloom":""

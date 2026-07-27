@@ -6,6 +6,7 @@ import {
   buatRingkasanSubElemen,
   validasiElemenFase,
   validasiSubElemen,
+  validasiSubSubElemen,
   getFaseDariKelas,
   KISI_MATEMATIKA,
   type Fase,
@@ -22,22 +23,49 @@ export interface SoalItemGenerated {
   fase: string;
   kelas: number;
   taxonomiBloom: string;
+  // Diisi kalau soal ini dibuat dengan fokus ke sub-sub-elemen tertentu
+  // (lihat parameter fokusSubSubElemen di generateSoalAdaptif).
+  subSubElemen?: string;
 }
 
 // ==================== HELPER FUNCTIONS ====================
 function getSubElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai', fokusTopik?: string[]): string {
-  const cocokFokus = (elemenNama: string, subNama: string) =>
-    !fokusTopik || fokusTopik.length === 0 || fokusTopik.includes(subNama) || fokusTopik.includes(elemenNama);
+  // cocokFokus sekarang mengenali 3 level: nama elemen, nama sub-elemen, DAN
+  // nama sub-sub-elemen. Sebelumnya hanya 2 level teratas dikenali, sehingga
+  // topik seperti "Membaca bilangan 1-100" (sub-sub-elemen) tidak pernah
+  // dianggap cocok dan baris konteksnya tidak pernah muncul di prompt.
+  type SubDenganSubSub = {
+    nama: string;
+    subSubElemen?: { nama: string; kelas: number[]; bloomTarget: string[] }[];
+  };
+
+  const subSubCocok = (sub: SubDenganSubSub) =>
+    sub.subSubElemen?.filter(ss => fokusTopik!.includes(ss.nama)) || [];
+
+  const cocokFokus = (elemenNama: string, sub: SubDenganSubSub) =>
+    !fokusTopik || fokusTopik.length === 0 ||
+    fokusTopik.includes(sub.nama) ||
+    fokusTopik.includes(elemenNama) ||
+    subSubCocok(sub).length > 0;
 
   if (!kelasTarget) {
     if (!fokusTopik || fokusTopik.length === 0) return buatRingkasanSubElemen();
     const lines: string[] = [];
     KISI_MATEMATIKA.forEach(elemen => {
       elemen.subElemen.forEach(sub => {
-        if (cocokFokus(elemen.nama, sub.nama)) {
+        if (cocokFokus(elemen.nama, sub)) {
           lines.push(
             `- ${elemen.nama} > ${sub.nama} (Kelas ${sub.kelas.join(', ')}, Fase ${elemen.fase.join(', ')}, Bloom: ${sub.bloomTarget.join('/')})`
           );
+          // Kalau fokusTopik cocok ke sub-sub-elemen spesifik, tampilkan
+          // baris tambahan dengan kelas & Bloom milik sub-sub-elemen ITU
+          // SENDIRI (bisa berbeda dari sub-elemen induknya), supaya LLM
+          // tahu persis target soalnya, bukan cuma level sub-elemen umum.
+          subSubCocok(sub).forEach(ss => {
+            lines.push(
+              `    -> FOKUS SPESIFIK: ${ss.nama} (Kelas ${ss.kelas.join(', ')}, Bloom: ${ss.bloomTarget.join('/')})`
+            );
+          });
         }
       });
     });
@@ -49,7 +77,7 @@ function getSubElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampa
   
   KISI_MATEMATIKA.forEach(elemen => {
     elemen.subElemen.forEach(sub => {
-      const isRelevan = sub.kelas.some(k => kelasRange.includes(k)) && cocokFokus(elemen.nama, sub.nama);
+      const isRelevan = sub.kelas.some(k => kelasRange.includes(k)) && cocokFokus(elemen.nama, sub);
       if (isRelevan) {
         subElemenRelevan.push(
           `- ${elemen.nama} > ${sub.nama} (Kelas ${sub.kelas.filter(k => kelasRange.includes(k)).join(', ')}, Bloom: ${sub.bloomTarget.join('/')})`
@@ -62,16 +90,22 @@ function getSubElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampa
 }
 
 function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai', fokusTopik?: string[]): string {
+  const subCocokFokus = (sub: { nama: string; subSubElemen?: { nama: string }[] }, elemenNama: string) =>
+    !fokusTopik || fokusTopik.length === 0 ||
+    fokusTopik.includes(sub.nama) ||
+    fokusTopik.includes(elemenNama) ||
+    (sub.subSubElemen?.some(ss => fokusTopik!.includes(ss.nama)) ?? false);
+
   const elemenCocokFokus = (elemen: Elemen) =>
     !fokusTopik || fokusTopik.length === 0 ||
     fokusTopik.includes(elemen.nama) ||
-    elemen.subElemen.some(s => fokusTopik!.includes(s.nama));
+    elemen.subElemen.some(s => subCocokFokus(s, elemen.nama));
 
   if (!kelasTarget) {
     if (!fokusTopik || fokusTopik.length === 0) return buatRingkasanKisiKisi();
     const lines: string[] = [];
     KISI_MATEMATIKA.filter(elemenCocokFokus).forEach(e => {
-      const subRelevan = e.subElemen.filter(s => !fokusTopik || fokusTopik.length === 0 || fokusTopik.includes(s.nama) || fokusTopik.includes(e.nama));
+      const subRelevan = e.subElemen.filter(s => subCocokFokus(s, e.nama));
       lines.push(`- ${e.nama} (Fase ${e.fase.join(', ')}): ${subRelevan.length} sub-elemen relevan`);
     });
     return lines.join('\n') || 'Tidak ada elemen yang cocok dengan topik terpilih.';
@@ -96,8 +130,7 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai',
             if (modeFilter === 'hanya') return k === kelasTarget;
             return k <= kelasTarget;
           });
-          const fokusCocok = !fokusTopik || fokusTopik.length === 0 || fokusTopik.includes(s.nama) || fokusTopik.includes(e.nama);
-          return kelasCocok && fokusCocok;
+          return kelasCocok && subCocokFokus(s, e.nama);
         });
         if (subRelevan.length > 0) {
           lines.push(`  - ${e.nama}: ${subRelevan.length} sub-elemen`);
@@ -171,7 +204,17 @@ export async function generateSoalAdaptif(
   modeFilter?: 'hanya' | 'sampai',
   selectedModel?: string,
   bloomTarget?: string,
-  fokusTopik?: string[]
+  fokusTopik?: string[],
+  riwayatPertanyaan?: string[],
+  // Nama EXACT sub-sub-elemen (persis seperti di kisiTKA.ts) kalau sesi ini
+  // fokus ke satu topik sedalam level itu (misal "Membaca bilangan 1-100").
+  // Dipakai untuk instruksi presisi ke LLM & validasi ringan hasil balik.
+  fokusSubSubElemen?: string,
+  // Daftar kelas yang SAH untuk topik yang difokuskan (dari SelectedItem.kelas
+  // di kisiTKA.ts). Kalau diisi, soal dengan kelas di luar daftar ini DITOLAK
+  // (bukan cuma di-warning) dan dicoba ulang, supaya kelas hasil soal selalu
+  // sinkron dengan fase/topik yang dicentang user.
+  kelasValidTopik?: number[]
 ): Promise<SoalItemGenerated[]> {
   console.log('[DEBUG-GENERATE] generateSoalAdaptif dipanggil:', {
     mataPelajaran,
@@ -182,6 +225,9 @@ export async function generateSoalAdaptif(
     selectedModel,
     bloomTarget,
     fokusTopik,
+    fokusSubSubElemen,
+    kelasValidTopik,
+    jumlahRiwayatPertanyaan: riwayatPertanyaan?.length ?? 0,
   });
 
   const entri = Object.entries(statistikElemenTerakhir);
@@ -210,11 +256,13 @@ export async function generateSoalAdaptif(
       : "Tidak ada data performa. Buat soal menengah merata untuk SEMUA elemen.";
 
   const arahanKelas =
-    kelasTarget != null
-      ? modeFilter === 'hanya'
-        ? `HANYA kelas ${kelasTarget}.`
-        : `Kelas 1-${kelasTarget} saja.`
-      : 'Kelas 1-12.';
+    kelasValidTopik && kelasValidTopik.length > 0
+      ? `HANYA kelas ${kelasValidTopik.join(' atau ')} (sesuai topik yang difokuskan — JANGAN pakai kelas lain).`
+      : kelasTarget != null
+        ? modeFilter === 'hanya'
+          ? `HANYA kelas ${kelasTarget}.`
+          : `Kelas 1-${kelasTarget} saja.`
+        : 'Kelas 1-12.';
 
   const elemenRelevan = getElemenRelevan(kelasTarget, modeFilter, fokusTopik);
   const subElemenRelevan = getSubElemenRelevan(kelasTarget, modeFilter, fokusTopik);
@@ -233,6 +281,21 @@ export async function generateSoalAdaptif(
 
   if (fokusTopik && fokusTopik.length > 0) {
     prompt += `\n\nINSTRUKSI TAMBAHAN: Fokuskan SEMUA soal HANYA pada topik-topik berikut (jangan buat soal di luar topik ini): ${fokusTopik.join(', ')}.`;
+  }
+
+  if (riwayatPertanyaan && riwayatPertanyaan.length > 0) {
+    const daftarRiwayat = riwayatPertanyaan
+      .map((p, i) => `${i + 1}. ${p}`)
+      .join('\n');
+    prompt += `\n\nINSTRUKSI TAMBAHAN: Soal berikut SUDAH PERNAH diberikan untuk topik ini pada sesi-sesi sebelumnya. Buat soal yang BENAR-BENAR BERBEDA (bukan variasi kecil/parafrase) dari daftar ini — beda angka, beda konteks, beda pendekatan/representasi, atau beda sub-fokus dalam topik yang sama:\n${daftarRiwayat}`;
+  }
+
+  if (fokusSubSubElemen) {
+    prompt += `\n\nINSTRUKSI TAMBAHAN (PALING PENTING): Soal ini HARUS spesifik tentang sub-sub-elemen "${fokusSubSubElemen}" — JANGAN buat soal yang hanya membahas sub-elemen induknya secara umum. Tambahkan juga field "subSubElemen" pada JSON hasil dengan nilai PERSIS "${fokusSubSubElemen}" (sama persis penulisannya, tanpa diubah).`;
+  }
+
+  if (kelasValidTopik && kelasValidTopik.length > 0) {
+    prompt += `\n\nINSTRUKSI TAMBAHAN (WAJIB, SERING SALAH): Field "kelas" pada JSON HARUS salah satu dari: ${kelasValidTopik.join(', ')}. Ini adalah kelas yang benar untuk topik yang difokuskan pada soal ini — JANGAN menulis kelas lain (misalnya jangan menulis kelas 1 kalau topiknya bukan untuk kelas 1). Field "fase" juga harus konsisten dengan kelas tersebut.`;
   }
 
   const maxRetries = 3;
@@ -266,16 +329,41 @@ export async function generateSoalAdaptif(
           fase: getFaseDariKelas(Number(s.kelas)),
         }))
         .filter((s: any) => validasiElemenFase(s.elemen, s.fase))
-        .filter((s: any) => {
-          if (kelasTarget == null) return true;
-          return modeFilter === 'hanya' ? s.kelas === kelasTarget : s.kelas <= kelasTarget;
-        })
         .map((s: any) => {
           if (!validasiSubElemen(s.subElemen, s.elemen, s.fase)) {
             return { ...s, subElemen: '' };
           }
           return s;
+        })
+        .filter((s: any) => {
+          if (kelasTarget == null) return true;
+          return modeFilter === 'hanya' ? s.kelas === kelasTarget : s.kelas <= kelasTarget;
+        })
+        // Validasi KERAS: kalau ada topik spesifik yang difokuskan (kelasValidTopik),
+        // soal dengan kelas di luar daftar itu DIBUANG di sini (bukan cuma warning),
+        // supaya attempt berikutnya (retry) dicoba lagi sampai LLM benar, alih-alih
+        // menampilkan soal dengan kelas yang salah ke user.
+        .filter((s: any) => {
+          if (!kelasValidTopik || kelasValidTopik.length === 0) return true;
+          return kelasValidTopik.includes(s.kelas);
         });
+
+      // Validasi LEMBUT untuk fokus sub-sub-elemen: hanya di-log, TIDAK
+      // membuang soal, karena LLM kadang menulis field tambahan dengan
+      // sedikit variasi (atau tidak menyertakannya sama sekali) meski isi
+      // soalnya sendiri sudah on-topic. Menolak soal di sini berisiko
+      // membuat retry berulang gagal terus untuk hal yang sifatnya kosmetik.
+      if (fokusSubSubElemen) {
+        soalValid.forEach((s: any, i: number) => {
+          if (!s.subSubElemen) {
+            console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: LLM tidak menyertakan field subSubElemen (diharapkan "${fokusSubSubElemen}").`);
+          } else if (!validasiSubSubElemen(s.subSubElemen, s.subElemen, s.elemen, s.fase)) {
+            console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: field subSubElemen "${s.subSubElemen}" tidak ditemukan di kisi-kisi untuk ${s.elemen} > ${s.subElemen}.`);
+          } else if (s.subSubElemen !== fokusSubSubElemen) {
+            console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: subSubElemen hasil ("${s.subSubElemen}") berbeda dari yang difokuskan ("${fokusSubSubElemen}").`);
+          }
+        });
+      }
 
       if (soalValid.length === 0) throw new Error("Semua soal melanggar aturan kisi-kisi.");
 

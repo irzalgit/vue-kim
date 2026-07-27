@@ -3,8 +3,10 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   generateSoalWithChecklist,
   getAllItemsFromKisi,
+  getDaftarTopikRotasi,
   type SelectedItem,
-  type SoalHasil
+  type SoalHasil,
+  type TopikRotasi
 } from '../../agent/generateSoalWithChecklist';
 
 interface SesiBelajar {
@@ -23,7 +25,7 @@ interface SesiBelajar {
 }
 
 interface SoalGeneratorProps {
-  onMulaiSesi?: (selectedItems: any[]) => void;
+  onMulaiSesi?: (selectedItems: SelectedItem[], jumlahSesi: number, jumlahSoalPerSesi: number) => void;
   simulasiKode?: string;
 }
 
@@ -247,7 +249,32 @@ export default function SoalGeneratorWithChecklist({
   const [feedback, setFeedback] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Konfigurasi jumlah sesi & jumlah soal per sesi — bisa diatur user di
+  // panel setup (bersama checklist), TERKUNCI begitu sesi berjalan (sama
+  // seperti checklist). "Sesi" = 1 kelompok topik hasil rotasi; setiap sesi
+  // berisi `jumlahSoalPerSesi` soal berurutan untuk topik yang sama sebelum
+  // pindah ke topik berikutnya di rotasi.
+  const [jumlahSesiTarget, setJumlahSesiTarget] = useState<number>(10);
+  const [jumlahSoalPerSesi, setJumlahSoalPerSesi] = useState<number>(1);
+
+  // Rotasi topik untuk sesi ini (ditetapkan sekali saat "Mulai Sesi" diklik,
+  // dihitung dari selectedItems saat itu) + riwayat pertanyaan per topik,
+  // supaya: (1) setiap topik tercentang pasti kebagian giliran round-robin,
+  // (2) LLM tidak mengulang pertanyaan yang sama untuk topik yang sama.
+  const [daftarTopikRotasi, setDaftarTopikRotasi] = useState<TopikRotasi[]>([]);
+  const [topikSesiIni, setTopikSesiIni] = useState<TopikRotasi | null>(null);
+
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref-versi dari daftarTopikRotasi & riwayatPertanyaanPerTopik: dibaca secara
+  // sinkron di dalam generateSoalSesi (yang dipanggil dari setTimeout), supaya
+  // tidak kena masalah "state belum flush" antar sesi.
+  const daftarTopikRotasiRef = useRef<TopikRotasi[]>([]);
+  const riwayatPertanyaanRef = useRef<Record<string, string[]>>({});
+  // Dikunci nilainya sekali saat "Mulai Sesi" diklik (sama alasan seperti
+  // daftarTopikRotasiRef): supaya perubahan input di tengah sesi (kalaupun
+  // terjadi) tidak mengacak rotasi yang sudah berjalan.
+  const jumlahSoalPerSesiRef = useRef<number>(1);
+  const totalSoalRef = useRef<number>(10);
 
   useEffect(() => {
     return () => {
@@ -264,6 +291,8 @@ export default function SoalGeneratorWithChecklist({
     setJawabanUser('');
     setFeedback('');
     setExpandedNodes(new Set());
+    setDaftarTopikRotasi([]);
+    setTopikSesiIni(null);
   }, [simulasiKode]);
 
   useEffect(() => {
@@ -356,14 +385,43 @@ export default function SoalGeneratorWithChecklist({
     try {
       setLoading(true);
       setFeedback('');
-      
+
+      // Round-robin per KELOMPOK: topik untuk soal ke-`sesi` (overall, 1-based)
+      // ditentukan dari daftar rotasi, dikelompokkan per `jumlahSoalPerSesi`.
+      // Contoh: jumlahSoalPerSesi=3, rotasi=[A,B] -> soal 1-3 pakai topik A,
+      // soal 4-6 pakai topik B, soal 7-9 balik ke topik A, dst. Ini menjamin
+      // setiap topik yang dicentang pasti kebagian giliran (misal cuma 1 topik
+      // dicentang -> topik itu yang dipakai di SEMUA soal).
+      const rotasi = daftarTopikRotasiRef.current;
+      const ukuranKelompok = Math.max(1, jumlahSoalPerSesiRef.current);
+      const topikIndex = rotasi.length > 0 ? Math.floor((sesi - 1) / ukuranKelompok) % rotasi.length : -1;
+      const topik = topikIndex >= 0 ? rotasi[topikIndex] : undefined;
+      const riwayatTopikIni = topik ? (riwayatPertanyaanRef.current[topik.id] || []) : [];
+
       const soal = await generateSoalWithChecklist({
         selectedItems: selectedItems,
         sesiKe: sesi,
         mataPelajaran: simulasiKode === 'fisika' ? 'Fisika' : 'Matematika',
-        selectedModel: 'claude-sonnet-4-6',
+        // Format ID OpenRouter untuk model Anthropic pakai prefix "anthropic/"
+        // dan titik di versi (bukan strip). String lama 'claude-sonnet-4-6'
+        // tidak valid di OpenRouter -> selalu gagal -> diam-diam fallback ke
+        // model gratis acak (lihat askLLM/openrouter.ts). Perlu AI_CONFIG.openRouterApiKey
+        // dengan kredit karena model Claude berbayar, bukan gratis di OpenRouter.
+        selectedModel: 'anthropic/claude-sonnet-4.6',
         statistikElemen: getStatistikDariRiwayat(),
+        topikSesiIni: topik,
+        riwayatPertanyaanTopik: riwayatTopikIni,
       });
+
+      // Catat pertanyaan ini ke riwayat topiknya, supaya sesi berikutnya untuk
+      // topik yang sama tidak mengulang pertanyaan yang sama.
+      if (topik) {
+        riwayatPertanyaanRef.current = {
+          ...riwayatPertanyaanRef.current,
+          [topik.id]: [...(riwayatPertanyaanRef.current[topik.id] || []), soal.pertanyaan],
+        };
+        setTopikSesiIni(topik);
+      }
 
       setSoalSaatIni(soal);
       setJawabanUser('');
@@ -383,6 +441,25 @@ export default function SoalGeneratorWithChecklist({
 
     if (isSesiAktif) return;
 
+    // Validasi & kunci nilai konfigurasi (input di UI di-disable saat sesi
+    // aktif, tapi kita kunci juga di sini demi keamanan/kejelasan logika).
+    const jumlahSesiValid = Math.max(1, Math.min(50, Math.round(jumlahSesiTarget) || 10));
+    const jumlahSoalPerSesiValid = Math.max(1, Math.min(20, Math.round(jumlahSoalPerSesi) || 1));
+    jumlahSoalPerSesiRef.current = jumlahSoalPerSesiValid;
+    totalSoalRef.current = jumlahSesiValid * jumlahSoalPerSesiValid;
+    if (jumlahSesiValid !== jumlahSesiTarget) setJumlahSesiTarget(jumlahSesiValid);
+    if (jumlahSoalPerSesiValid !== jumlahSoalPerSesi) setJumlahSoalPerSesi(jumlahSoalPerSesiValid);
+
+    // Tetapkan urutan rotasi topik SEKALI di awal sesi, dari topik yang
+    // tercentang saat "Mulai Sesi" diklik. Kalau hanya 1 topik dicentang
+    // (misal 1.1.1), rotasi ini panjangnya 1 -> topik itu dipakai di semua
+    // soal. Riwayat pertanyaan per topik juga dikosongkan lagi.
+    const rotasiBaru = getDaftarTopikRotasi(selectedItems);
+    daftarTopikRotasiRef.current = rotasiBaru;
+    riwayatPertanyaanRef.current = {};
+    setDaftarTopikRotasi(rotasiBaru);
+    setTopikSesiIni(null);
+
     setIsSesiAktif(true);
     setSesiKe(1);
     setRiwayatSesi([]);
@@ -390,9 +467,9 @@ export default function SoalGeneratorWithChecklist({
     setJawabanUser('');
     setFeedback('');
 
-    if (onMulaiSesi) onMulaiSesi(selectedItems);
+    if (onMulaiSesi) onMulaiSesi(selectedItems, jumlahSesiValid, jumlahSoalPerSesiValid);
     await generateSoalSesi(1);
-  }, [selectedItems, isSesiAktif, generateSoalSesi, onMulaiSesi]);
+  }, [selectedItems, isSesiAktif, generateSoalSesi, onMulaiSesi, jumlahSesiTarget, jumlahSoalPerSesi]);
 
   const submitJawaban = useCallback(async () => {
     if (!soalSaatIni || !jawabanUser) return;
@@ -421,12 +498,12 @@ export default function SoalGeneratorWithChecklist({
 
     setFeedback(benar ? '✅ Jawaban benar! 🎉' : '❌ Kurang tepat. Coba perhatikan pembahasan.');
 
-    if (sesiKe >= 10) {
+    if (sesiKe >= totalSoalRef.current) {
       timerRef.current = setTimeout(() => {
         setIsSesiAktif(false);
         setSesiKe(0);
         setSoalSaatIni(null);
-        alert('🎉 Selamat! Anda telah menyelesaikan 10 sesi!');
+        alert(`🎉 Selamat! Anda telah menyelesaikan ${totalSoalRef.current} soal!`);
       }, 2000);
       return;
     }
@@ -691,7 +768,7 @@ export default function SoalGeneratorWithChecklist({
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={styles.statusText}>Status:</span>
           {isSesiAktif ? (
-            <span style={styles.statusActive}>🔴 Sesi Aktif {sesiKe}/10</span>
+            <span style={styles.statusActive}>🔴 Soal Aktif {sesiKe}/{totalSoalRef.current}</span>
           ) : (
             <span style={styles.statusInactive}>⏸️ Pilih topik & mulai sesi</span>
           )}
@@ -713,25 +790,78 @@ export default function SoalGeneratorWithChecklist({
         </button>
       </div>
 
-      <div style={styles.grid}>
+      <div style={{ ...styles.grid, gridTemplateColumns: isSesiAktif ? "1fr" : "1fr 1fr" }}>
+        {!isSesiAktif && (
         <div style={styles.panel}>
           <div style={styles.panelTitle}>
             📋 Pilih Topik
-            {isSesiAktif && (
-              <span style={{ color: "#f59e0b", fontSize: "11px", marginLeft: "8px" }}>
-                (🔒 Terkunci)
-              </span>
-            )}
           </div>
-          
+
+          {/* Konfigurasi jumlah sesi & soal per sesi + checklist topik —
+              panel INI SELURUHNYA hanya tampil sebelum sesi dimulai (setup
+              phase). Begitu "Mulai Sesi" diklik, panel ini disembunyikan
+              total (bukan cuma dikunci/disabled) supaya layar soal dapat
+              ruang penuh. Nilai yang sudah dipilih tetap dipakai/dibekukan
+              di jumlahSoalPerSesiRef/totalSoalRef/daftarTopikRotasiRef. */}
+          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
+            <label style={{ flex: 1, fontSize: "12px", color: "#94a3b8" }}>
+              Jumlah Sesi
+              <input
+                type="number"
+                min={1}
+                max={50}
+                value={jumlahSesiTarget}
+                onChange={(e) => setJumlahSesiTarget(Number(e.target.value))}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  marginTop: "4px",
+                  padding: "6px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #334155",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                }}
+              />
+            </label>
+            <label style={{ flex: 1, fontSize: "12px", color: "#94a3b8" }}>
+              Soal / Sesi
+              <input
+                type="number"
+                min={1}
+                max={20}
+                value={jumlahSoalPerSesi}
+                onChange={(e) => setJumlahSoalPerSesi(Number(e.target.value))}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  marginTop: "4px",
+                  padding: "6px 8px",
+                  borderRadius: "6px",
+                  border: "1px solid #334155",
+                  background: "#0f172a",
+                  color: "#e2e8f0",
+                }}
+              />
+            </label>
+          </div>
+          <div style={{ fontSize: "11px", color: "#64748b", marginBottom: "12px" }}>
+            Total soal: {Math.max(1, Math.min(50, Math.round(jumlahSesiTarget) || 10)) * Math.max(1, Math.min(20, Math.round(jumlahSoalPerSesi) || 1))}
+          </div>
+
           <div style={styles.checklist}>
             {renderChecklist()}
           </div>
         </div>
+        )}
 
         <div style={styles.soalPanel}>
           <div style={styles.panelTitle}>
-            {isSesiAktif ? `📝 Sesi ${sesiKe}/10` : '📝 Soal'}
+            {isSesiAktif ? (() => {
+              const ukuran = Math.max(1, jumlahSoalPerSesiRef.current);
+              const kelompokKe = Math.floor((sesiKe - 1) / ukuran) + 1;
+              return `📝 Sesi ${kelompokKe}/${jumlahSesiTarget} · Soal ${sesiKe}/${totalSoalRef.current}`;
+            })() : '📝 Soal'}
           </div>
 
           {loading ? (
@@ -742,9 +872,14 @@ export default function SoalGeneratorWithChecklist({
           ) : isSesiAktif && soalSaatIni ? (
             <div>
               <div style={styles.soalInfo}>
-                Topik: <span style={{ color: "#e2e8f0" }}>{soalSaatIni.elemen} &gt; {soalSaatIni.subElemen}</span>
+                Topik: <span style={{ color: "#e2e8f0" }}>{soalSaatIni.elemen} &gt; {soalSaatIni.subElemen}{soalSaatIni.subSubElemen ? ` > ${soalSaatIni.subSubElemen}` : ''}</span>
                 <span style={{ marginLeft: "12px" }}>Kelas {soalSaatIni.kelas}</span>
                 <span style={{ marginLeft: "12px" }}>Bloom: {soalSaatIni.taxonomiBloom}</span>
+                {daftarTopikRotasi.length > 1 && topikSesiIni && (
+                  <span style={{ marginLeft: "12px", color: "#60a5fa" }}>
+                    Rotasi: {daftarTopikRotasi.findIndex(t => t.id === topikSesiIni.id) + 1}/{daftarTopikRotasi.length}
+                  </span>
+                )}
               </div>
 
               <div style={styles.soalText}>
@@ -798,10 +933,10 @@ export default function SoalGeneratorWithChecklist({
               <div style={styles.progress}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>
                   <span>Progress</span>
-                  <span>{sesiKe}/10</span>
+                  <span>{sesiKe}/{totalSoalRef.current}</span>
                 </div>
                 <div style={styles.progressBar}>
-                  <div style={{ ...styles.progressFill, width: `${(sesiKe / 10) * 100}%` }} />
+                  <div style={{ ...styles.progressFill, width: `${(sesiKe / totalSoalRef.current) * 100}%` }} />
                 </div>
               </div>
             </div>

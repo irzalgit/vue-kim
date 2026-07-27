@@ -1,4 +1,3 @@
-
 // Ubah baris pertama di App.tsx menjadi:
 import { useEffect, Component, createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
@@ -11,6 +10,7 @@ import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
 import { PaymentModal } from './components/PaymentModal';
+import type { SelectedItem } from './agent/generateSoalWithChecklist';
 
 // --- Context ---
 const PaymentContext = createContext<{ triggerPayment: () => void } | null>(null);
@@ -50,14 +50,38 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   }
 }
 
+// Data yang dikirim dari DashboardPage saat "Mulai Sesi" diklik, dibawa lewat
+// router state (BUKAN URL) karena selectedItems adalah array objek yang tidak
+// bisa dikodekan ke URL path. Dibaca lagi di SoalPageWrapper lewat useLocation().
+interface SoalNavigationState {
+  selectedItems?: SelectedItem[];
+  jumlahSesi?: number;
+  jumlahSoalPerSesi?: number;
+}
+
 // --- Wrapper ---
 function SoalPageWrapper() {
   const navigate = useNavigate();
   const { kode } = useParams<{ kode: string }>();
+  const location = useLocation();
 
   if (!kode) return null;
 
-  return <SoalPage kodeSoal={kode} onKembali={() => navigate('/dashboard')} />;
+  // location.state bisa null kalau SoalPage diakses langsung lewat URL
+  // (refresh halaman, buka link langsung, dll) tanpa lewat Dashboard —
+  // dalam kasus itu SoalPage otomatis fallback ke perilaku lamanya sendiri
+  // (selectedItems kosong, jumlahSesi/jumlahSoalPerSesi default 10/1).
+  const state = (location.state as SoalNavigationState | null) ?? {};
+
+  return (
+    <SoalPage
+      kodeSoal={kode}
+      selectedItems={state.selectedItems}
+      jumlahSesi={state.jumlahSesi}
+      jumlahSoalPerSesi={state.jumlahSoalPerSesi}
+      onKembali={() => navigate('/dashboard')}
+    />
+  );
 }
 
 // --- AppContent ---
@@ -99,7 +123,16 @@ function AppContent() {
             path="/dashboard" 
             element={
               <DashboardPage 
-                onBukaSoal={(kode: string) => navigate(`/soal/${kode}`)} 
+                onBukaSoal={(
+                  kode: string,
+                  selectedItems?: SelectedItem[],
+                  jumlahSesi?: number,
+                  jumlahSoalPerSesi?: number
+                ) =>
+                  navigate(`/soal/${kode}`, {
+                    state: { selectedItems, jumlahSesi, jumlahSoalPerSesi } as SoalNavigationState,
+                  })
+                }
                 onKembaliKeLanding={() => navigate('/')} 
               />
             } 
