@@ -247,6 +247,7 @@ export default function SoalGeneratorWithChecklist({
   const [riwayatSesi, setRiwayatSesi] = useState<SesiBelajar[]>([]);
   const [jawabanUser, setJawabanUser] = useState<string>('');
   const [feedback, setFeedback] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   // Konfigurasi jumlah sesi & jumlah soal per sesi — bisa diatur user di
@@ -385,6 +386,7 @@ export default function SoalGeneratorWithChecklist({
     try {
       setLoading(true);
       setFeedback('');
+      setError(null);
 
       // Round-robin per KELOMPOK: topik untuk soal ke-`sesi` (overall, 1-based)
       // ditentukan dari daftar rotasi, dikelompokkan per `jumlahSoalPerSesi`.
@@ -402,12 +404,7 @@ export default function SoalGeneratorWithChecklist({
         selectedItems: selectedItems,
         sesiKe: sesi,
         mataPelajaran: simulasiKode === 'fisika' ? 'Fisika' : 'Matematika',
-        // Format ID OpenRouter untuk model Anthropic pakai prefix "anthropic/"
-        // dan titik di versi (bukan strip). String lama 'claude-sonnet-4-6'
-        // tidak valid di OpenRouter -> selalu gagal -> diam-diam fallback ke
-        // model gratis acak (lihat askLLM/openrouter.ts). Perlu AI_CONFIG.openRouterApiKey
-        // dengan kredit karena model Claude berbayar, bukan gratis di OpenRouter.
-        selectedModel: 'anthropic/claude-sonnet-4.6',
+        selectedModel: 'gemini',
         statistikElemen: getStatistikDariRiwayat(),
         topikSesiIni: topik,
         riwayatPertanyaanTopik: riwayatTopikIni,
@@ -426,8 +423,37 @@ export default function SoalGeneratorWithChecklist({
       setSoalSaatIni(soal);
       setJawabanUser('');
     } catch (err: unknown) {
-      setFeedback('❌ Gagal membuat soal. Silakan coba lagi.');
-      console.error(err);
+      console.error('Gagal generate, mencoba fallback ke soal statis...', err);
+      
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(`Gagal membuat soal AI: ${errorMessage.substring(0, 50)}... Menggunakan soal cadangan.`);
+
+      try {
+        const mapel = simulasiKode === 'fisika' ? 'fisika' : 'matematika';
+        const response = await fetch(`/data/soal-${mapel}.json`);
+        if (!response.ok) throw new Error('Gagal memuat soal cadangan');
+        const data = await response.json();
+        const randomSoal = data.soal[Math.floor(Math.random() * data.soal.length)];
+        
+        const fallback: SoalHasil = {
+            id: 'fallback-' + Date.now(),
+            elemen: randomSoal.elemen,
+            subElemen: 'Umum',
+            kelas: randomSoal.kelas,
+            taxonomiBloom: randomSoal.taxonomiBloom,
+            pertanyaan: randomSoal.pertanyaan,
+            pilihan: randomSoal.pilihan,
+            jawaban_benar: randomSoal.jawaban_benar,
+            pembahasan: 'Soal cadangan.',
+        };
+        
+        setSoalSaatIni(fallback);
+        setJawabanUser('');
+        setFeedback('⚠️ Menggunakan soal cadangan.');
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        setError('❌ Gagal membuat soal dan gagal memuat soal cadangan.');
+      }
     } finally {
       setLoading(false);
     }
@@ -869,87 +895,93 @@ export default function SoalGeneratorWithChecklist({
               <div style={{ fontSize: "32px", marginBottom: "8px" }}>⏳</div>
               <p>Membuat soal...</p>
             </div>
-          ) : isSesiAktif && soalSaatIni ? (
-            <div>
-              <div style={styles.soalInfo}>
-                Topik: <span style={{ color: "#e2e8f0" }}>{soalSaatIni.elemen} &gt; {soalSaatIni.subElemen}{soalSaatIni.subSubElemen ? ` > ${soalSaatIni.subSubElemen}` : ''}</span>
-                <span style={{ marginLeft: "12px" }}>Kelas {soalSaatIni.kelas}</span>
-                <span style={{ marginLeft: "12px" }}>Bloom: {soalSaatIni.taxonomiBloom}</span>
-                {daftarTopikRotasi.length > 1 && topikSesiIni && (
-                  <span style={{ marginLeft: "12px", color: "#60a5fa" }}>
-                    Rotasi: {daftarTopikRotasi.findIndex(t => t.id === topikSesiIni.id) + 1}/{daftarTopikRotasi.length}
-                  </span>
-                )}
-              </div>
-
-              <div style={styles.soalText}>
-                {soalSaatIni.pertanyaan}
-              </div>
-
+          ) : (
+            isSesiAktif && soalSaatIni ? (
               <div>
-                {soalSaatIni.pilihan?.map((p: string, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => !feedback && setJawabanUser(p)}
-                    disabled={!!feedback}
-                    style={{
-                      ...styles.pilihan,
-                      ...(jawabanUser === p ? styles.pilihanSelected : {}),
-                      ...(feedback ? styles.pilihanDisabled : {})
-                    }}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-
-              {!feedback && (
-                <button
-                  onClick={submitJawaban}
-                  disabled={!jawabanUser}
-                  style={{
-                    ...styles.button,
-                    ...styles.buttonPrimary,
-                    width: "100%",
-                    padding: "10px",
-                    ...(!jawabanUser ? styles.buttonDisabled : {})
-                  }}
-                >
-                  Submit Jawaban
-                </button>
-              )}
-
-              {feedback && (
-                <div style={feedback.includes('benar') ? styles.feedbackBenar : styles.feedbackSalah}>
-                  <strong>{feedback}</strong>
-                  {soalSaatIni.pembahasan && (
-                    <p style={{ marginTop: "6px", fontSize: "13px", color: "#94a3b8" }}>
-                      {soalSaatIni.pembahasan}
-                    </p>
+                <div style={styles.soalInfo}>
+                  Topik: <span style={{ color: "#e2e8f0" }}>{soalSaatIni.elemen} &gt; {soalSaatIni.subElemen}{soalSaatIni.subSubElemen ? ` > ${soalSaatIni.subSubElemen}` : ''}</span>
+                  <span style={{ marginLeft: "12px" }}>Kelas {soalSaatIni.kelas}</span>
+                  <span style={{ marginLeft: "12px" }}>Bloom: {soalSaatIni.taxonomiBloom}</span>
+                  {daftarTopikRotasi.length > 1 && topikSesiIni && (
+                    <span style={{ marginLeft: "12px", color: "#60a5fa" }}>
+                      Rotasi: {daftarTopikRotasi.findIndex(t => t.id === topikSesiIni.id) + 1}/{daftarTopikRotasi.length}
+                    </span>
                   )}
                 </div>
-              )}
 
-              <div style={styles.progress}>
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>
-                  <span>Progress</span>
-                  <span>{sesiKe}/{totalSoalRef.current}</span>
+                <div style={styles.soalText}>
+                  {soalSaatIni.pertanyaan}
                 </div>
-                <div style={styles.progressBar}>
-                  <div style={{ ...styles.progressFill, width: `${(sesiKe / totalSoalRef.current) * 100}%` }} />
+
+                <div>
+                  {soalSaatIni.pilihan?.map((p: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => !feedback && setJawabanUser(p)}
+                      disabled={!!feedback}
+                      style={{
+                        ...styles.pilihan,
+                        ...(jawabanUser === p ? styles.pilihanSelected : {}),
+                        ...(feedback ? styles.pilihanDisabled : {})
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                </div>
+
+                {!feedback && (
+                  <button
+                    onClick={submitJawaban}
+                    disabled={!jawabanUser}
+                    style={{
+                      ...styles.button,
+                      ...styles.buttonPrimary,
+                      width: "100%",
+                      padding: "10px",
+                      ...(!jawabanUser ? styles.buttonDisabled : {})
+                    }}
+                  >
+                    Submit Jawaban
+                  </button>
+                )}
+
+                {error && (
+                  <div style={{ ...styles.feedbackSalah, background: 'rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}>
+                    <strong>{error}</strong>
+                  </div>
+                )}
+                {feedback && !error && (
+                  <div style={feedback.includes('benar') ? styles.feedbackBenar : styles.feedbackSalah}>
+                    <strong>{feedback}</strong>
+                  </div>
+                )}
+                {soalSaatIni.pembahasan && (
+                  <p style={{ marginTop: "6px", fontSize: "13px", color: "#94a3b8" }}>
+                    {soalSaatIni.pembahasan}
+                  </p>
+                )}
+                <div style={styles.progress}>
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "#94a3b8", marginBottom: "4px" }}>
+                    <span>Progress</span>
+                    <span>{sesiKe}/{totalSoalRef.current}</span>
+                  </div>
+                  <div style={styles.progressBar}>
+                    <div style={{ ...styles.progressFill, width: `${(sesiKe / totalSoalRef.current) * 100}%` }} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ) : (
-            <div style={styles.emptyState}>
-              <p style={{ fontSize: "16px" }}>📚 Pilih topik di sebelah kiri</p>
-              <p style={{ fontSize: "13px", marginTop: "4px" }}>Lalu klik "Mulai Sesi"</p>
-              {selectedItems.length > 0 && !isSesiAktif && (
-                <p style={{ color: "#34d399", fontSize: "12px", marginTop: "8px" }}>
-                  ✅ {selectedItems.length} topik siap
-                </p>
-              )}
-            </div>
+            ) : (
+              <div style={styles.emptyState}>
+                <p style={{ fontSize: "16px" }}>📚 Pilih topik di sebelah kiri</p>
+                <p style={{ fontSize: "13px", marginTop: "4px" }}>Lalu klik "Mulai Sesi"</p>
+                {selectedItems.length > 0 && !isSesiAktif && (
+                  <p style={{ color: "#34d399", fontSize: "12px", marginTop: "8px" }}>
+                    ✅ {selectedItems.length} topik siap
+                  </p>
+                )}
+              </div>
+            )
           )}
         </div>
       </div>

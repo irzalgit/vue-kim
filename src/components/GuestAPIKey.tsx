@@ -8,7 +8,7 @@ export default function GuestAPIKey({
   visible
 }: Props) {
 
-  const [provider, setProvider] = useState("claude");
+  const [provider, setProvider] = useState("gemini");
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [status, setStatus] = useState("");
@@ -76,10 +76,6 @@ export default function GuestAPIKey({
           marginBottom: 10
         }}
       >
-        <option value="claude">
-          Claude API
-        </option>
-
         <option value="gemini">
           Gemini API
         </option>

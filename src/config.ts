@@ -289,3 +289,10 @@ export const footerConfig: FooterConfig = {
     { label: "Kontak", href: "#" },
   ],
 };
+// Tambahkan properti claudeModel jika belum ada
+// src/agent/config.ts
+export const AI_CONFIG = {
+  apiKey: import.meta.env.VITE_GEMINI_API_KEY,
+  model: import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash",
+  openrouterModel: import.meta.env.OPENROUTER_MODEL || "openai/gpt-4o",
+};

@@ -2,6 +2,7 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
+  box-sizing: border-box;
 }
 
 .header {
@@ -57,6 +58,32 @@
 .nomor {
   font-weight: bold;
   color: #10b981;
+}
+
+.soal-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #334155;
+}
+
+.info-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: #cbd5e1;
+  background: #334155;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.info-topik {
+  font-size: 12px;
+  color: #94a3b8;
+  width: 100%;
+  margin-top: 2px;
 }
 
 .pertanyaan {
@@ -155,4 +182,103 @@
 
 .error {
   color: #ef4444;
+}
+
+.sumber-ai {
+  background: #7c3aed;
+  color: white;
+}
+
+.sumber-statis {
+  background: #64748b;
+  color: #f1f5f9;
+}
+
+/* ========================================
+   MOBILE / SMARTPHONE (layar kecil)
+   - Font & elemen diperbesar supaya mudah dibaca
+   - Padding dipepetkan supaya memanfaatkan layar penuh
+   ======================================== */
+@media (max-width: 640px) {
+  .soal-page {
+    max-width: 100%;
+    padding: 12px;
+  }
+
+  .header {
+    margin-bottom: 14px;
+  }
+
+  .header h1 {
+    font-size: 20px;
+  }
+
+  .btn-kembali {
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  .timer {
+    padding: 10px 16px;
+    font-size: 15px;
+  }
+
+  .soal-item {
+    padding: 16px;
+    margin-bottom: 18px;
+  }
+
+  .nomor {
+    font-size: 15px;
+  }
+
+  .info-badge {
+    font-size: 13px;
+    padding: 4px 12px;
+  }
+
+  .info-topik {
+    font-size: 13px;
+  }
+
+  .pertanyaan {
+    font-size: 20px;
+    line-height: 1.7;
+    margin-bottom: 18px;
+  }
+
+  .pilihan label {
+    padding: 14px;
+    font-size: 17px;
+    line-height: 1.5;
+  }
+
+  .pilihan input {
+    width: 20px;
+    height: 20px;
+    margin-right: 12px;
+  }
+
+  .navigasi {
+    gap: 10px;
+  }
+
+  .btn-nav,
+  .btn-kirim {
+    font-size: 16px;
+    padding: 14px 18px;
+    flex: 1;
+  }
+
+  .nomor-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 15px;
+  }
+
+  .loading,
+  .error {
+    padding: 30px 16px;
+    font-size: 17px;
+  }
 }

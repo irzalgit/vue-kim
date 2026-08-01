@@ -43,8 +43,8 @@ export const openRouterProvider = {
                 `Bearer ${AI_CONFIG.openRouterApiKey}`,
               "Content-Type":
                 "application/json",
-              "HTTP-Referer":
-                window.location.origin,
+           "HTTP-Referer":
+  "https://vue-kim.local",  // ✅ string statis
               "X-Title":
                 "vue-kim",
             },
@@ -96,10 +96,9 @@ export const openRouterProvider = {
 
               if (backup) {
 
-                alert(
-                  `⚠️ Model ${selectedModel} sedang penuh.\n\n` +
-                  `Menggunakan ${backup} sebagai pengganti.`
-                );
+              console.warn(
+  `Model ${selectedModel} sedang penuh, menggunakan ${backup} sebagai pengganti.`
+);
 
               }
 

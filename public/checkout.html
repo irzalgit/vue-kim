@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout Premium Math315</title>
+
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+}
+.card {
+  background: #ffffff;
+  padding: 30px 25px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease;
+}
+.card:hover { transform: translateY(-5px); }
+h2 { margin: 0 0 20px 0; color: #333; text-align: center; font-weight: 600; font-size: 24px; }
+label { display: block; margin-top: 12px; margin-bottom: 4px; color: #555; font-weight: 500; font-size: 14px; }
+input, select, button {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 4px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+input:focus, select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+input[readonly] { background: #f0f0f0; color: #666; cursor: default; }
+button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 24px;
+  padding: 14px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+button:hover { transform: scale(1.02); box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4); }
+button:disabled { background: #cccccc; cursor: not-allowed; transform: none; box-shadow: none; }
+#price {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 12px;
+  font-weight: bold;
+  font-size: 20px;
+  color: #333;
+  text-align: center;
+  border: 1px solid #d4d4d4;
+}
+.status {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: fadeIn 0.3s ease;
+}
+.status strong { font-weight: 700; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+.success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+.error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+.info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+.warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+.loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
+.google-btn {
+  display: inline-block;
+  background: #4285f4;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background 0.3s ease;
+}
+.google-btn:hover { background: #357ae8; }
+.google-btn:disabled { background: #aaa; cursor: not-allowed; }
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>🚀 Checkout Premium</h2>
+
+  <form id="form" style="display: none;">
+    <label>👤 Nama</label>
+    <input id="name" readonly placeholder="Nama Anda">
+    <label>📧 Email</label>
+    <input id="email" readonly placeholder="Email Anda">
+    <label>📦 Pilih Produk</label>
+    <select id="product"><option value="">Memuat produk...</option></select>
+    <div id="price">Rp -</div>
+    <label>📱 Nomor WhatsApp</label>
+    <input id="phone" type="tel" placeholder="081234567890" required>
+    <small>Contoh: 081234567890</small>
+    <button id="pay" disabled>💰 Bayar Sekarang</button>
+  </form>
+
+  <div id="status" class="status info"><span class="loading"></span>Memeriksa login...</div>
+
+  <div id="loginSection" style="display: none; text-align: center; margin-top: 20px;">
+    <p style="color: #333; margin-bottom: 15px;">🔐 Silakan login untuk melanjutkan pembayaran</p>
+    <button id="loginBtn" class="google-btn">Login dengan Google</button>
+  </div>
+</div>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
+<script>
+// ============================================================
+// 🔥 FIREBASE CONFIG
+// ============================================================
+const firebaseConfig = {
+  apiKey: "AIzaSyCu4GQa-EOaPhpQP_y_QcsJxs05adQU2-M",
+  authDomain: "math314-app.firebaseapp.com",
+  databaseURL: "https://math314-app-default-rtdb.firebaseio.com",
+  projectId: "math314-app",
+  storageBucket: "math314-app.appspot.com",
+  messagingSenderId: "9019551034",
+  appId: "1:9019551034:web:de0c5e2b8b20c18ca0b403"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.database();
+
+// ============================================================
+// 📦 CONFIG & DOM
+// ============================================================
+const API_BASE = "https://math315.vercel.app";
+const nameEl = document.getElementById("name");
+const emailEl = document.getElementById("email");
+const phoneEl = document.getElementById("phone");
+const productEl = document.getElementById("product");
+const priceEl = document.getElementById("price");
+const payBtn = document.getElementById("pay");
+const statusEl = document.getElementById("status");
+const formEl = document.getElementById("form");
+const loginSection = document.getElementById("loginSection");
+const loginBtn = document.getElementById("loginBtn");
+
+let currentUser = null;
+let userToken = null;
+let products = {};
+
+// ============================================================
+// 🔍 BACA QUERY PARAMETER
+// ============================================================
+const urlParams = new URLSearchParams(window.location.search);
+const queryProductId = urlParams.get('productId');
+const queryProductName = urlParams.get('productName');
+const queryPrice = urlParams.get('price');
+const queryToken = urlParams.get('token');
+
+window._checkoutData = {
+  productId: queryProductId || null,
+  productName: queryProductName || null,
+  price: queryPrice ? parseInt(queryPrice) : null,
+  token: queryToken ? parseInt(queryToken) : null
+};
+
+// ============================================================
+// 🧪 FALLBACK PRODUK
+// ============================================================
+const FALLBACK_PRODUCTS = {
+  "token_50": {
+    name: "Starter",
+    price: 10000,
+    description: "50 Token",
+    token_amount: 50
+  },
+  "token_200": {
+    name: "Pro",
+    price: 35000,
+    description: "200 Token",
+    token_amount: 200
+  },
+  "token_500": {
+    name: "Business",
+    price: 75000,
+    description: "500 Token",
+    token_amount: 500
+  },
+  "token_1500": {
+    name: "Enterprise",
+    price: 150000,
+    description: "1500 Token",
+    token_amount: 1500
+  }
+};
+
+// ============================================================
+// 📋 HELPER FUNCTIONS
+// ============================================================
+function setStatus(message, type = "info") {
+  statusEl.innerHTML = message;
+  statusEl.className = `status ${type}`;
+}
+function validPhone(phone) { return /^08[0-9]{8,13}$/.test(phone); }
+function formatRupiah(amount) { return `Rp ${Number(amount).toLocaleString("id-ID")}`; }
+function getTokenAmountFromKey(key) {
+  if (key.startsWith('token_')) {
+    const num = parseInt(key.split('_')[1], 10);
+    return isNaN(num) ? 0 : num;
+  }
+  return 0;
+}
+
+// 🔍 Cari produk berdasarkan berbagai kriteria
+function findProductKey(productData, targetId, targetName, targetPrice) {
+  // 1. Coba berdasarkan ID
+  if (targetId && productData[targetId]) return targetId;
+
+  // 2. Coba berdasarkan nama (case-insensitive)
+  if (targetName) {
+    const normalized = targetName.toLowerCase().trim();
+    for (const key in productData) {
+      if (productData[key].name.toLowerCase() === normalized) {
+        return key;
+      }
+    }
+  }
+
+  // 3. Coba berdasarkan harga
+  if (targetPrice) {
+    for (const key in productData) {
+      if (productData[key].price === targetPrice) {
+        return key;
+      }
+    }
+  }
+
+  return null;
+}
+
+function renderProducts(productData) {
+  productEl.innerHTML = '<option value="">-- Pilih Produk --</option>';
+  let hasProduct = false;
+  for (const key in productData) {
+    const p = productData[key];
+    if (p && p.name && p.price) {
+      hasProduct = true;
+      const opt = document.createElement("option");
+      opt.value = key;
+      opt.textContent = `${p.name} - ${formatRupiah(p.price)}`;
+      productEl.appendChild(opt);
+    }
+  }
+  if (!hasProduct) {
+    productEl.innerHTML = '<option value="">❌ Tidak ada produk tersedia</option>';
+    setStatus("⚠️ Belum ada produk yang tersedia", "warning");
+  }
+
+  // ======================= OTOMATIS PILIH PRODUK =======================
+  const data = window._checkoutData;
+  if (data && (data.productId || data.productName || data.price)) {
+    const foundKey = findProductKey(productData, data.productId, data.productName, data.price);
+    if (foundKey) {
+      // Set value secara langsung
+      productEl.value = foundKey;
+      // Nonaktifkan dropdown
+      productEl.disabled = true;
+      // Trigger change untuk update harga
+      productEl.dispatchEvent(new Event('change'));
+      // 🔥 Validasi langsung
+      validateForm();
+    } else {
+      // Jika tidak ditemukan, tampilkan data dari URL sebagai fallback (tapi tetap dropdown kosong)
+      if (data.price) {
+        priceEl.innerHTML = `${formatRupiah(data.price)}<br><small>${data.productName || 'Paket'}</small>`;
+      }
+    }
+  }
+
+  validateForm();
+}
+
+// ============================================================
+// 👤 TAMPILKAN FORM
+// ============================================================
+function enableCheckout(user) {
+  nameEl.value = user.displayName || user.name || "User";
+  emailEl.value = user.email || "";
+  formEl.style.display = 'block';
+  loginSection.style.display = 'none';
+  const displayName = user.displayName || user.name || 'Pengguna';
+  setStatus(`✅ Login berhasil sebagai <strong>${displayName}</strong>`, 'success');
+  if (user.uid) {
+    db.ref(`users/${user.uid}`).once('value').then(snap => {
+      const data = snap.val() || {};
+      if (data.phone) phoneEl.value = data.phone;
+      validateForm();
+    }).catch(() => {});
+  }
+  loadProducts();
+  validateForm();
+}
+
+function showLoginRequired() {
+  formEl.style.display = 'none';
+  loginSection.style.display = 'block';
+  setStatus('🔐 Login diperlukan untuk melanjutkan pembayaran', 'warning');
+}
+
+// ============================================================
+// 🔐 AUTH STATE
+// ============================================================
+auth.onAuthStateChanged(async user => {
+  if (!user) {
+    showLoginRequired();
+    loadProducts();
+    return;
+  }
+  currentUser = user;
+  try {
+    userToken = await user.getIdToken();
+    console.log("✅ Token Firebase didapatkan, UID:", user.uid);
+  } catch (err) {
+    console.error("❌ Gagal mendapatkan token:", err);
+    setStatus("❌ Gagal autentikasi. Refresh halaman.", "error");
+    return;
+  }
+  enableCheckout(user);
+});
+
+// ============================================================
+// 📦 LOAD PRODUCTS
+// ============================================================
+async function loadProducts() {
+  try {
+    const snap = await db.ref("product").once("value");
+    const data = snap.val() || {};
+    if (data && Object.keys(data).length > 0) {
+      for (const key in data) {
+        if (!data[key].token_amount) {
+          data[key].token_amount = getTokenAmountFromKey(key);
+        }
+      }
+      products = data;
+      console.log("✅ Produk dari Firebase:", products);
+      renderProducts(products);
+      setStatus("✅ Produk dimuat dari Firebase", "success");
+    } else {
+      console.warn("⚠️ Firebase kosong, pakai fallback hardcode");
+      products = FALLBACK_PRODUCTS;
+      renderProducts(products);
+      setStatus("⚠️ Menggunakan produk default (fallback)", "warning");
+    }
+  } catch (err) {
+    console.error("❌ Gagal memuat produk dari Firebase:", err);
+    products = FALLBACK_PRODUCTS;
+    renderProducts(products);
+    setStatus("⚠️ Gagal memuat produk. Menggunakan default.", "warning");
+  }
+  validateForm();
+}
+
+// ============================================================
+// ✅ VALIDASI FORM
+// ============================================================
+function validateForm() {
+  const phoneOk = validPhone(phoneEl.value);
+  const productSelected = productEl.value !== "" && productEl.value !== null;
+  const userLoggedIn = currentUser !== null;
+
+  console.log('🔍 validateForm:', { phoneOk, productSelected, userLoggedIn, productValue: productEl.value });
+
+  payBtn.disabled = !(phoneOk && productSelected && userLoggedIn);
+  phoneEl.style.borderColor = (!phoneOk && phoneEl.value) ? "#dc3545" : "#e0e0e0";
+}
+
+phoneEl.addEventListener("input", validateForm);
+productEl.addEventListener("change", () => {
+  const selectedKey = productEl.value;
+  const product = products[selectedKey];
+  if (selectedKey && product) {
+    priceEl.innerHTML = `${formatRupiah(product.price)}<br><small>${product.name}</small>`;
+  } else {
+    priceEl.innerHTML = "Rp -";
+  }
+  validateForm();
+});
+
+// ============================================================
+// 🔐 TOMBOL LOGIN GOOGLE
+// ============================================================
+loginBtn.addEventListener('click', async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  loginBtn.disabled = true;
+  loginBtn.textContent = '⏳ Memproses...';
+  setStatus('⏳ Mengarahkan ke Google...', 'info');
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (error) {
+    console.error('❌ Login gagal:', error);
+    let errorMsg = error.message;
+    if (error.code === 'auth/popup-blocked') errorMsg = 'Popup diblokir oleh browser. Izinkan popup untuk situs ini.';
+    else if (error.code === 'auth/popup-closed-by-user') errorMsg = 'Popup ditutup sebelum login selesai. Coba lagi.';
+    setStatus(`❌ ${errorMsg}`, 'error');
+    loginBtn.disabled = false;
+    loginBtn.textContent = 'Login dengan Google';
+  }
+});
+
+// ============================================================
+// 💳 SUBMIT PEMBAYARAN
+// ============================================================
+document.getElementById("form").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!currentUser) { alert("Anda belum login. Silakan login terlebih dahulu."); return; }
+  if (!userToken) { alert("Token autentikasi tidak tersedia. Refresh halaman."); return; }
+  const selectedKey = productEl.value;
+  if (!selectedKey) { alert("Pilih produk terlebih dahulu."); return; }
+  const selectedProduct = products[selectedKey];
+  if (!selectedProduct) { alert("Produk tidak valid."); return; }
+  const phone = phoneEl.value.trim();
+  if (!validPhone(phone)) { alert("Nomor WhatsApp tidak valid. Gunakan format 08xxxxxxxxxx"); return; }
+
+  payBtn.disabled = true;
+  setStatus('<span class="loading"></span> Memproses transaksi...', "info");
+
+  try {
+    await db.ref(`users/${currentUser.uid}`).update({
+      phone, name: nameEl.value.trim(), updated_at: Date.now()
+    });
+    const timestamp = Date.now();
+    const invoice = `INV${timestamp.toString().slice(-8)}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+    const amount = Number(selectedProduct.price);
+    const tokenAmount = selectedProduct.token_amount || 0;
+
+    const apiPayload = {
+      invoice_no: invoice,
+      amount,
+      cust_name: nameEl.value.trim(),
+      cust_email: emailEl.value.trim(),
+      msisdn: phone,
+      uid: currentUser.uid,
+      token_amount: tokenAmount,
+      item: [{ product: selectedProduct.name, qty: 1, amount }]
+    };
+
+    const res = await fetch(`${API_BASE}/api/create-transaction`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${userToken}` },
+      body: JSON.stringify(apiPayload)
+    });
+    const responseText = await res.text();
+    let data;
+    try { data = JSON.parse(responseText); } catch (parseError) { throw new Error(`Server error: ${responseText.substring(0, 100)}`); }
+    if (!res.ok || !data.success) throw new Error(data.message || `Transaksi gagal (${res.status})`);
+    if (!data.payment_url) throw new Error("Payment URL tidak ditemukan dalam response");
+
+    const billNo = data.bill_no || invoice;
+    await db.ref(`transactions/${billNo}`).update({
+      product_id: selectedKey, user_id: currentUser.uid, status: 'pending', created_at: Date.now()
+    });
+
+    setStatus("✅ Transaksi berhasil! Mengarahkan ke halaman pembayaran...", "success");
+    localStorage.setItem("last_bill_no", billNo);
+    localStorage.setItem("last_trx_id", data.trx_id || billNo);
+    setTimeout(() => { window.location.href = data.payment_url; }, 1500);
+  } catch (err) {
+    console.error("❌ Error transaksi:", err);
+    let errorMessage = err.message;
+    if (errorMessage.includes("Failed to connect") || errorMessage.includes("fetch")) {
+      errorMessage = "Gagal terhubung ke server pembayaran. Silakan coba lagi.";
+    }
+    setStatus(`❌ ${errorMessage}`, "error");
+    payBtn.disabled = false;
+    validateForm();
+  }
+});
+
+// ============================================================
+// 🚀 INISIALISASI
+// ============================================================
+console.log("🚀 Checkout Math315 (Firebase) siap!");
+if (window._checkoutData && window._checkoutData.productId) {
+  setStatus(`📦 Data dari dashboard: ${window._checkoutData.productName || 'Paket'} - ${formatRupiah(window._checkoutData.price || 0)}`, "info");
+}
+setTimeout(() => {
+  if (!currentUser) setStatus("⏳ Belum login? Klik tombol 'Login dengan Google' di bawah.", "warning");
+}, 5000);
+</script>
+</body>
+</html>

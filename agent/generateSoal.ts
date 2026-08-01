@@ -224,27 +224,43 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai')
   return lines.join('\n');
 }
 
-function perbaikiJawabanBenar(s: any, i: number) {
-  if (!s.pilihan.includes(s.jawaban_benar)) {
-    console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
-    const prefix = s.jawaban_benar.match(/^[A-D]\./)?.[0];
-    if (prefix) {
-      const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
-      if (cocok) {
-        s.jawaban_benar = cocok;
-      } else {
-        s.jawaban_benar = s.pilihan[0];
-      }
-    } else {
-      s.jawaban_benar = s.pilihan[0];
-    }
+/**
+ * Mencocokkan jawaban_benar dari LLM terhadap salah satu string di array pilihan,
+ * berdasarkan ISI teks (bukan posisi/prefix huruf semata). Kalau tidak ditemukan
+ * kecocokan sama sekali, jawaban_benar ditandai `null` supaya soal ini DIBUANG
+ * di tahap filter — lebih baik kehilangan satu soal daripada meloloskan soal
+ * dengan jawaban yang belum tentu benar (sebelumnya kode ini fallback ke
+ * s.pilihan[0], yang menyebabkan hampir semua soal "diperbaiki" jadi opsi A
+ * tanpa verifikasi kebenaran isinya).
+ */
+function perbaikiJawabanBenar(s: SoalItemGenerated, i: number): void {
+  if (s.pilihan.includes(s.jawaban_benar)) return;
+
+  console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
+
+  // Bandingkan berdasarkan ISI teks jawaban (tanpa prefix "A. "/"B. "/dst),
+  // bukan berdasarkan posisi — supaya tidak asal pilih opsi pertama.
+  const bersihkan = (str: string) =>
+    String(str).replace(/^[A-D]\.\s*/, '').trim().toLowerCase();
+
+  const target = bersihkan(s.jawaban_benar);
+  const cocok = s.pilihan.find((p: string) => bersihkan(p) === target);
+
+  if (cocok) {
+    s.jawaban_benar = cocok;
+  } else {
+    // Tidak ketemu kecocokan sama sekali → JANGAN tebak jawaban.
+    // Tandai null supaya soal ini dibuang di tahap filter, bukan
+    // diloloskan dengan jawaban yang belum tentu benar.
+    console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: gagal dicocokkan, soal akan dibuang.`);
+    s.jawaban_benar = ""; // Updated from null to empty string to match SoalItemGenerated type (if it was string)
   }
 }
 
-function parseJSONSoal(hasilMentah: string): any[] {
+function parseJSONSoal(hasilMentah: string): SoalItemGenerated[] {
   console.log("[DEBUG-PARSE] Raw input length:", hasilMentah.length);
 
-  let text = hasilMentah
+  const text = hasilMentah
     .replace(/```json/gi, "")
     .replace(/```/g, "")
     .trim();
@@ -309,14 +325,14 @@ Format JSON (dalam bentuk array atau objek tunggal yang valid):
 `;
 
   const result = await askLLM(prompt, selectedModel);
-  
+
   // Tangani parsing apakah hasilnya array atau objek tunggal
   try {
     const parsed = JSON.parse(
       result.replace(/```json/gi, "").replace(/```/g, "").trim()
     );
     const soal = Array.isArray(parsed) ? parsed[0] : parsed;
-    
+
     return {
       ...soal,
       id: soal.id || `soal-checklist-${Date.now()}`,
@@ -481,7 +497,7 @@ class AgentPembangkitSoal {
   private ambilSeedSoal(elemen?: string, subElemen?: string): SoalItemGenerated | null {
     for (const [key, soals] of Object.entries(SEED_SOAL)) {
       if (elemen && subElemen) {
-        const found = soals.find(s => 
+        const found = soals.find(s =>
           s.elemen === elemen && s.subElemen === subElemen
         );
         if (found) return { ...found };
@@ -677,6 +693,9 @@ export class GenerateSoalAdaptifSystem {
   }
 }
 
+// ==================== EXPORT SINGLETON ====================
+export const generateSoalAdaptifSystem = new GenerateSoalAdaptifSystem();
+
 // ==================== FUNGSI UTAMA (KOMPATIBILITAS) ====================
 
 export async function generateSoalAdaptif(
@@ -732,6 +751,12 @@ export async function generateSoalAdaptif(
     .replace("{{ringkasanPerforma}}", ringkasanPerforma)
     .replace("{{jumlahSoal}}", String(jumlahSoal));
 
+  // INSTRUKSI TAMBAHAN: minta LLM agar jawaban_benar SELALU persis sama
+  // (karakter demi karakter, termasuk prefix "A. "/"B. "/"C. "/"D. ")
+  // dengan salah satu string di array "pilihan". Ini mengurangi kemungkinan
+  // mismatch yang membuat perbaikiJawabanBenar() harus turun tangan.
+  prompt += `\n\nPENTING: Field "jawaban_benar" HARUS persis sama karakter demi karakter dengan salah satu string di array "pilihan" (termasuk prefix "A. "/"B. "/"C. "/"D. "). Jangan menulis jawaban_benar dalam format lain (misalnya hanya angka atau tanpa prefix huruf).`;
+
   if (bloomTarget) {
     prompt += `\n\nINSTRUKSI TAMBAHAN: Pastikan semua soal memiliki tingkat taksonomi Bloom minimal ${bloomTarget}.`;
   }
@@ -741,7 +766,7 @@ export async function generateSoalAdaptif(
     prompt += `\n\nTINGKAT KESULITAN: ${diff} (Level ${level}/5).`;
   }
 
-  const maxRetries = 3;
+  const maxRetries = 1;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -760,7 +785,16 @@ export async function generateSoalAdaptif(
         perbaikiJawabanBenar(s, i);
       }
 
-      const soalValid = parsed
+      // Buang soal yang jawaban_benar-nya gagal dicocokkan (ditandai null
+      // oleh perbaikiJawabanBenar) — soal seperti ini lebih baik tidak
+      // ditampilkan sama sekali daripada ditampilkan dengan jawaban salah.
+      const parsedValid = parsed.filter((s: any) => s.jawaban_benar !== null);
+
+      if (parsedValid.length === 0) {
+        throw new Error("Semua soal gagal dicocokkan jawaban_benar-nya.");
+      }
+
+      const soalValid = parsedValid
         .filter((s: any) => {
           const kelasNum = Number(s.kelas);
           return Number.isFinite(kelasNum) && kelasNum >= 1 && kelasNum <= 12;
@@ -810,7 +844,7 @@ export async function generateSoalBerbasisPosisi(
   selectedModel?: string
 ): Promise<SoalItemGenerated[]> {
   const jumlahSoal = detailSoal?.jumlahSoal ?? 10;
-  
+
   return generateSoalAdaptif(
     mataPelajaran,
     jumlahSoal,
@@ -820,6 +854,3 @@ export async function generateSoalBerbasisPosisi(
     selectedModel
   );
 }
-
-// ==================== EXPORT SINGLETON ====================
-export const generateSoalAdaptifSystem = new GenerateSoalAdaptifSystem();

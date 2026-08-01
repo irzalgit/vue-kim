@@ -1,10 +1,8 @@
-import { askLLM } from "./llm";
+// src/agent/agentAi.ts
+import { askLLMWithFallback } from "./llm";
 import type { PlanStep } from "./planner";
 
-export async function planWithAI(
-  task: string
-): Promise<PlanStep[]> {
-
+export async function planWithAI(task: string): Promise<PlanStep[]> {
   const prompt = `
 Anda adalah AI Planner.
 
@@ -33,24 +31,19 @@ Permintaan:
 ${task}
 `;
 
-  const text = await askLLM(prompt);
+  // Gunakan fallback agar otomatis coba gemini lalu openrouter
+  const text = await askLLMWithFallback(prompt);
 
   try {
-
     const json = JSON.parse(text);
-
     return json;
-
   } catch {
-
     return [
       {
-        id:1,
-        title:"Jawaban",
-        prompt:task
-      }
+        id: 1,
+        title: "Jawaban",
+        prompt: task,
+      },
     ];
-
   }
-
 }

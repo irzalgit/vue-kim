@@ -14,9 +14,9 @@ export function acakArray<T>(arr: T[]): T[] {
  * Render MathJax on the page
  */
 export function renderMathJax(): void {
-  // @ts-ignore - MathJax mungkin tidak dikenali oleh TypeScript window object
+  // @ts-expect-error - MathJax might not be recognized on the window object by TypeScript
   if (window.MathJax && window.MathJax.typesetPromise) {
-    // @ts-ignore
+    // @ts-expect-error
     window.MathJax.typesetPromise();
   }
 }
@@ -40,10 +40,17 @@ export function simpleMarkdown(text: string): string {
     .replace(/---/g, '<hr>');
 }
 
+interface SoalItem {
+  tanya: string;
+  opsi?: string[];
+  kategori?: string;
+  kunci?: number[];
+}
+
 /**
  * Format soal untuk ditampilkan di chat AI
  */
-export function formatSoalUntukChat(soalItem: any, index: number): string {
+export function formatSoalUntukChat(soalItem: SoalItem, index: number): string {
   if (!soalItem) return '';
   let text = `📌 **Soal Nomor ${index + 1}**\n`;
   text += `📂 Kategori: ${soalItem.kategori || 'Umum'}\n\n`;
@@ -57,10 +64,16 @@ export function formatSoalUntukChat(soalItem: any, index: number): string {
   return text;
 }
 
+interface QuestionData {
+  topic?: string;
+  options?: string[];
+  correctAnswer?: string;
+}
+
 /**
  * Generate local fallback response
  */
-export function generateLocalFallback(question: string, questionData: any): string {
+export function generateLocalFallback(question: string, questionData: QuestionData): string {
   const topic = questionData.topic || 'Matematika';
   const options = questionData.options || [];
   const correctAnswer = questionData.correctAnswer || '';
@@ -90,7 +103,7 @@ export function generateLocalFallback(question: string, questionData: any): stri
 /**
  * Generate default questions
  */
-export function generateDefaultSoal(jenis: string) {
+export function generateDefaultSoal(jenis: string): SoalItem[] {
   const base = jenis === 'tka' ? [
     { tanya: "Hasil dari (2x + 3 = 11), nilai x adalah...", opsi: ["4","5","6","7"], kunci:[0], kategori:"Aljabar"},
     { tanya: "Nilai sin 30° + cos 60° adalah...", opsi: ["0","1","1.5","2"], kunci:[1], kategori:"Trigonometri"},
@@ -98,9 +111,9 @@ export function generateDefaultSoal(jenis: string) {
     { tanya: "Siapa penulis novel 'Laskar Pelangi'?", opsi: ["Pramoedya Ananta Toer","Andrea Hirata"], kunci:[1], kategori:"Bahasa Indonesia"},
   ];
 
-  let all: any[] = [];
+  const all: SoalItem[] = [];
   while(all.length < 25) {
-    for(let s of base) {
+    for(const s of base) {
       if(all.length < 25) all.push({...s, tanya: s.tanya + ` (Variasi ${all.length+1})`});
     }
   }

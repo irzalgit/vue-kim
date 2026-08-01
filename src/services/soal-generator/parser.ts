@@ -1,0 +1,52 @@
+// src/services/soal-generator/parser.ts
+export function parseJSONSoal(hasilMentah: string): any[] {
+  console.log("[DEBUG-PARSE] Raw input length:", hasilMentah.length);
+
+  let text = hasilMentah
+    .replace(/```json/gi, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const match = text.match(/\[\s*[\s\S]*\]/);
+
+  if (!match) {
+    console.error("[DEBUG-PARSE] JSON tidak ditemukan");
+    console.error(text.substring(0, 500));
+    throw new Error("AI tidak mengembalikan array JSON.");
+  }
+
+  let jsonString = match[0];
+
+  jsonString = jsonString
+    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
+    .replace(/:\s*'([^']*)'/g, ':"$1"')
+    .replace(/,\s*([}\]])/g, "$1")
+    .replace(/\r/g, "")
+    .trim();
+
+  try {
+    const hasil = JSON.parse(jsonString);
+    if (!Array.isArray(hasil)) throw new Error("Respons AI bukan array.");
+    return hasil;
+  } catch (err: any) {
+    console.error("[DEBUG-PARSE] JSON Parse Error:", err.message);
+    throw new Error(`AI mengembalikan format soal yang tidak valid. ${err.message}`);
+  }
+}
+
+export function perbaikiJawabanBenar(s: any, i: number) {
+  if (!s.pilihan.includes(s.jawaban_benar)) {
+    console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
+    const prefix = s.jawaban_benar.match(/^[A-D]\./)?.[0];
+    if (prefix) {
+      const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
+      if (cocok) {
+        s.jawaban_benar = cocok;
+      } else {
+        s.jawaban_benar = s.pilihan[0];
+      }
+    } else {
+      s.jawaban_benar = s.pilihan[0];
+    }
+  }
+}

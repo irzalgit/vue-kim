@@ -1,5 +1,5 @@
 // src/pages/SoalPage.tsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import './SoalPage.css';
 import { generateRaport } from '../agent/raport';
 import { generateSoalAdaptif, type SoalItemGenerated } from '../agent/generateSoal';
@@ -60,6 +60,72 @@ function normalisasiTeksSoal(teks: string): string {
   if (teks.includes('\\begin{') || teks.includes('$')) return teks;
   if (isFormulaMurni(teks)) return `$${teks}$`;
   return teks;
+}
+
+// Bentuk soal mentah yang dikembalikan backend /api/generate-soal (lihat
+// generateSoalTool di src/mcp/tools/generateSoal.ts). Dibuat longgar (semua
+// field opsional selain yang esensial) supaya perubahan kecil di format
+// backend tidak langsung membuat parsing gagal total.
+interface SoalDariBackend {
+  pertanyaan: string;
+  pilihan: string[];
+  jawaban_benar: string;
+  elemen?: string;
+  subElemen?: string;
+  subSubElemen?: string;
+  fase?: string;
+  kelas?: number;
+  taxonomiBloom?: string;
+}
+
+// Panggil backend Express (api-server.ts) yang membungkus generateSoalTool.
+// Ini memindahkan pemanggilan LLM ke server, sehingga:
+// - API key provider (Gemini/dst) tidak perlu ter-expose ke browser
+// - Tidak tergantung fetch langsung dari HP/browser ke API eksternal
+// Base URL diambil dari VITE_API_URL (lihat .env), fallback ke localhost:3000
+// kalau env var itu tidak diset.
+async function fetchSoalDariBackend(
+  mataPelajaran: string,
+  jumlahSoal: number
+): Promise<SoalItemGenerated[]> {
+  const apiUrl = (import.meta.env.VITE_API_URL as string | undefined) || 'http://localhost:3000';
+
+  let response: Response;
+  try {
+    response = await fetch(`${apiUrl}/api/generate-soal`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mataPelajaran, jumlahSoal }),
+    });
+  } catch (errNetwork) {
+    throw new Error(
+      `Tidak bisa menghubungi backend di ${apiUrl}. Pastikan 'npm run api' sedang berjalan dan URL-nya benar. (${errNetwork instanceof Error ? errNetwork.message : String(errNetwork)})`
+    );
+  }
+
+  if (!response.ok) {
+    const errBody = await response.json().catch(() => ({} as { error?: string }));
+    throw new Error(errBody?.error || `Backend API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  if (!Array.isArray(data)) {
+    throw new Error('Format respons backend tidak sesuai (bukan array soal).');
+  }
+
+  // Normalisasi field opsional supaya cocok dengan tipe SoalItemGenerated
+  // yang dipakai di tempat lain (lib client-side AI generation).
+  return (data as SoalDariBackend[]).map((s) => ({
+    pertanyaan: s.pertanyaan,
+    pilihan: s.pilihan,
+    jawaban_benar: s.jawaban_benar,
+    elemen: s.elemen || '',
+    subElemen: s.subElemen || '',
+    subSubElemen: s.subSubElemen || '',
+    fase: s.fase || '',
+    kelas: s.kelas ?? 0,
+    taxonomiBloom: s.taxonomiBloom || '',
+  })) as SoalItemGenerated[];
 }
 
 // Generate soal per-topik dengan ROTASI yang sama rumusnya dengan yang
@@ -130,6 +196,7 @@ interface SoalData {
     kelas?: number;
     subElemen?: string;
     subSubElemen?: string;
+    sumber?: 'ai' | 'statis';
   }[];
 }
 
@@ -168,40 +235,32 @@ export default function SoalPage({
 
   const [loadingMessage, setLoadingMessage] = useState<string>('Memuat soal...');
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setWaktu((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          kirimJawaban();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    muatSoal();
-    return () => clearInterval(timer);
-  }, [kodeSoal]);
-
   // ==================== MUAT SOAL ====================
-  const muatSoal = async () => {
+  const muatSoal = useCallback(async () => {
     setLoading(true);
     setLoadingMessage('Memuat soal...');
 
     try {
-      const base = import.meta.env.BASE_URL || '/';
-      let response = await fetch(`${base}data/soal-${kodeSoal}.json`);
-      
-      if (!response.ok) {
-        response = await fetch(`/data/soal-${kodeSoal}.json`);
+      let response: Response;
+      try {
+        const url = new URL(`/data/soal-${kodeSoal}.json`, window.location.origin).href;
+        response = await fetch(url);
+      } catch (errFetchJson) {
+        console.error('[muatSoal] GAGAL DI TAHAP: fetch JSON statis', errFetchJson);
+        throw new Error(`[TAHAP: fetch JSON] ${errFetchJson instanceof Error ? errFetchJson.message : String(errFetchJson)}`);
       }
 
       if (!response.ok) {
-        throw new Error(`File soal 'soal-${kodeSoal}.json' tidak ditemukan di folder public/data/`);
+        throw new Error(`[TAHAP: fetch JSON] File soal 'soal-${kodeSoal}.json' tidak ditemukan di folder public/data/ (status ${response.status})`);
       }
 
-      const data: SoalData = await response.json();
+      let data: SoalData;
+      try {
+        data = await response.json();
+      } catch (errParse) {
+        console.error('[muatSoal] GAGAL DI TAHAP: parse JSON', errParse);
+        throw new Error(`[TAHAP: parse JSON] ${errParse instanceof Error ? errParse.message : String(errParse)}`);
+      }
       setJudul(data.judul);
       setWaktu(data.waktu * 60);
       
@@ -221,43 +280,53 @@ export default function SoalPage({
         setLoadingMessage('✨ AI sedang menyusun soal berdasarkan topik pilihanmu...');
         try {
           const soalAI = await buatSoalDariTopikRotasi(selectedItems, data.judul, jumlahSesiValid, jumlahSoalPerSesiValid);
-          console.log('[muatSoal] Hasil buatSoalDariTopikRotasi (checklist):', soalAI);
-          soalProses = (soalAI && soalAI.length > 0) ? soalAI : data.soal;
+          soalProses = (soalAI && soalAI.length > 0) ? soalAI.map(s => ({ ...s, sumber: 'ai' })) : data.soal.map(s => ({ ...s, sumber: 'statis' }));
         } catch (errAI) {
-          console.error('[muatSoal] buatSoalDariTopikRotasi gagal (checklist), fallback ke hardcode:', errAI);
-          soalProses = data.soal;
+          console.error('[muatSoal] buatSoalDariTopikRotasi gagal, fallback ke statis:', errAI);
+          soalProses = data.soal.map(s => ({ ...s, sumber: 'statis' }));
         }
       } else if (sesiSaatIni === 1) {
-        soalProses = data.soal;
+        soalProses = data.soal.map(s => ({ ...s, sumber: 'statis' }));
       } else {
-        setLoadingMessage('✨ AI sedang menyusun soal adaptif...');
+        setLoadingMessage('🌐 Mengambil soal dari server...');
         try {
-          const soalAI = await generateSoalAdaptif(data.judul, totalSoalDiminta, {}, undefined, 'sampai');
-          console.log('[muatSoal] Hasil generateSoalAdaptif (adaptif):', soalAI);
-          soalProses = (soalAI && soalAI.length > 0) ? soalAI : data.soal;
-        } catch (errAI) {
-          console.error('[muatSoal] generateSoalAdaptif gagal (adaptif), fallback ke hardcode:', errAI);
-          soalProses = data.soal;
+          const soalBackend = await fetchSoalDariBackend(data.judul, totalSoalDiminta);
+          soalProses = (soalBackend && soalBackend.length > 0) ? soalBackend.map(s => ({ ...s, sumber: 'ai' })) : data.soal.map(s => ({ ...s, sumber: 'statis' }));
+        } catch (errBackend) {
+          console.warn('[muatSoal] Backend gagal, coba AI langsung:', errBackend);
+          setLoadingMessage('✨ AI sedang menyusun soal adaptif...');
+          try {
+            const soalAI = await generateSoalAdaptif(data.judul, totalSoalDiminta, {}, undefined, 'sampai');
+            soalProses = (soalAI && soalAI.length > 0) ? soalAI.map(s => ({ ...s, sumber: 'ai' })) : data.soal.map(s => ({ ...s, sumber: 'statis' }));
+          } catch (errAI) {
+            console.error('[muatSoal] generateSoalAdaptif gagal, fallback ke statis:', errAI);
+            soalProses = data.soal.map(s => ({ ...s, sumber: 'statis' }));
+          }
         }
       }
 
-      const soalFinal = soalProses.map((s) => ({
-        ...s,
-        pertanyaan: normalisasiTeksSoal(s.pertanyaan),
-        pilihan: s.pilihan.map(normalisasiTeksSoal),
-        jawaban_benar: normalisasiTeksSoal(s.jawaban_benar),
-      }));
+      let soalFinal: SoalData['soal'];
+      try {
+        soalFinal = soalProses.map((s) => ({
+          ...s,
+          pertanyaan: normalisasiTeksSoal(s.pertanyaan),
+          pilihan: s.pilihan.map(normalisasiTeksSoal),
+          jawaban_benar: normalisasiTeksSoal(s.jawaban_benar),
+        }));
+      } catch (errFinal) {
+        console.error('[muatSoal] GAGAL DI TAHAP: proses akhir (normalisasi soal)', errFinal, 'soalProses=', soalProses);
+        throw new Error(`[TAHAP: proses akhir] ${errFinal instanceof Error ? errFinal.message : String(errFinal)}`);
+      }
 
       setSoalList(soalFinal);
       setJawaban(new Array(soalFinal.length).fill(''));
       setLoading(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Gagal memuat soal:', err);
-      setError('Gagal memuat soal: ' + err.message);
+      setError('Gagal memuat soal: ' + (err instanceof Error ? err.message : String(err)));
       setLoading(false);
     }
-  };
-
+  }, [kodeSoal, jumlahSesi, jumlahSoalPerSesi, selectedItems]);
 
   const pilihJawaban = (nilai: string) => {
     const baru = [...jawaban];
@@ -270,7 +339,7 @@ export default function SoalPage({
     else if (arah === 'next' && nomorSoal < soalList.length - 1) setNomorSoal(nomorSoal + 1);
   };
 
-  const kirimJawaban = async () => {
+  const kirimJawaban = useCallback(async () => {
     const total = soalList.length;
     const nilaiPerSoal = total > 0 ? 100 / total : 0;
     let nilai = 0;
@@ -332,13 +401,36 @@ export default function SoalPage({
       })), riwayatSebelum);
 
       setRaport(hasilRaport);
-    } catch (err: any) {
-      if (err?.message === QUOTA_EXCEEDED_ERROR) triggerPayment();
-      setAnalisisError('Gagal menganalisis hasil: ' + (err?.message ?? String(err)));
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.startsWith(QUOTA_EXCEEDED_ERROR)) triggerPayment();
+      setAnalisisError('Gagal menganalisis hasil: ' + errorMessage);
     } finally {
       setAnalisisLoading(false);
     }
-  };
+  }, [soalList, jawaban, judul, triggerPayment]);
+
+  const kirimJawabanRef = useRef(kirimJawaban);
+  
+  useEffect(() => {
+    kirimJawabanRef.current = kirimJawaban;
+  }, [kirimJawaban]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setWaktu((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          kirimJawabanRef.current();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    muatSoal();
+    return () => clearInterval(timer);
+  }, [kodeSoal, muatSoal]);
 
   const formatWaktu = (): string => {
     const menit = Math.floor(waktu / 60);
@@ -385,9 +477,21 @@ export default function SoalPage({
 
       <div className="soal-container">
         <div className="soal-item">
-          <p className="pertanyaan">
+          <div className="soal-info">
             <span className="nomor">Soal {nomorSoal + 1}/{soalList.length}</span>
-            <br />
+            <span className="info-badge">Fase {soal.fase}</span>
+            {soal.kelas != null && <span className="info-badge">Kelas {soal.kelas}</span>}
+            <span className="info-badge">Bloom: {soal.taxonomiBloom}</span>
+            <span className="info-topik">Elemen: {soal.elemen}</span>
+            {soal.sumber && (
+              <span className={`info-badge sumber-${soal.sumber}`}>
+                Sumber: {soal.sumber === 'ai' ? 'AI (Gemini)' : 'Data Statis'}
+              </span>
+            )}
+            {soal.subElemen && <span className="info-topik">Sub Elemen: {soal.subElemen}</span>}
+            {soal.subSubElemen && <span className="info-topik">Sub Sub Elemen: {soal.subSubElemen}</span>}
+          </div>
+          <p className="pertanyaan">
             <span dangerouslySetInnerHTML={{ __html: renderLatex(soal.pertanyaan) }} />
           </p>
 

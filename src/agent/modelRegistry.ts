@@ -21,24 +21,6 @@ export const AI_MODELS: AIModel[] = [
   },
 
   {
-    id: "claude-sonnet",
-    name: "Claude Sonnet",
-    provider: "claude",
-    tier: "paid",
-    creditPerRequest: 50,
-    description: "Model premium untuk analisis dan penjelasan mendalam"
-  },
-
-  {
-    id: "claude-opus",
-    name: "Claude Opus",
-    provider: "claude",
-    tier: "paid",
-    creditPerRequest: 200,
-    description: "Model premium tingkat tinggi"
-  },
-
-  {
     id: "personal-key",
     name: "API Key Saya Sendiri",
     provider: "custom",

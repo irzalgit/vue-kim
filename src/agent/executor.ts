@@ -1,15 +1,13 @@
-import { askLLM } from "./llm";
+// src/agent/executor.ts
+import { askLLMWithFallback } from "./llm";
 import type { PlanStep } from "./planner";
 import { runTool } from "./tools";
-export async function execute(
-  steps: PlanStep[]
-): Promise<string[]> {
 
+export async function execute(steps: PlanStep[]): Promise<string[]> {
   const results: string[] = [];
   let context = "";
 
   for (const step of steps) {
-
     const prompt = `
 Konteks pekerjaan sebelumnya:
 
@@ -27,31 +25,19 @@ Gunakan hasil sebelumnya jika diperlukan.
 Jangan mengulang jawaban yang sama.
 `;
 
- const tool = await runTool(step.prompt);
+    const tool = await runTool(step.prompt);
 
-let answer: string;
+    let answer: string;
 
-if (tool.handled) {
+    if (tool.handled) {
+      answer = tool.result;
+    } else {
+      // ✅ Gunakan fallback agar otomatis coba gemini lalu openrouter
+      answer = await askLLMWithFallback(prompt);
+    }
 
-    answer = tool.result;
-
-} else {
-
-    answer = await askLLM(prompt);
-
-}
-    results.push(
-      `## ${step.title}
-
-${answer}`
-    );
-
-    context += `
-
-### ${step.title}
-
-${answer}
-`;
+    results.push(`## ${step.title}\n\n${answer}`);
+    context += `\n### ${step.title}\n\n${answer}\n`;
   }
 
   return results;

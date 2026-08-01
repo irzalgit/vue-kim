@@ -55,106 +55,48 @@ export default function Agent() {
 
 
   return (
-
-    <section
-      style={{
-        padding: "40px",
-        maxWidth: "900px",
-        margin: "0 auto",
-      }}
-    >
-
-      <h2
-        style={{
-          color:"#ffffff",
-          marginBottom:"20px",
-        }}
-      >
+    <section className="w-full">
+      <h2 className="text-white text-xl font-bold mb-4">
         Agentic AI
       </h2>
-
 
       <ModelSelector
         value={selectedModel}
         onChange={setSelectedModel}
       />
 
-
       <AIModelInfo
         modelId={selectedModel}
       />
-
 
       <GuestAPIKey
         visible={isPersonalKey}
       />
 
-
       <textarea
         rows={6}
         value={prompt}
-        onChange={(e)=>
-          setPrompt(e.target.value)
-        }
+        onChange={(e) => setPrompt(e.target.value)}
         placeholder="Masukkan tugas..."
-        style={{
-          width:"100%",
-          padding:"14px",
-          marginBottom:"20px",
-          background:"#111111",
-          color:"#ffffff",
-          border:"1px solid #444444",
-          borderRadius:"10px",
-          fontSize:"16px",
-        }}
+        className="w-full p-4 mb-5 bg-black text-white border border-gray-600 rounded-xl text-base resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
-
 
       <button
         onClick={handleRun}
         disabled={loading}
-        style={{
-          padding:"12px 20px",
-          background: loading
-            ? "#4b5563"
-            : "#2563eb",
-          color:"#ffffff",
-          border:"none",
-          borderRadius:"8px",
-          cursor: loading
-            ? "not-allowed"
-            : "pointer",
-        }}
+        className={`
+          w-full sm:w-auto px-6 py-3 rounded-lg text-white font-medium transition
+          ${loading ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 cursor-pointer"}
+        `}
       >
-
-        {loading
-          ? "Menjalankan Agent..."
-          : "Jalankan Agent"}
-
+        {loading ? "Menjalankan Agent..." : "Jalankan Agent"}
       </button>
 
-
       {answer && (
-
-        <pre
-          style={{
-            marginTop:"30px",
-            padding:"20px",
-            background:"#111111",
-            color:"#ffffff",
-            border:"1px solid #333333",
-            borderRadius:"10px",
-            whiteSpace:"pre-wrap",
-          }}
-        >
+        <div className="w-auto -mx-8 mt-8 px-4 sm:px-8 py-6 bg-white text-black whitespace-pre-wrap break-words text-base leading-relaxed">
           {answer}
-        </pre>
-
+        </div>
       )}
-
-
     </section>
-
   );
-
 }

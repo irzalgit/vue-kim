@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkout Premium Math315 (cPanel)</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  margin: 0;
+  padding: 20px;
+}
+
+.card {
+  background: #ffffff;
+  padding: 30px 25px;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  transition: transform 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+h2 {
+  margin: 0 0 20px 0;
+  color: #333;
+  text-align: center;
+  font-weight: 600;
+  font-size: 24px;
+}
+
+label {
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 4px;
+  color: #555;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+input, select, button {
+  width: 100%;
+  padding: 12px 14px;
+  margin-top: 4px;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+input:focus, select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+input[readonly] {
+  background: #f0f0f0;
+  color: #666;
+  cursor: default;
+}
+
+button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 24px;
+  padding: 14px;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+#price {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 14px;
+  border-radius: 10px;
+  margin-top: 12px;
+  font-weight: bold;
+  font-size: 20px;
+  color: #333;
+  text-align: center;
+  border: 1px solid #d4d4d4;
+}
+
+.status {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.success { 
+  background: #d4edda; 
+  color: #155724; 
+  border-left: 4px solid #28a745;
+}
+
+.error { 
+  background: #f8d7da; 
+  color: #721c24; 
+  border-left: 4px solid #dc3545;
+}
+
+.info { 
+  background: #d1ecf1; 
+  color: #0c5460; 
+  border-left: 4px solid #17a2b8;
+}
+
+.warning {
+  background: #fff3cd;
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
+.loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+small {
+  display: block;
+  margin-top: 4px;
+  color: #888;
+  font-size: 12px;
+}
+
+.google-btn {
+  display: inline-block;
+  background: #4285f4;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+  transition: background 0.3s ease;
+}
+
+.google-btn:hover {
+  background: #357ae8;
+}
+</style>
+</head>
+
+<body>
+<div class="card">
+  <h2>🚀 Checkout Premium</h2>
+
+  <!-- FORM CHECKOUT (ditampilkan setelah login) -->
+  <form id="form" style="display: none;">
+    <label>👤 Nama</label>
+    <input id="name" readonly placeholder="Nama Anda">
+    
+    <label>📧 Email</label>
+    <input id="email" readonly placeholder="Email Anda">
+    
+    <label>📦 Pilih Produk</label>
+    <select id="product">
+      <option value="">Memuat produk...</option>
+    </select>
+    
+    <div id="price">Rp -</div>
+    
+    <label>📱 Nomor WhatsApp</label>
+    <input id="phone" type="tel" placeholder="081234567890" required>
+    <small>Contoh: 081234567890</small>
+    
+    <button id="pay" disabled>💰 Bayar Sekarang</button>
+  </form>
+
+  <!-- STATUS -->
+  <div id="status" class="status info">
+    <span class="loading"></span>Memeriksa login...
+  </div>
+
+  <!-- LOGIN SECTION (muncul jika belum login) -->
+  <div id="loginSection" style="display: none; text-align: center; margin-top: 20px;">
+    <p style="color: #333; margin-bottom: 15px;">🔐 Silakan login untuk melanjutkan pembayaran</p>
+    <a href="#" id="loginBtn" class="google-btn">Login dengan Google</a>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// 📦 KONFIGURASI
+// ============================================================
+const CPANEL_API = 'https://math315.id'; // Ganti dengan domain cPanel Anda
+
+// ============================================================
+// 🔍 BACA QUERY PARAMETER (dari Dashboard)
+// ============================================================
+const urlParams = new URLSearchParams(window.location.search);
+const queryProductId = urlParams.get('productId');
+const queryProductName = urlParams.get('productName');
+const queryPrice = urlParams.get('price');
+const queryToken = urlParams.get('token');
+
+console.log('📥 Query params:', { queryProductId, queryProductName, queryPrice, queryToken });
+
+// Simpan data dari query
+window._checkoutData = {
+  productId: queryProductId || null,
+  productName: queryProductName || null,
+  price: queryPrice ? parseInt(queryPrice) : null,
+  token: queryToken ? parseInt(queryToken) : null
+};
+
+// ============================================================
+// 🧩 DOM ELEMENTS
+// ============================================================
+const nameEl = document.getElementById('name');
+const emailEl = document.getElementById('email');
+const phoneEl = document.getElementById('phone');
+const productEl = document.getElementById('product');
+const priceEl = document.getElementById('price');
+const payBtn = document.getElementById('pay');
+const statusEl = document.getElementById('status');
+const formEl = document.getElementById('form');
+const loginSection = document.getElementById('loginSection');
+const loginBtn = document.getElementById('loginBtn');
+
+// ============================================================
+// 📋 HELPER FUNCTIONS
+// ============================================================
+function setStatus(message, type = 'info') {
+  statusEl.innerHTML = message;
+  statusEl.className = `status ${type}`;
+}
+
+function formatRupiah(amount) {
+  return `Rp ${Number(amount).toLocaleString('id-ID')}`;
+}
+
+function validPhone(phone) {
+  return /^08[0-9]{8,13}$/.test(phone);
+}
+
+// ============================================================
+// 🧪 FALLBACK PRODUK (jika API gagal)
+// ============================================================
+const FALLBACK_PRODUCTS = {
+  "1": { name: "Paket Starter", price: 10000, token_amount: 50 },
+  "2": { name: "Paket Pro", price: 35000, token_amount: 200 },
+  "3": { name: "Paket Business", price: 75000, token_amount: 500 },
+  "4": { name: "Paket Enterprise", price: 150000, token_amount: 1500 },
+  "999": { name: "Uji Coba", price: 1000, token_amount: 10 }
+};
+
+// ============================================================
+// 🔐 CEK STATUS LOGIN (via JWT di localStorage)
+// ============================================================
+function checkLogin() {
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    // Coba lihat apakah ada token di URL (dari redirect setelah login)
+    const urlToken = urlParams.get('token');
+    if (urlToken) {
+      localStorage.setItem('authToken', urlToken);
+      // Hapus token dari URL agar tidak terlihat
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Reload halaman agar token terbaca
+      window.location.reload();
+      return;
+    }
+    showLoginRequired();
+    return;
+  }
+
+  // Verifikasi token ke server
+  fetch(`${CPANEL_API}/api_verify_token.php`, {
+    headers: { 'Authorization': `Bearer ${token}` }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      // User valid, tampilkan form
+      enableCheckout(data.user);
+    } else {
+      // Token tidak valid atau expired
+      localStorage.removeItem('authToken');
+      showLoginRequired();
+    }
+  })
+  .catch(() => {
+    // Jika server tidak merespon, tampilkan login
+    showLoginRequired();
+  });
+}
+
+// ============================================================
+// 👤 TAMPILKAN FORM CHECKOUT (setelah login sukses)
+// ============================================================
+function enableCheckout(user) {
+  nameEl.value = user.name || 'User';
+  emailEl.value = user.email || '';
+  phoneEl.value = user.phone || '';
+
+  // Tampilkan form, sembunyikan tombol login
+  formEl.style.display = 'block';
+  loginSection.style.display = 'none';
+  setStatus('✅ Login berhasil! Silakan pilih produk dan lanjutkan.', 'success');
+
+  // Load produk
+  loadProductsFromAPI();
+
+  // Aktifkan validasi
+  validateForm();
+}
+
+// ============================================================
+// 🔒 TAMPILKAN TOMBOL LOGIN (jika belum login)
+// ============================================================
+function showLoginRequired() {
+  formEl.style.display = 'none';
+  loginSection.style.display = 'block';
+  // Buat link login dengan redirect kembali ke halaman ini
+  const redirectUrl = encodeURIComponent(window.location.href);
+  loginBtn.href = `${CPANEL_API}/google_login.php?redirect=${redirectUrl}`;
+  setStatus('🔐 Login diperlukan untuk melanjutkan pembayaran', 'warning');
+}
+
+// ============================================================
+// 📦 LOAD PRODUK DARI API CPANEL
+// ============================================================
+async function loadProductsFromAPI() {
+  try {
+    const res = await fetch(`${CPANEL_API}/api_get_products.php`);
+    const data = await res.json();
+    if (data.success && data.products) {
+      renderProducts(data.products);
+      setStatus('✅ Produk dimuat dari server', 'success');
+    } else {
+      // Jika API gagal, gunakan fallback
+      console.warn('⚠️ API produk gagal, pakai fallback');
+      renderProducts(FALLBACK_PRODUCTS);
+      setStatus('⚠️ Menggunakan produk default (fallback)', 'warning');
+    }
+  } catch (err) {
+    console.error('❌ Error load produk:', err);
+    renderProducts(FALLBACK_PRODUCTS);
+    setStatus('⚠️ Gagal memuat produk, menggunakan default', 'warning');
+  }
+}
+
+function renderProducts(products) {
+  productEl.innerHTML = '<option value="">-- Pilih Produk --</option>';
+  for (const id in products) {
+    const p = products[id];
+    const opt = document.createElement('option');
+    opt.value = id;
+    opt.textContent = `${p.name} - ${formatRupiah(p.price)}`;
+    productEl.appendChild(opt);
+  }
+
+  // Jika ada query parameter, pilih otomatis
+  if (window._checkoutData && window._checkoutData.productId) {
+    const target = window._checkoutData.productId;
+    for (let opt of productEl.options) {
+      if (opt.value === target) {
+        opt.selected = true;
+        productEl.dispatchEvent(new Event('change'));
+        break;
+      }
+    }
+  }
+
+  validateForm();
+}
+
+// ============================================================
+// ✅ VALIDASI FORM
+// ============================================================
+function validateForm() {
+  const phoneOk = validPhone(phoneEl.value);
+  const productSelected = productEl.value !== '' && productEl.value !== null;
+  payBtn.disabled = !(phoneOk && productSelected);
+  phoneEl.style.borderColor = (!phoneOk && phoneEl.value) ? '#dc3545' : '#e0e0e0';
+}
+
+phoneEl.addEventListener('input', validateForm);
+
+productEl.addEventListener('change', () => {
+  const selectedId = productEl.value;
+  const selectedText = productEl.options[productEl.selectedIndex]?.text;
+  if (selectedId && selectedText) {
+    const priceMatch = selectedText.match(/Rp\s([\d.]+)/);
+    if (priceMatch) {
+      const price = parseInt(priceMatch[1].replace(/\./g, ''));
+      const productName = selectedText.split(' - ')[0];
+      priceEl.innerHTML = `${formatRupiah(price)}<br><small>${productName}</small>`;
+    }
+  } else {
+    priceEl.innerHTML = 'Rp -';
+  }
+  validateForm();
+});
+
+// ============================================================
+// 💳 SUBMIT PEMBAYARAN (ke API CPANEL)
+// ============================================================
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+
+  // Ambil token dari localStorage
+  const token = localStorage.getItem('authToken');
+  if (!token) {
+    alert('Silakan login terlebih dahulu.');
+    return;
+  }
+
+  // Validasi produk
+  const selectedId = productEl.value;
+  if (!selectedId) {
+    alert('Pilih produk terlebih dahulu.');
+    return;
+  }
+
+  // Validasi nomor HP
+  const phone = phoneEl.value.trim();
+  if (!validPhone(phone)) {
+    alert('Nomor WhatsApp tidak valid. Gunakan format 08xxxxxxxxxx');
+    return;
+  }
+
+  // Disable tombol & tampilkan loading
+  payBtn.disabled = true;
+  setStatus('<span class="loading"></span> Memproses transaksi...', 'info');
+
+  try {
+    // Ambil data produk dari option yang dipilih
+    const selectedText = productEl.options[productEl.selectedIndex].text;
+    const productName = selectedText.split(' - ')[0];
+    const priceMatch = selectedText.match(/Rp\s([\d.]+)/);
+    const price = priceMatch ? parseInt(priceMatch[1].replace(/\./g, '')) : 0;
+
+    // Generate invoice number
+    const invoice = `INV${Date.now().toString().slice(-8)}${Math.random().toString(36).substring(2,5).toUpperCase()}`;
+
+    // Siapkan payload
+    const payload = {
+      invoice_no: invoice,
+      amount: price,
+      cust_name: nameEl.value.trim(),
+      cust_email: emailEl.value.trim(),
+      msisdn: phone,
+      uid: 'cpanel_' + Date.now(), // akan diisi oleh backend berdasarkan token
+      item: [{
+        product: productName,
+        qty: 1,
+        amount: price
+      }]
+    };
+
+    console.log('📦 Payload ke API:', payload);
+
+    // Panggil API create-transaction di cPanel
+    const res = await fetch(`${CPANEL_API}/api_create_transaction.php`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+    console.log('📥 Response API:', data);
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || 'Transaksi gagal');
+    }
+
+    if (!data.payment_url) {
+      throw new Error('Payment URL tidak ditemukan');
+    }
+
+    // Sukses
+    setStatus('✅ Transaksi berhasil! Mengarahkan ke halaman pembayaran...', 'success');
+    localStorage.setItem('last_bill_no', data.bill_no);
+    localStorage.setItem('last_trx_id', data.trx_id || invoice);
+
+    // Redirect ke payment gateway (Faspay)
+    setTimeout(() => {
+      window.location.href = data.payment_url;
+    }, 1500);
+
+  } catch (err) {
+    console.error('❌ Error transaksi:', err);
+    let errorMessage = err.message;
+    if (errorMessage.includes('Failed to connect') || errorMessage.includes('fetch')) {
+      errorMessage = 'Gagal terhubung ke server pembayaran. Coba lagi nanti.';
+    }
+    setStatus(`❌ ${errorMessage}`, 'error');
+    payBtn.disabled = false;
+    validateForm();
+  }
+});
+
+// ============================================================
+// 🚀 INISIALISASI
+// ============================================================
+document.addEventListener('DOMContentLoaded', () => {
+  // Cek login
+  checkLogin();
+
+  // Jika ada data dari query parameter, tampilkan info
+  if (window._checkoutData && window._checkoutData.price) {
+    setStatus(`📦 Data dari dashboard: ${window._checkoutData.productName || 'Paket'} - ${formatRupiah(window._checkoutData.price)}`, 'info');
+  }
+
+  // Set timeout untuk pesan jika belum login
+  setTimeout(() => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      setStatus('⏳ Belum login? Klik tombol "Login dengan Google" di bawah.', 'warning');
+    }
+  }, 5000);
+});
+
+console.log('🚀 Checkout cPanel siap!');
+</script>
+</body>
+</html>

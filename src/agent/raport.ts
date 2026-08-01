@@ -1,4 +1,4 @@
-import { askLLM } from "./llm";
+import { askLLM,type Provider } from "./llm";
 import type { RiwayatEntry } from "../utils/riwayat";
 
 export interface SoalJawabanItem {
@@ -82,5 +82,5 @@ Berdasarkan data di atas, buatkan rapor hasil belajar dalam Bahasa Indonesia den
 Gunakan bahasa yang suportif dan memotivasi, seperti guru yang peduli pada perkembangan siswanya. Jangan mengulang rincian soal per soal satu-satu, langsung ke analisis dan saran.
 `;
 
-  return await askLLM(prompt, selectedModel);
+  return await askLLM((selectedModel as Provider) || "gemini", prompt);
 }

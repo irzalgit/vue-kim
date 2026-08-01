@@ -1,17 +1,24 @@
 // src/agent/generateSoal.ts
-import { askLLM } from "./llm";
+
+import { askLLMWithFallback } from "./llm";
+
 import { pilihPrompt } from "./promptSelector";
 import {
   buatRingkasanKisiKisi,
   buatRingkasanSubElemen,
-  validasiElemenFase,
-  validasiSubElemen,
-  validasiSubSubElemen,
   getFaseDariKelas,
   KISI_MATEMATIKA,
   type Fase,
   type Elemen,
 } from "../config/kisiTKA";
+import { parseJSONSoal, perbaikiJawabanBenar } from "../services/soal-generator/parser";
+import {
+  validasiStrukturSoal,
+  normalisasiSoal,
+  validasiKisiKisi,
+  validasiSubElemenKisi,
+  validasiSubSubElemen,
+} from "../services/soal-generator/validator";
 
 // ==================== TIPE DATA ====================
 export interface SoalItemGenerated {
@@ -142,59 +149,6 @@ function getElemenRelevan(kelasTarget?: number, modeFilter?: 'hanya' | 'sampai',
   return lines.join('\n');
 }
 
-function parseJSONSoal(hasilMentah: string): any[] {
-  console.log("[DEBUG-PARSE] Raw input length:", hasilMentah.length);
-
-  let text = hasilMentah
-    .replace(/```json/gi, "")
-    .replace(/```/g, "")
-    .trim();
-
-  const match = text.match(/\[\s*[\s\S]*\]/);
-
-  if (!match) {
-    console.error("[DEBUG-PARSE] JSON tidak ditemukan");
-    console.error(text.substring(0, 500));
-    throw new Error("AI tidak mengembalikan array JSON.");
-  }
-
-  let jsonString = match[0];
-
-  jsonString = jsonString
-    .replace(/([{,]\s*)'([^']+)'\s*:/g, '$1"$2":')
-    .replace(/:\s*'([^']*)'/g, ':"$1"')
-    .replace(/,\s*([}\]])/g, "$1")
-    .replace(/\r/g, "")
-    .trim();
-
-  try {
-    const hasil = JSON.parse(jsonString);
-    if (!Array.isArray(hasil)) throw new Error("Respons AI bukan array.");
-    return hasil;
-  } catch (err: any) {
-    console.error("[DEBUG-PARSE] JSON Parse Error:", err.message);
-    console.error(jsonString.substring(0, 1000));
-    throw new Error(`AI mengembalikan format soal yang tidak valid. ${err.message}`);
-  }
-}
-
-function perbaikiJawabanBenar(s: any, i: number) {
-  if (!s.pilihan.includes(s.jawaban_benar)) {
-    console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
-    const prefix = s.jawaban_benar.match(/^[A-D]\./)?.[0];
-    if (prefix) {
-      const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
-      if (cocok) {
-        s.jawaban_benar = cocok;
-      } else {
-        s.jawaban_benar = s.pilihan[0];
-      }
-    } else {
-      s.jawaban_benar = s.pilihan[0];
-    }
-  }
-}
-
 // ==================== FUNGSI UTAMA ====================
 export async function generateSoalAdaptif(
   mataPelajaran: string,
@@ -206,14 +160,7 @@ export async function generateSoalAdaptif(
   bloomTarget?: string,
   fokusTopik?: string[],
   riwayatPertanyaan?: string[],
-  // Nama EXACT sub-sub-elemen (persis seperti di kisiTKA.ts) kalau sesi ini
-  // fokus ke satu topik sedalam level itu (misal "Membaca bilangan 1-100").
-  // Dipakai untuk instruksi presisi ke LLM & validasi ringan hasil balik.
   fokusSubSubElemen?: string,
-  // Daftar kelas yang SAH untuk topik yang difokuskan (dari SelectedItem.kelas
-  // di kisiTKA.ts). Kalau diisi, soal dengan kelas di luar daftar ini DITOLAK
-  // (bukan cuma di-warning) dan dicoba ulang, supaya kelas hasil soal selalu
-  // sinkron dengan fase/topik yang dicentang user.
   kelasValidTopik?: number[]
 ): Promise<SoalItemGenerated[]> {
   console.log('[DEBUG-GENERATE] generateSoalAdaptif dipanggil:', {
@@ -298,13 +245,21 @@ export async function generateSoalAdaptif(
     prompt += `\n\nINSTRUKSI TAMBAHAN (WAJIB, SERING SALAH): Field "kelas" pada JSON HARUS salah satu dari: ${kelasValidTopik.join(', ')}. Ini adalah kelas yang benar untuk topik yang difokuskan pada soal ini — JANGAN menulis kelas lain (misalnya jangan menulis kelas 1 kalau topiknya bukan untuk kelas 1). Field "fase" juga harus konsisten dengan kelas tersebut.`;
   }
 
-  const maxRetries = 3;
+  const maxRetries = 1;
   let lastError: Error | null = null;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     console.log(`[DEBUG-GENERATE] Attempt ${attempt}/${maxRetries}`);
     try {
-      const hasilMentah = await askLLM(prompt, selectedModel);
+      // Estimasi token yang dibutuhkan berdasarkan jumlah soal yang diminta.
+      // Default lama (1024) di llm.ts cuma cukup untuk ~1-2 soal singkat —
+      // kalau jumlahSoal lebih besar, respons JSON dari LLM kepotong di
+      // tengah dan gagal di-parse. ~600 token per soal (pertanyaan + 4-5
+      // pilihan + overhead JSON) + buffer 500 token, dibatasi maks 8000
+      // supaya tidak melebihi batas output sebagian besar model/provider.
+      const maxTokens = Math.min(8000, jumlahSoal * 600 + 500);
+      const hasilMentah = await askLLMWithFallback(prompt, undefined, undefined, undefined, maxTokens);
+
       const parsed = parseJSONSoal(hasilMentah);
 
       if (!Array.isArray(parsed)) throw new Error('Hasil bukan array');
@@ -312,7 +267,7 @@ export async function generateSoalAdaptif(
 
       for (let i = 0; i < parsed.length; i++) {
         const s = parsed[i];
-        if (!s.pertanyaan || !Array.isArray(s.pilihan) || !s.jawaban_benar) {
+        if (!validasiStrukturSoal(s)) {
           throw new Error(`Soal ke-${i + 1} tidak memiliki field wajib`);
         }
         perbaikiJawabanBenar(s, i);
@@ -323,36 +278,18 @@ export async function generateSoalAdaptif(
           const kelasNum = Number(s.kelas);
           return Number.isFinite(kelasNum) && kelasNum >= 1 && kelasNum <= 12;
         })
-        .map((s: any) => ({
-          ...s,
-          kelas: Number(s.kelas),
-          fase: getFaseDariKelas(Number(s.kelas)),
-        }))
-        .filter((s: any) => validasiElemenFase(s.elemen, s.fase))
-        .map((s: any) => {
-          if (!validasiSubElemen(s.subElemen, s.elemen, s.fase)) {
-            return { ...s, subElemen: '' };
-          }
-          return s;
-        })
+        .map((s: any) => normalisasiSoal(s, kelasTarget))
+        .filter((s: any) => validasiKisiKisi(s))
+        .map((s: any) => validasiSubElemenKisi(s))
         .filter((s: any) => {
           if (kelasTarget == null) return true;
           return modeFilter === 'hanya' ? s.kelas === kelasTarget : s.kelas <= kelasTarget;
         })
-        // Validasi KERAS: kalau ada topik spesifik yang difokuskan (kelasValidTopik),
-        // soal dengan kelas di luar daftar itu DIBUANG di sini (bukan cuma warning),
-        // supaya attempt berikutnya (retry) dicoba lagi sampai LLM benar, alih-alih
-        // menampilkan soal dengan kelas yang salah ke user.
         .filter((s: any) => {
           if (!kelasValidTopik || kelasValidTopik.length === 0) return true;
           return kelasValidTopik.includes(s.kelas);
         });
 
-      // Validasi LEMBUT untuk fokus sub-sub-elemen: hanya di-log, TIDAK
-      // membuang soal, karena LLM kadang menulis field tambahan dengan
-      // sedikit variasi (atau tidak menyertakannya sama sekali) meski isi
-      // soalnya sendiri sudah on-topic. Menolak soal di sini berisiko
-      // membuat retry berulang gagal terus untuk hal yang sifatnya kosmetik.
       if (fokusSubSubElemen) {
         soalValid.forEach((s: any, i: number) => {
           if (!s.subSubElemen) {
