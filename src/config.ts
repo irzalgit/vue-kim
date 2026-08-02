@@ -293,6 +293,6 @@ export const footerConfig: FooterConfig = {
 // src/agent/config.ts
 export const AI_CONFIG = {
   apiKey: import.meta.env.VITE_GEMINI_API_KEY,
-  model: import.meta.env.VITE_GEMINI_MODEL || "gemini-2.0-flash",
+  model: import.meta.env.VITE_GEMINI_MODEL || "gemini-3.6-flash",
   openrouterModel: import.meta.env.OPENROUTER_MODEL || "openai/gpt-4o",
 };

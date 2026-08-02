@@ -59,7 +59,36 @@ function normalisasiTeksSoal(teks: string): string {
   if (!teks) return '';
   if (teks.includes('\\begin{') || teks.includes('$')) return teks;
   if (isFormulaMurni(teks)) return `$${teks}$`;
-  return teks;
+
+  // Teks campuran (kalimat + rumus inline): bungkus hanya token yang
+  // terlihat seperti LaTeX (mengandung backslash command, {, }, ^, atau _)
+  // dengan $...$, biarkan kalimat biasa di sekitarnya apa adanya.
+  const isMathToken = (t: string) => /\\[a-zA-Z]+|[{}^_]/.test(t);
+  const tokens = teks.split(/(\s+)/);
+  let hasil = '';
+  let bufferRumus = '';
+
+  const flushBuffer = () => {
+    if (bufferRumus) {
+      hasil += `$${bufferRumus}$`;
+      bufferRumus = '';
+    }
+  };
+
+  for (const tok of tokens) {
+    if (/^\s+$/.test(tok)) {
+      flushBuffer();
+      hasil += tok;
+    } else if (isMathToken(tok)) {
+      bufferRumus += tok;
+    } else {
+      flushBuffer();
+      hasil += tok;
+    }
+  }
+  flushBuffer();
+
+  return hasil;
 }
 
 // Bentuk soal mentah yang dikembalikan backend /api/generate-soal (lihat

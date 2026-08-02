@@ -1,17 +1,12 @@
-import { AI_CONFIG } from "../config";
-
 export const QUOTA_EXCEEDED_ERROR = "QUOTA_EXCEEDED";
 
 export const geminiProvider = {
   async generate(prompt: string, systemPrompt?: string): Promise<string> {
-    const apiKey = AI_CONFIG.apiKey;
-    const model = AI_CONFIG.model || "gemini-3.5-flash-lite";
-    const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
-
-    const response = await fetch(url, {
+    const response = await fetch('/vue-kim/gemini-proxy.php', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        model: "gemini-3.5-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
         systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
       }),

@@ -10,4 +10,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    host: true,
+    proxy: {
+      '/vue-kim/gemini-proxy.php': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/vue-kim/, ''),
+      },
+    },
+  },
 })

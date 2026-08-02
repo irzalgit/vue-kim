@@ -34,22 +34,17 @@ export async function askLLM(
 export async function askLLMWithFallback(
   prompt: string,
   systemPrompt?: string,
-  // Sementara hanya pakai Gemini — openrouter/openai/groq dinonaktifkan
-  // dulu. Kalau mau diaktifkan lagi, kembalikan ke:
-  // ["gemini", "openrouter", "openai", "groq"]
   preferredProviders: Provider[] = ["gemini"],
   apiKeyMap?: Partial<Record<Provider, string>>,
   maxTokens?: number
 ): Promise<string> {
   let lastError: Error | null = null;
   
-  // Daftar rantai model Gemini yang gratis / didukung untuk dicoba bergiliran
   const geminiChain = [
     AI_CONFIG.model || "gemini-3.5-flash-lite",
     "gemini-3.6-flash",
     "gemini-3.5-flash-lite"
   ];
-  // Hilangkan duplikat jika model utama sama dengan salah satu rantai
   const uniqueGeminiModels = Array.from(new Set(geminiChain));
 
   for (const prov of preferredProviders) {
@@ -57,7 +52,6 @@ export async function askLLMWithFallback(
       const apiKey = apiKeyMap?.[prov];
       
       if (prov === "gemini") {
-        // Coba model-model Gemini secara berurutan (fallback model internal)
         let geminiError: Error | null = null;
         for (const modelName of uniqueGeminiModels) {
           try {
@@ -68,7 +62,6 @@ export async function askLLMWithFallback(
             console.warn(`[askLLMWithFallback] Model Gemini "${modelName}" gagal:`, geminiError.message);
           }
         }
-        // Jika semua model Gemini habis dan gagal, lemparkan error terakhir Gemini agar dilanjutkan ke provider berikutnya
         throw geminiError || new Error("Semua model Gemini gagal.");
       } else {
         return await askLLM(prov, prompt, systemPrompt, { apiKey, maxTokens });
@@ -81,36 +74,42 @@ export async function askLLMWithFallback(
   throw lastError || new Error("Semua provider gagal memberikan respons.");
 }
 
+// ============================================================
+// GEMINI — Lewat PHP Proxy (key tidak di frontend)
+// Parameter _apiKey tetap ada untuk compat, tapi tidak dipakai
+// ============================================================
 async function callGemini(
   prompt: string,
   systemPrompt?: string,
-  apiKey?: string,
+  _apiKey?: string,
   modelOverride?: string
 ): Promise<string> {
-  const key = apiKey || AI_CONFIG.apiKey;
-  if (!key) {
-    throw new Error("Gemini API key tidak ditemukan (set AI_CONFIG.apiKey atau berikan apiKey di opsi)");
-  }
-  const model = modelOverride || AI_CONFIG.model || "gemini-3.5-flash-lite";
-  const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${key}`;
-  const response = await fetch(url, {
+  const model = modelOverride || "gemini-3.6-flash";
+
+  const response = await fetch('/gemini-proxy.php', {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
+      model: model,
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
     }),
   });
+
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     const detail = (err as any)?.error?.message;
     if (response.status === 429) throw new Error(`QUOTA_EXCEEDED${detail ? `: ${detail}` : ""}`);
     throw new Error(detail || `Gemini API error: ${response.status}`);
   }
+
   const data = await response.json();
   return (data as any)?.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respons.";
 }
 
+// ============================================================
+// PROVIDER LAIN (tetap pakai key langsung — opsional)
+// ============================================================
 async function callOpenRouter(
   prompt: string,
   systemPrompt?: string,
@@ -175,10 +174,6 @@ async function callGroq(
     const err = await response.json().catch(() => ({}));
     const detail = (err as any)?.error?.message;
     if (response.status === 429) {
-      // Limit TPM/RPM Groq biasanya reset dalam hitungan detik (beda dari limit
-      // harian). Kalau pesan errornya menyebut "try again in Xs", tunggu sesuai
-      // saran itu (dibatasi maks 20 detik) lalu retry SEKALI sebelum menyerah,
-      // supaya rate-limit sesaat tidak langsung dianggap gagal total.
       const waitMatch = detail?.match(/try again in ([\d.]+)s/i);
       const waitSeconds = waitMatch ? parseFloat(waitMatch[1]) : null;
       if (!isRetry && waitSeconds !== null && waitSeconds <= 65) {

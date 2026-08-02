@@ -2,7 +2,7 @@ import type { AgentTask, AgentResult } from "./types";
 import { addMemory } from "./memory";
 import { plan } from "./planner";
 import { execute } from "./executor";
-import { askLLM } from "./llm";
+import { askLLMWithFallback } from "./llm";
 import type { Provider } from "./llm";
 
 export async function runAgent(
@@ -13,9 +13,16 @@ export async function runAgent(
 
   const steps = plan(task);
 
-  const reasoning = await askLLM(
-    (task.selectedModel as Provider) || "gemini",
-    task.prompt
+  const defaultOrder: Provider[] = ["gemini"];
+  const selected = task.selectedModel as Provider | undefined;
+  const preferredProviders: Provider[] = selected
+    ? [selected, ...defaultOrder.filter((p) => p !== selected)]
+    : defaultOrder;
+
+  const reasoning = await askLLMWithFallback(
+    task.prompt,
+    undefined,
+    preferredProviders
   );
 
   const output = await execute(steps);
