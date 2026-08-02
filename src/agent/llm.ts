@@ -78,12 +78,25 @@ export async function askLLMWithFallback(
 // GEMINI — Lewat PHP Proxy (key tidak di frontend)
 // Parameter _apiKey tetap ada untuk compat, tapi tidak dipakai
 // ============================================================
+const ALLOWED_HOSTS_FOR_AI = ["math315.id", "www.math315.id", "localhost", "127.0.0.1"];
+
+function isAIAllowedOnThisHost(): boolean {
+  const win = (globalThis as unknown as { window?: { location?: { hostname?: string } } }).window;
+  if (!win || !win.location || !win.location.hostname) return true; // Node/build time, tidak relevan
+  const host = win.location.hostname;
+  return ALLOWED_HOSTS_FOR_AI.some((h) => host === h || host.endsWith("." + h));
+}
+
 async function callGemini(
   prompt: string,
   systemPrompt?: string,
   _apiKey?: string,
   modelOverride?: string
 ): Promise<string> {
+  if (!isAIAllowedOnThisHost()) {
+    throw new Error("Fitur AI ini hanya tersedia di math315.id, bukan di preview/hosting ini.");
+  }
+
   const model = modelOverride || "gemini-3.6-flash";
 
   const response = await fetch('/gemini-proxy.php', {
