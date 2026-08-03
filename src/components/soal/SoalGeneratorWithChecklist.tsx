@@ -250,6 +250,18 @@ export default function SoalGeneratorWithChecklist({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Deteksi layar sempit (mobile) supaya panel "Pilih Topik" dan "Soal"
+  // ditumpuk vertikal & full-width, bukan berdempetan 2 kolom sempit.
+  const [isMobile, setIsMobile] = useState<boolean>(
+    typeof window !== "undefined" ? window.innerWidth < 768 : false
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // Konfigurasi jumlah sesi & jumlah soal per sesi — bisa diatur user di
   // panel setup (bersama checklist), TERKUNCI begitu sesi berjalan (sama
   // seperti checklist). "Sesi" = 1 kelompok topik hasil rotasi; setiap sesi
@@ -816,7 +828,7 @@ export default function SoalGeneratorWithChecklist({
         </button>
       </div>
 
-      <div style={{ ...styles.grid, gridTemplateColumns: isSesiAktif ? "1fr" : "1fr 1fr" }}>
+      <div style={{ ...styles.grid, gridTemplateColumns: (isSesiAktif || isMobile) ? "1fr" : "1fr 1fr" }}>
         {!isSesiAktif && (
         <div style={styles.panel}>
           <div style={styles.panelTitle}>
