@@ -85,7 +85,9 @@ const styles = {
   panel: {
     background: "#0f172a",
     borderRadius: "8px",
-    padding: "12px"
+    padding: "12px",
+    overflowX: "auto" as const,
+    WebkitOverflowScrolling: "touch" as const
   },
   panelTitle: {
     fontSize: "14px",
@@ -630,7 +632,7 @@ export default function SoalGeneratorWithChecklist({
             </span>
           </div>
 
-          {isFaseExpanded && Object.entries(elemenGroups).map(([elemenNama, items]) => {
+          {Object.entries(elemenGroups).map(([elemenNama, items]) => {
             const elemenKey = `elemen-${fase}-${elemenNama}`;
             const isElemenExpanded = expandedNodes.has(elemenKey);
             
@@ -695,7 +697,7 @@ export default function SoalGeneratorWithChecklist({
                   </span>
                 </div>
 
-                {isElemenExpanded && Object.entries(subGroups).map(([subNama, subItems]) => {
+                {Object.entries(subGroups).map(([subNama, subItems]) => {
                   const subKey = `sub-${fase}-${elemenNama}-${subNama}`;
                   const isSubExpanded = expandedNodes.has(subKey);
                   
@@ -758,7 +760,7 @@ export default function SoalGeneratorWithChecklist({
                         )}
                       </div>
 
-                      {isSubExpanded && subSubItems.map((ss) => (
+                      {subSubItems.map((ss) => (
                         <div
                           key={ss.id}
                           style={{
@@ -888,7 +890,9 @@ export default function SoalGeneratorWithChecklist({
           </div>
 
           <div style={styles.checklist}>
-            {renderChecklist()}
+            <div style={{ minWidth: "480px" }}>
+              {renderChecklist()}
+            </div>
           </div>
         </div>
         )}

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { siteConfig, navigationConfig } from '../config';
+import logo from '../assets/logo.png';
 
 export default function Navigation() {
   const [scrolled, setScrolled] = useState(false);
@@ -40,12 +41,16 @@ export default function Navigation() {
         onClick={(e) => handleClick(e, '#hero')}
         className="text-white no-underline"
         style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
           fontFamily: "'GeistMono', monospace",
           fontSize: 18,
           fontWeight: 400,
           letterSpacing: '-0.5px',
         }}
       >
+        <img src={logo} alt={siteConfig.brandName} style={{ height: 32, width: 32, objectFit: 'contain' }} />
         {siteConfig.brandName}
       </a>
 

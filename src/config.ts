@@ -9,7 +9,7 @@ export interface SiteConfig {
 
 export const siteConfig: SiteConfig = {
   language: "id",
-  brandName: "TKA ",
+  brandName: "BPHY",
 };
 
 // ============================================================

@@ -105,17 +105,20 @@ function AppContent() {
   return (
     <PaymentContext.Provider value={{ triggerPayment: () => setShowPayment(true) }}>
       <div
-        className="min-h-screen text-white transition-colors duration-500 pt-16 relative"
+        className={`min-h-screen text-white transition-colors duration-500 relative ${import.meta.env.DEV ? "pt-16" : ""}`}
         style={{
           backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
         }}
       >
-        {/* Panel Debug */}
-        <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
-          <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
-          <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
-          <span className="rounded bg-black/30 px-3 py-2">View: <strong>{currentView}</strong></span>
-        </div>
+        {/* Panel Debug — hanya tampil saat development (npm run dev),
+            otomatis tersembunyi di build production (npm run build). */}
+        {import.meta.env.DEV && (
+          <div className="fixed top-0 left-0 right-0 z-[9999] flex items-center justify-center gap-3 border-b border-black/20 bg-black/20 p-3 text-sm backdrop-blur-sm">
+            <button type="button" onClick={() => navigate('/')} className="rounded bg-green-700 px-4 py-2">🟢 Landing</button>
+            <button type="button" onClick={() => navigate('/dashboard')} className="rounded bg-red-700 px-4 py-2">🔴 Dashboard</button>
+            <span className="rounded bg-black/30 px-3 py-2">View: <strong>{currentView}</strong></span>
+          </div>
+        )}
 
         <Routes>
           <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />

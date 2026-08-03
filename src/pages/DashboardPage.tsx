@@ -396,11 +396,11 @@ const handleBuyTokenRedirect = (pkg: { id: number; tokens: number; price: number
       {/* ===== MODAL PEMILIHAN CHECKLIST ===== */}
       {showChecklistModal && selectedSimulasi && (
         <div
-          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-0 sm:p-4"
           onClick={handleTutupModal}
         >
           <div
-            className="bg-gray-800 rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6 relative shadow-2xl"
+            className="bg-gray-800 rounded-none sm:rounded-2xl max-w-4xl w-full h-full sm:h-auto max-h-full sm:max-h-[90vh] overflow-y-auto p-3 sm:p-6 relative shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <button
