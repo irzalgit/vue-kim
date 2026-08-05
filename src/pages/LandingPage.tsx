@@ -2,6 +2,7 @@ import Navigation from "../sections/Navigation";
 import Hero from "../sections/Hero";
 import Curriculum from "../sections/Curriculum";
 import CinematicVision from "../sections/CinematicVision";
+import AlumniArchives from "../sections/AlumniArchives";
 
 import Footer from "../sections/Footer";
 
@@ -24,6 +25,7 @@ export default function LandingPage({ onMulai }: LandingPageProps) {
         <Hero />
         <Curriculum />
         <CinematicVision />
+        <AlumniArchives />
     
       </main>
 

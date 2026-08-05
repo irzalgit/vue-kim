@@ -18,6 +18,10 @@ import {
 } from '../utils/riwayat';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import Certificate from '../components/Certificate';
+
+// Skor minimum (dalam %) supaya siswa berhak mendapatkan sertifikat.
+const AMBANG_NILAI_SERTIFIKAT = 75;
 
 // Helper fungsi escapeHtml, renderLatex, isFormulaMurni, normalisasiTeksSoal tetap sama...
 function escapeHtml(str: string): string {
@@ -261,6 +265,8 @@ export default function SoalPage({
   const [raport, setRaport] = useState<string | null>(null);
   const [analisisLoading, setAnalisisLoading] = useState<boolean>(false);
   const [analisisError, setAnalisisError] = useState<string>('');
+  const [nilaiAkhir, setNilaiAkhir] = useState<number | null>(null);
+  const [showCertificate, setShowCertificate] = useState<boolean>(false);
 
   const [loadingMessage, setLoadingMessage] = useState<string>('Memuat soal...');
 
@@ -379,6 +385,7 @@ export default function SoalPage({
       }
     });
     nilai = Math.round(nilai);
+    setNilaiAkhir(nilai);
 
     const statistikElemen: Record<string, { benar: number; total: number }> = {};
     soalList.forEach((s, i) => {
@@ -474,6 +481,8 @@ export default function SoalPage({
   if (error) return <div className="error">{error}</div>;
 
   if (analisisLoading || raport !== null || analisisError) {
+    const layakSertifikat = nilaiAkhir !== null && nilaiAkhir >= AMBANG_NILAI_SERTIFIKAT;
+
     return (
       <div className="soal-page">
         <div className="header">
@@ -486,10 +495,48 @@ export default function SoalPage({
           {!analisisLoading && raport && (
             <div dangerouslySetInnerHTML={{ __html: renderLatex(raport) }} />
           )}
+
+          {!analisisLoading && layakSertifikat && (
+            <div
+              style={{
+                marginTop: 20,
+                padding: 16,
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                borderRadius: 12,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: 12,
+              }}
+            >
+              <span style={{ fontSize: 14 }}>
+                🎉 Skor kamu <strong>{nilaiAkhir}%</strong> — memenuhi syarat sertifikat!
+              </span>
+              <button
+                onClick={() => setShowCertificate(true)}
+                className="btn-nav"
+                style={{ background: '#16a34a', borderColor: '#16a34a' }}
+              >
+                🏆 Cetak Sertifikat
+              </button>
+            </div>
+          )}
+
           <button onClick={onKembali} className="btn-nav" style={{ marginTop: '20px' }}>
             Kembali ke Dashboard
           </button>
         </div>
+
+        {showCertificate && nilaiAkhir !== null && (
+          <Certificate
+            mataPelajaran={judul}
+            nilai={nilaiAkhir}
+            tanggal={new Date().toISOString()}
+            onClose={() => setShowCertificate(false)}
+          />
+        )}
       </div>
     );
   }

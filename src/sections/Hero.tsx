@@ -40,9 +40,9 @@ export default function Hero() {
               width: 'fit-content',
             }}
           >
-            MathBPHY
+            Portal
             <br />
-            Premium
+            Matematika
           </h1>
         </div>
 

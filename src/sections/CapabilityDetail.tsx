@@ -120,6 +120,32 @@ export default function CapabilityDetail() {
           )}
         </section>
 
+        {/* Hero image dengan penanganan error */}
+        {data.image && (
+          <section style={{ maxWidth: 860, margin: '0 auto', padding: '0 5vw 60px' }}>
+            <img
+              src={data.image}
+              alt={data.title}
+              onError={(e) => {
+                console.error(`Gagal memuat gambar untuk slug "${slug}" dengan path:`, data.image);
+                // Opsional: Sembunyikan elemen jika gagal dimuat agar tidak merusak tampilan
+               (e.currentTarget as HTMLElement).style.display = 'none';
+
+              }}
+              style={{
+                width: '100%',
+                height: 'auto',
+                maxHeight: 420,
+                objectFit: 'cover',
+                borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.08)',
+                filter: 'grayscale(15%)',
+              }}
+              loading="lazy"
+            />
+          </section>
+        )}
+
         {/* Divider */}
         <div style={{ maxWidth: 860, margin: '0 auto', padding: '0 5vw' }}>
           <div style={{ width: '100%', height: 1, background: 'rgba(255,255,255,0.08)' }} />
