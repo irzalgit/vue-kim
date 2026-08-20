@@ -24,14 +24,15 @@ import {
 export interface SoalItemGenerated {
   pertanyaan: string;
   pilihan: string[];
-  jawaban_benar: string;
+  jawaban_benar: string | string[];
+  tipeSoal?: 'single' | 'multi';
   elemen: string;
   subElemen: string;
   fase: string;
   kelas: number;
   taxonomiBloom: string;
-  // Diisi kalau soal ini dibuat dengan fokus ke sub-sub-elemen tertentu
-  // (lihat parameter fokusSubSubElemen di generateSoalAdaptif).
+  pembahasan?: string;
+  model?: string; // Menambahkan field model
   subSubElemen?: string;
 }
 
@@ -161,7 +162,8 @@ export async function generateSoalAdaptif(
   fokusTopik?: string[],
   riwayatPertanyaan?: string[],
   fokusSubSubElemen?: string,
-  kelasValidTopik?: number[]
+  kelasValidTopik?: number[],
+  forcedType?: 'single' | 'multi'
 ): Promise<SoalItemGenerated[]> {
   console.log('[DEBUG-GENERATE] generateSoalAdaptif dipanggil:', {
     mataPelajaran,
@@ -175,9 +177,29 @@ export async function generateSoalAdaptif(
     fokusSubSubElemen,
     kelasValidTopik,
     jumlahRiwayatPertanyaan: riwayatPertanyaan?.length ?? 0,
+    forcedType,
   });
 
+  // Jika belum ada forcedType dan jumlah soal > 1, bagi menjadi 60% single dan 40% multi
+  if (!forcedType && jumlahSoal > 1) {
+    const numSingle = Math.max(1, Math.round(jumlahSoal * 0.6));
+    const numMulti = Math.max(1, jumlahSoal - numSingle);
+
+    console.log(`[DEBUG-GENERATE] Membagi soal: ${numSingle} single, ${numMulti} multi`);
+
+    const [singleSoal, multiSoal] = await Promise.all([
+      generateSoalAdaptif(mataPelajaran, numSingle, statistikElemenTerakhir, kelasTarget, modeFilter, selectedModel, bloomTarget, fokusTopik, riwayatPertanyaan, fokusSubSubElemen, kelasValidTopik, 'single'),
+      generateSoalAdaptif(mataPelajaran, numMulti, statistikElemenTerakhir, kelasTarget, modeFilter, selectedModel, bloomTarget, fokusTopik, riwayatPertanyaan, fokusSubSubElemen, kelasValidTopik, 'multi')
+    ]);
+
+    return [...singleSoal, ...multiSoal];
+  }
+
+  // Jika forcedType = single tapi jumlah soal 0 (karena pembulatan), set jadi 1
+  const actualJumlahSoal = Math.max(1, jumlahSoal);
+
   const entri = Object.entries(statistikElemenTerakhir);
+  // ... (rest of the function)
 
   const nilai =
     entri.length > 0
@@ -220,10 +242,14 @@ export async function generateSoalAdaptif(
     .replace("{{subElemenRelevan}}", subElemenRelevan)
     .replace("{{arahanKelas}}", arahanKelas)
     .replace("{{ringkasanPerforma}}", ringkasanPerforma)
-    .replace("{{jumlahSoal}}", String(jumlahSoal));
+    .replace("{{jumlahSoal}}", String(actualJumlahSoal));
 
   if (bloomTarget) {
     prompt += `\n\nINSTRUKSI TAMBAHAN: Pastikan semua soal memiliki tingkat taksonomi Bloom minimal ${bloomTarget}.`;
+  }
+
+  if (forcedType) {
+    prompt += `\n\nINSTRUKSI WAJIB: Buat HANYA soal tipe "${forcedType}". Jangan buat tipe lain.`;
   }
 
   if (fokusTopik && fokusTopik.length > 0) {
@@ -257,8 +283,8 @@ export async function generateSoalAdaptif(
       // tengah dan gagal di-parse. ~600 token per soal (pertanyaan + 4-5
       // pilihan + overhead JSON) + buffer 500 token, dibatasi maks 8000
       // supaya tidak melebihi batas output sebagian besar model/provider.
-      const maxTokens = Math.min(8000, jumlahSoal * 600 + 500);
-      const hasilMentah = await askLLMWithFallback(prompt, undefined, undefined, undefined, maxTokens);
+      const maxTokens = Math.min(8000, actualJumlahSoal * 600 + 500);
+      const { text: hasilMentah, model } = await askLLMWithFallback(prompt, undefined, undefined, undefined, maxTokens);
 
       const parsed = parseJSONSoal(hasilMentah);
 
@@ -271,6 +297,7 @@ export async function generateSoalAdaptif(
           throw new Error(`Soal ke-${i + 1} tidak memiliki field wajib`);
         }
         perbaikiJawabanBenar(s, i);
+        s.model = model; // Tambahkan model
       }
 
       const soalValid = parsed

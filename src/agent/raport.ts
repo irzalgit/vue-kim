@@ -1,4 +1,4 @@
-import { askLLM,type Provider } from "./llm";
+import { askLLM } from "./llm";
 import type { RiwayatEntry } from "../utils/riwayat";
 
 export interface SoalJawabanItem {
@@ -6,7 +6,7 @@ export interface SoalJawabanItem {
   pertanyaan: string;
   pilihan: string[];
   jawabanSiswa: string;
-  jawabanBenar: string;
+  jawabanBenar: string | string[];
   elemen: string;
   fase: string;
   taxonomiBloom: string;
@@ -19,16 +19,29 @@ export async function generateRaport(
   selectedModel?: string
 ): Promise<string> {
   const total = items.length;
-  const benar = items.filter((i) => i.jawabanSiswa === i.jawabanBenar).length;
+  const benar = items.filter((i) => {
+    if (Array.isArray(i.jawabanBenar)) {
+        return i.jawabanBenar.includes(i.jawabanSiswa);
+    }
+    return i.jawabanSiswa === i.jawabanBenar;
+  }).length;
   const nilai = total > 0 ? Math.round((benar / total) * 100) : 0;
 
   const detailSoal = items
     .map((item) => {
-      const status = item.jawabanSiswa === item.jawabanBenar ? "Benar" : "Salah";
+      const isBenar = Array.isArray(item.jawabanBenar)
+        ? item.jawabanBenar.includes(item.jawabanSiswa)
+        : item.jawabanSiswa === item.jawabanBenar;
+
+      const status = isBenar ? "Benar" : "Salah";
       const dijawab = item.jawabanSiswa || "(tidak dijawab)";
+      const benarText = Array.isArray(item.jawabanBenar) 
+        ? item.jawabanBenar.join(', ') 
+        : item.jawabanBenar;
+        
       return `${item.nomor}. [Elemen: ${item.elemen} | Fase: ${item.fase} | Taksonomi: ${item.taxonomiBloom}] ${item.pertanyaan}
 Jawaban siswa: ${dijawab}
-Jawaban benar: ${item.jawabanBenar}
+Jawaban benar: ${benarText}
 Status: ${status}`;
     })
     .join("\n\n");
@@ -82,5 +95,5 @@ Berdasarkan data di atas, buatkan rapor hasil belajar dalam Bahasa Indonesia den
 Gunakan bahasa yang suportif dan memotivasi, seperti guru yang peduli pada perkembangan siswanya. Jangan mengulang rincian soal per soal satu-satu, langsung ke analisis dan saran.
 `;
 
-  return await askLLM((selectedModel as Provider) || "gemini", prompt);
+  return await askLLM("gemini", prompt, undefined, { modelOverride: selectedModel });
 }

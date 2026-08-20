@@ -290,15 +290,16 @@ export const footerConfig: FooterConfig = {
 ],
   copyright: "\u00A9 2026 Irzal Achnad. Semua hak dilindungi.",
   bottomLinks: [
-    { label: "Tentang", href: "#" },
-    { label: "Kebijakan Privasi", href: "#" },
-    { label: "Kontak", href: "#" },
+    { label: "Tentang", href: "/about.html" },
+    { label: "Kebijakan Privasi", href: "https://math315.id/privacy.html" },
+    { label: "Kontak", href: "/contact.html" },
+    { label: "Ketentuan Layanan", href: "/terms.html" },
   ],
 };
 // Tambahkan properti claudeModel jika belum ada
 // src/agent/config.ts
 export const AI_CONFIG = {
   apiKey: import.meta.env.VITE_GEMINI_API_KEY,
-  model: import.meta.env.VITE_GEMINI_MODEL || "gemini-3.6-flash",
+  model: import.meta.env.VITE_GEMINI_MODEL || "gemini-3.5-flash",
   openrouterModel: import.meta.env.OPENROUTER_MODEL || "openai/gpt-4o",
 };

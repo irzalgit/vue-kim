@@ -222,7 +222,8 @@ interface SoalData {
   soal: {
     pertanyaan: string;
     pilihan: string[];
-    jawaban_benar: string;
+    jawaban_benar: string | string[];
+    tipeSoal?: 'single' | 'multi';
     elemen: string;
     fase: string;
     taxonomiBloom: string;
@@ -230,6 +231,7 @@ interface SoalData {
     subElemen?: string;
     subSubElemen?: string;
     sumber?: 'ai' | 'statis';
+    model?: string;
   }[];
 }
 
@@ -346,7 +348,10 @@ export default function SoalPage({
           ...s,
           pertanyaan: normalisasiTeksSoal(s.pertanyaan),
           pilihan: s.pilihan.map(normalisasiTeksSoal),
-          jawaban_benar: normalisasiTeksSoal(s.jawaban_benar),
+          // Sementara cast ke string sampai UI diperbarui untuk multi-choice
+          jawaban_benar: Array.isArray(s.jawaban_benar) 
+            ? s.jawaban_benar.map(normalisasiTeksSoal) 
+            : normalisasiTeksSoal(s.jawaban_benar as string),
         }));
       } catch (errFinal) {
         console.error('[muatSoal] GAGAL DI TAHAP: proses akhir (normalisasi soal)', errFinal, 'soalProses=', soalProses);
@@ -374,13 +379,26 @@ export default function SoalPage({
     else if (arah === 'next' && nomorSoal < soalList.length - 1) setNomorSoal(nomorSoal + 1);
   };
 
-  const kirimJawaban = useCallback(async () => {
+  const [selectedModelForRetry, setSelectedModelForRetry] = useState<string>('gemini-3.5-flash');
+
+  const kirimJawaban = useCallback(async (modelOverride?: string) => {
     const total = soalList.length;
     const nilaiPerSoal = total > 0 ? 100 / total : 0;
     let nilai = 0;
     
     soalList.forEach((s, i) => {
-      if (s.jawaban_benar === jawaban[i]) {
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
+      }
+
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+
+      if (isBenar) {
         nilai += nilaiPerSoal;
       }
     });
@@ -391,18 +409,43 @@ export default function SoalPage({
     soalList.forEach((s, i) => {
       if (!statistikElemen[s.elemen]) statistikElemen[s.elemen] = { benar: 0, total: 0 };
       statistikElemen[s.elemen].total += 1;
-      if (s.jawaban_benar === jawaban[i]) statistikElemen[s.elemen].benar += 1;
+      
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
+      }
+
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+        
+      if (isBenar) statistikElemen[s.elemen].benar += 1;
     });
 
-    const detailSoal: DetailSoalEntry[] = soalList.map((s, i) => ({
-      nomor: i + 1,
-      elemen: s.elemen,
-      subElemen: s.subElemen || '',
-      fase: s.fase,
-      kelas: s.kelas ?? 0,
-      taxonomiBloom: s.taxonomiBloom,
-      benar: s.jawaban_benar === jawaban[i],
-    }));
+    const detailSoal: DetailSoalEntry[] = soalList.map((s, i) => {
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
+      }
+
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+      
+      return {
+        nomor: i + 1,
+        elemen: s.elemen,
+        subElemen: s.subElemen || '',
+        fase: s.fase,
+        kelas: s.kelas ?? 0,
+        taxonomiBloom: s.taxonomiBloom,
+        benar: isBenar,
+      };
+    });
 
     const riwayatSebelum = getRiwayat(judul);
     setAnalisisLoading(true);
@@ -434,17 +477,21 @@ export default function SoalPage({
         taxonomiBloom: s.taxonomiBloom,
         kelas: s.kelas ?? 0,
         subElemen: s.subElemen || '',
-      })), riwayatSebelum);
+      })), riwayatSebelum, modelOverride || selectedModelForRetry);
 
       setRaport(hasilRaport);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.startsWith(QUOTA_EXCEEDED_ERROR)) {
+        setAnalisisError('Kuota model saat ini habis. Silakan pilih model lain di bawah dan coba lagi.');
+      } else {
+        setAnalisisError('Gagal menganalisis hasil: ' + errorMessage);
+      }
       if (errorMessage.startsWith(QUOTA_EXCEEDED_ERROR)) triggerPayment();
-      setAnalisisError('Gagal menganalisis hasil: ' + errorMessage);
     } finally {
       setAnalisisLoading(false);
     }
-  }, [soalList, jawaban, judul, triggerPayment]);
+  }, [soalList, jawaban, judul, triggerPayment, selectedModelForRetry]);
 
   const kirimJawabanRef = useRef(kirimJawaban);
   
@@ -491,7 +538,32 @@ export default function SoalPage({
         </div>
         <div className="soal-container" style={{ padding: '24px' }}>
           {analisisLoading && <p>⏳ Sedang menganalisis jawabanmu dengan AI...</p>}
-          {analisisError && <p className="error">{analisisError}</p>}
+          {analisisError && (
+            <div className="error-box" style={{ background: '#7f1d1d', padding: 16, borderRadius: 12, marginBottom: 16 }}>
+              <p className="error" style={{ color: '#fca5a5', marginBottom: 12 }}>{analisisError}</p>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <select 
+                  className="bg-gray-700 text-white rounded-lg p-2 border border-gray-600"
+                  value={selectedModelForRetry}
+                  onChange={(e) => setSelectedModelForRetry(e.target.value)}
+                >
+                  <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                  <option value="gemini-3.5-flash">Gemini 3.5 Flash</option>
+                  <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
+                  <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
+                </select>
+                <button 
+                  onClick={() => kirimJawabanRef.current(selectedModelForRetry)} 
+                  className="btn-nav"
+                  style={{ background: '#b91c1c', borderColor: '#b91c1c' }}
+                >
+                  🔄 Coba Lagi
+                </button>
+              </div>
+            </div>
+          )}
           {!analisisLoading && raport && (
             <div dangerouslySetInnerHTML={{ __html: renderLatex(raport) }} />
           )}
@@ -561,7 +633,7 @@ export default function SoalPage({
             <span className="info-topik">Elemen: {soal.elemen}</span>
             {soal.sumber && (
               <span className={`info-badge sumber-${soal.sumber}`}>
-                Sumber: {soal.sumber === 'ai' ? 'AI (Gemini)' : 'Data Statis'}
+                Sumber: {soal.sumber === 'ai' ? (soal.model ? `AI (${soal.model})` : 'AI (Gemini)') : 'Data Statis'}
               </span>
             )}
             {soal.subElemen && <span className="info-topik">Sub Elemen: {soal.subElemen}</span>}
@@ -572,18 +644,36 @@ export default function SoalPage({
           </p>
 
           <div className="pilihan">
-            {soal.pilihan.map((pilihan, pIndex) => (
-              <label key={pIndex} className={jawaban[nomorSoal] === pilihan ? 'dipilih' : ''}>
-                <input
-                  type="radio"
-                  name={`soal-${nomorSoal}`}
-                  value={pilihan}
-                  checked={jawaban[nomorSoal] === pilihan}
-                  onChange={() => pilihJawaban(pilihan)}
-                />
-                <span dangerouslySetInnerHTML={{ __html: renderLatex(pilihan) }} />
-              </label>
-            ))}
+            {soal.pilihan.map((pilihan, pIndex) => {
+              const isMulti = soal.tipeSoal === 'multi';
+              const jawabanSaatIni = jawaban[nomorSoal] || (isMulti ? '[]' : '');
+              const isSelected = isMulti 
+                ? JSON.parse(jawabanSaatIni).includes(pilihan)
+                : jawabanSaatIni === pilihan;
+
+              return (
+                <label key={pIndex} className={isSelected ? 'dipilih' : ''}>
+                  <input
+                    type={isMulti ? 'checkbox' : 'radio'}
+                    name={`soal-${nomorSoal}`}
+                    value={pilihan}
+                    checked={isSelected}
+                    onChange={(e) => {
+                      if (isMulti) {
+                        const arr = JSON.parse(jawabanSaatIni || '[]');
+                        const baru = e.target.checked
+                          ? [...arr, pilihan]
+                          : arr.filter((p: string) => p !== pilihan);
+                        pilihJawaban(JSON.stringify(baru));
+                      } else {
+                        pilihJawaban(pilihan);
+                      }
+                    }}
+                  />
+                  <span dangerouslySetInnerHTML={{ __html: renderLatex(pilihan) }} />
+                </label>
+              );
+            })}
           </div>
         </div>
 
@@ -592,7 +682,7 @@ export default function SoalPage({
             ← Sebelumnya
           </button>
           {nomorSoal === soalList.length - 1 ? (
-            <button onClick={kirimJawaban} className="btn-kirim">Kirim Jawaban</button>
+            <button onClick={() => kirimJawaban()} className="btn-kirim">Kirim Jawaban</button>
           ) : (
             <button onClick={() => navigasiSoal('next')} className="btn-nav">Selanjutnya →</button>
           )}
