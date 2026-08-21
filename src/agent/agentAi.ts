@@ -32,7 +32,7 @@ ${task}
 `;
 
   // Gunakan fallback agar otomatis coba gemini lalu openrouter
-  const text = await askLLMWithFallback(prompt);
+  const { text } = await askLLMWithFallback(prompt);
 
   try {
     const json = JSON.parse(text);

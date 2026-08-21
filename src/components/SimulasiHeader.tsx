@@ -11,7 +11,7 @@ export default function SimulasiHeader({ jenis }: SimulasiHeaderProps) {
       <h2 className="text-2xl font-bold">
         Simulasi {namaSimulasi} (25 Soal)
       </h2>
-      <p className="opacity-90">AI Agent Gemini 2.5 Flash siap membantu!</p>
+      <p className="opacity-90">AI Agent Gemini 3.5 Flash siap membantu!</p>
     </div>
   );
 }

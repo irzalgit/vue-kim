@@ -1,0 +1,107 @@
+{
+  "judul": "SNBT (Seleksi Nasional Berbasis Tes)",
+  "kode": "snbt",
+  "waktu": 120,
+  "soal": [
+    {
+      "pertanyaan": "Jika $2x + 3 = 11$, berapakah nilai $4x - 5$?",
+      "pilihan": ["7", "9", "11", "13", "15"],
+      "jawaban_benar": "11",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Aljabar",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Sebuah toko memberikan diskon 20% untuk semua barang. Jika harga sebelum diskon adalah Rp250.000, berapakah harga yang harus dibayar?",
+      "pilihan": ["Rp180.000", "Rp190.000", "Rp200.000", "Rp210.000", "Rp220.000"],
+      "jawaban_benar": "Rp200.000",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Aritmetika Sosial",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Manakah pola angka selanjutnya: 2, 6, 12, 20, 30, ...?",
+      "pilihan": ["38", "40", "42", "44", "46"],
+      "jawaban_benar": "42",
+      "elemen": "Penalaran Umum",
+      "subElemen": "Pola Bilangan",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Jika $f(x) = x^2 - 4$, berapakah nilai $f(3) + f(-3)$?",
+      "pilihan": ["0", "5", "10", "15", "20"],
+      "jawaban_benar": "10",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Rata-rata 5 bilangan adalah 15. Jika satu bilangan ditambahkan, rata-ratanya menjadi 16. Berapakah bilangan yang ditambahkan tersebut?",
+      "pilihan": ["18", "19", "20", "21", "22"],
+      "jawaban_benar": "21",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Statistika",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Dalam suatu barisan aritmetika, suku ke-3 adalah 10 dan suku ke-6 adalah 19. Suku ke-10 adalah?",
+      "pilihan": ["28", "29", "30", "31", "32"],
+      "jawaban_benar": "31",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Barisan dan Deret",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Sebuah persegi memiliki luas 64 cm². Berapakah keliling persegi tersebut?",
+      "pilihan": ["16 cm", "24 cm", "32 cm", "40 cm", "48 cm"],
+      "jawaban_benar": "32 cm",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Jika 3 pekerja dapat menyelesaikan tugas dalam 12 hari, berapa hari yang dibutuhkan 9 pekerja untuk menyelesaikan tugas yang sama?",
+      "pilihan": ["2", "3", "4", "5", "6"],
+      "jawaban_benar": "4",
+      "elemen": "Pengetahuan Kuantitatif",
+      "subElemen": "Perbandingan Berbalik Nilai",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Pilihlah kata yang tidak termasuk kelompoknya: Mobil, Motor, Sepeda, Kapal, Kereta.",
+      "pilihan": ["Mobil", "Motor", "Sepeda", "Kapal", "Kereta"],
+      "jawaban_benar": "Kapal",
+      "elemen": "Penalaran Umum",
+      "subElemen": "Analogi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Jika $a > b$ dan $b > c$, manakah pernyataan yang benar?",
+      "pilihan": ["a < c", "a = c", "a > c", "b < c", "a < b"],
+      "jawaban_benar": "a > c",
+      "elemen": "Penalaran Umum",
+      "subElemen": "Logika Matematika",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    }
+  ]
+}

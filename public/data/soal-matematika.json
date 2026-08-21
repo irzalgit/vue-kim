@@ -4,137 +4,251 @@
   "waktu": 90,
   "soal": [
     {
-      "pertanyaan": "Berapakah hasil dari 3 + 4?",
-      "pilihan": ["6", "7", "8", "9"],
-      "jawaban_benar": "7",
+      "pertanyaan": "Hasil dari $\\frac{2^5 \\times 2^3}{2^4}$ adalah?",
+      "pilihan": ["8", "16", "32", "64"],
+      "jawaban_benar": "16",
       "elemen": "Bilangan",
-      "fase": "A",
-      "kelas": 1,
-      "taxonomiBloom": "C1"
-    },
-    {
-      "pertanyaan": "Bilangan manakah yang lebih besar, 15 atau 12?",
-      "pilihan": ["15", "12", "Sama besar", "Tidak bisa ditentukan"],
-      "jawaban_benar": "15",
-      "elemen": "Bilangan",
-      "fase": "A",
-      "kelas": 2,
-      "taxonomiBloom": "C2"
-    },
-    {
-      "pertanyaan": "Berapakah hasil dari 15 + 20 − 5?",
-      "pilihan": ["25", "30", "35", "40"],
-      "jawaban_benar": "30",
-      "elemen": "Bilangan",
-      "fase": "B",
-      "kelas": 3,
-      "taxonomiBloom": "C2"
-    },
-    {
-      "pertanyaan": "Berapakah luas persegi dengan panjang sisi 5 cm?",
-      "pilihan": ["10 cm²", "15 cm²", "20 cm²", "25 cm²"],
-      "jawaban_benar": "25 cm²",
-      "elemen": "Geometri & Pengukuran",
-      "fase": "B",
-      "kelas": 4,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Median dari data 3, 5, 7, 9, 11 adalah?",
-      "pilihan": ["5", "7", "9", "11"],
-      "jawaban_benar": "7",
-      "elemen": "Data",
-      "fase": "C",
-      "kelas": 5,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Berapakah hasil dari 100 dibagi 4?",
-      "pilihan": ["20", "25", "30", "35"],
-      "jawaban_benar": "25",
-      "elemen": "Bilangan",
-      "fase": "C",
-      "kelas": 6,
-      "taxonomiBloom": "C2"
-    },
-    {
-      "pertanyaan": "Modus dari data 2, 3, 3, 4, 5 adalah?",
-      "pilihan": ["2", "3", "4", "5"],
-      "jawaban_benar": "3",
-      "elemen": "Data & Peluang",
-      "fase": "D",
-      "kelas": 8,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Jika 2x = 16, berapakah nilai x?",
-      "pilihan": ["6", "7", "8", "9"],
-      "jawaban_benar": "8",
-      "elemen": "Aljabar",
-      "subElemen": "Persamaan Linear",
-      "fase": "D",
-      "kelas": 9,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Nilai dari sin(30°) adalah?",
-      "pilihan": ["1/2", "√3/2", "√2/2", "1"],
-      "jawaban_benar": "1/2",
-      "elemen": "Trigonometri",
-      "fase": "E",
-      "kelas": 10,
-      "taxonomiBloom": "C1"
-    },
-    {
-      "pertanyaan": "Bentuk apa yang diperoleh persegi setelah diputar $90^\\circ$ tentang pusatnya?",
-      "pilihan": ["bentuk sama", "bentuk terputar tetapi berbeda", "bentuk cermin", "bentuk terstruktur ulang"],
-      "jawaban_benar": "bentuk sama",
-      "elemen": "Geometri",
-      "fase": "E",
-      "kelas": 10,
-      "taxonomiBloom": "C4"
-    },
-    {
-      "pertanyaan": "Diketahui matriks $A = \\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$ dan $B = \\begin{pmatrix} 5 & 6 \\\\ 7 & 8 \\end{pmatrix}$. Hasil dari $A + B$ adalah?",
-      "pilihan": [
-        "$\\begin{pmatrix} 6 & 8 \\\\ 10 & 12 \\end{pmatrix}$",
-        "$\\begin{pmatrix} 5 & 6 \\\\ 7 & 8 \\end{pmatrix}$",
-        "$\\begin{pmatrix} 4 & 4 \\\\ 4 & 4 \\end{pmatrix}$",
-        "$\\begin{pmatrix} 1 & 2 \\\\ 3 & 4 \\end{pmatrix}$"
-      ],
-      "jawaban_benar": "$\\begin{pmatrix} 6 & 8 \\\\ 10 & 12 \\end{pmatrix}$",
-      "elemen": "Aljabar",
-      "subElemen": "Matriks lanjut",
+      "subElemen": "Bilangan Real",
       "fase": "F",
-      "kelas": 11,
-      "taxonomiBloom": "C3"
+      "kelas": 12,
+      "taxonomiBloom": "C2"
     },
     {
-      "pertanyaan": "Determinan dari matriks $\\begin{pmatrix} 2 & 3 \\\\ 1 & 4 \\end{pmatrix}$ adalah?",
-      "pilihan": ["5", "8", "11", "-5"],
-      "jawaban_benar": "5",
-      "elemen": "Aljabar",
-      "subElemen": "Determinan matriks",
-      "fase": "F",
-      "kelas": 11,
-      "taxonomiBloom": "C3"
-    },
-    {
-      "pertanyaan": "Hasil dari $\\int 2x \\, dx$ adalah?",
-      "pilihan": ["$x^2 + C$", "$2x^2 + C$", "$x + C$", "$x^2/2 + C$"],
-      "jawaban_benar": "$x^2 + C$",
-      "elemen": "Kalkulus",
-      "subElemen": "Integral tak tentu",
+      "pertanyaan": "Sebuah mesin menghasilkan $240$ unit dalam $6$ jam. Jika kecepatan produksi tetap, berapa unit yang dihasilkan dalam $9$ jam?",
+      "pilihan": ["300", "320", "360", "400"],
+      "jawaban_benar": "360",
+      "elemen": "Bilangan",
+      "subElemen": "Rasio, Proporsi, dan Laju Perubahan",
       "fase": "F",
       "kelas": 12,
       "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Nilai dari $\\int_{0}^{2} x^2 \\, dx$ adalah?",
-      "pilihan": ["8/3", "4", "8", "2/3"],
-      "jawaban_benar": "8/3",
-      "elemen": "Kalkulus",
-      "subElemen": "Integral tentu",
+      "pertanyaan": "Nilai yang paling dekat dengan $\\sqrt{50}+\\sqrt{18}$ adalah?",
+      "pilihan": ["9,1", "10,2", "11,3", "12,4"],
+      "jawaban_benar": "11,3",
+      "elemen": "Bilangan",
+      "subElemen": "Bilangan Real",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Suatu bilangan $x$ memenuhi $3x-7=2x+5$. Nilai $x$ adalah?",
+      "pilihan": ["10", "11", "12", "13"],
+      "jawaban_benar": "12",
+      "elemen": "Aljabar",
+      "subElemen": "Persamaan dan Pertidaksamaan Linear",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Dua bilangan memiliki jumlah $26$ dan selisihnya $8$. Bilangan yang lebih besar adalah?",
+      "pilihan": ["15", "16", "17", "18"],
+      "jawaban_benar": "17",
+      "elemen": "Aljabar",
+      "subElemen": "Sistem Persamaan Linear Multivariabel",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Harga 2 buku dan 3 pensil adalah Rp19.000,00. Harga 1 buku dan 2 pensil adalah Rp11.000,00. Harga sebuah buku adalah?",
+      "pilihan": [
+        "Rp4.000,00",
+        "Rp5.000,00",
+        "Rp6.000,00",
+        "Rp7.000,00"
+      ],
+      "jawaban_benar": "Rp5.000,00",
+      "elemen": "Aljabar",
+      "subElemen": "Sistem Persamaan Linear Multivariabel",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai $x$ yang memenuhi $2x-3 \\leq 9$ adalah?",
+      "pilihan": ["$x \\leq 3$", "$x \\leq 6$", "$x \\geq 3$", "$x \\geq 6$"],
+      "jawaban_benar": "$x \\leq 6$",
+      "elemen": "Aljabar",
+      "subElemen": "Sistem Pertidaksamaan Linear Multivariabel",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Diketahui $f(x)=2x+3$. Nilai $f(5)$ adalah?",
+      "pilihan": ["10", "11", "12", "13"],
+      "jawaban_benar": "13",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Diketahui $f(x)=3x-4$. Jika $f(a)=11$, nilai $a$ adalah?",
+      "pilihan": ["3", "4", "5", "6"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Sebuah persegi panjang memiliki panjang $12$ cm dan lebar $7$ cm. Keliling persegi panjang tersebut adalah?",
+      "pilihan": ["19 cm", "26 cm", "38 cm", "84 cm"],
+      "jawaban_benar": "38 cm",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Keliling dan Luas Bangun Datar",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Sebuah lingkaran memiliki jari-jari $7$ cm. Dengan $\\pi=\\frac{22}{7}$, luas lingkaran tersebut adalah?",
+      "pilihan": ["44 cm²", "88 cm²", "154 cm²", "308 cm²"],
+      "jawaban_benar": "154 cm²",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Keliling dan Luas Bangun Datar",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Sebuah balok berukuran panjang $10$ cm, lebar $6$ cm, dan tinggi $4$ cm. Volume balok adalah?",
+      "pilihan": ["120 cm³", "180 cm³", "240 cm³", "360 cm³"],
+      "jawaban_benar": "240 cm³",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Volume Bangun Ruang",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Sebuah kubus memiliki volume $216$ cm³. Panjang rusuk kubus tersebut adalah?",
+      "pilihan": ["4 cm", "5 cm", "6 cm", "8 cm"],
+      "jawaban_benar": "6 cm",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Volume Bangun Ruang",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Sebuah tangga panjangnya $10$ m disandarkan pada dinding. Ujung bawah tangga berjarak $6$ m dari dinding. Tinggi ujung atas tangga dari tanah adalah?",
+      "pilihan": ["6 m", "7 m", "8 m", "9 m"],
+      "jawaban_benar": "8 m",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Jarak Dua Objek Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai dari $\\sin 30^\\circ+\\cos 60^\\circ$ adalah?",
+      "pilihan": ["$\\frac{1}{2}$", "1", "$\\frac{\\sqrt{3}}{2}$", "2"],
+      "jawaban_benar": "1",
+      "elemen": "Trigonometri",
+      "subElemen": "Perbandingan Trigonometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Jika $\\tan \\theta=\\frac{3}{4}$ dan $\\theta$ berada di kuadran I, nilai $\\sin \\theta$ adalah?",
+      "pilihan": ["$\\frac{3}{5}$", "$\\frac{4}{5}$", "$\\frac{3}{4}$", "$\\frac{4}{3}$"],
+      "jawaban_benar": "$\\frac{3}{5}$",
+      "elemen": "Trigonometri",
+      "subElemen": "Perbandingan Trigonometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Sebuah tiang memiliki bayangan sepanjang $10$ m ketika sudut elevasi matahari $45^\\circ$. Tinggi tiang tersebut adalah?",
+      "pilihan": ["5 m", "10 m", "$10\\sqrt{2}$ m", "20 m"],
+      "jawaban_benar": "10 m",
+      "elemen": "Trigonometri",
+      "subElemen": "Perbandingan Trigonometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Rata-rata dari data $6, 8, 10, 12,$ dan $14$ adalah?",
+      "pilihan": ["8", "9", "10", "11"],
+      "jawaban_benar": "10",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Ukuran Pemusatan Data",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Median dari data $4, 7, 8, 10, 12, 15,$ dan $18$ adalah?",
+      "pilihan": ["7", "8", "10", "12"],
+      "jawaban_benar": "10",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Ukuran Pemusatan Data",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Data nilai lima siswa adalah $60, 70, 70, 80,$ dan $90$. Modus data tersebut adalah?",
+      "pilihan": ["60", "70", "80", "90"],
+      "jawaban_benar": "70",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Ukuran Pemusatan Data",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Dari $40$ siswa, sebanyak $24$ siswa menyukai matematika. Jika seorang siswa dipilih secara acak, peluang siswa tersebut menyukai matematika adalah?",
+      "pilihan": ["$\\frac{2}{5}$", "$\\frac{3}{5}$", "$\\frac{4}{5}$", "$\\frac{5}{6}$"],
+      "jawaban_benar": "$\\frac{3}{5}$",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Peluang",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Sebuah kotak berisi $5$ bola merah, $3$ bola biru, dan $2$ bola hijau. Satu bola diambil secara acak. Peluang terambil bola yang bukan biru adalah?",
+      "pilihan": ["$\\frac{3}{10}$", "$\\frac{1}{2}$", "$\\frac{7}{10}$", "$\\frac{4}{5}$"],
+      "jawaban_benar": "$\\frac{7}{10}$",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Peluang",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Rata-rata nilai 8 siswa adalah 72. Setelah nilai seorang siswa yang sebelumnya belum dihitung dimasukkan, rata-rata menjadi 74. Nilai siswa tersebut adalah?",
+      "pilihan": ["82", "86", "90", "92"],
+      "jawaban_benar": "90",
+      "elemen": "Data dan Peluang",
+      "subElemen": "Ukuran Pemusatan Data",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Sebuah perusahaan memiliki dua pilihan paket produksi. Paket A menghasilkan keuntungan Rp40.000,00 per unit dan Paket B menghasilkan keuntungan Rp60.000,00 per unit. Jika jumlah seluruh unit yang diproduksi paling banyak 100 dan jumlah Paket B paling banyak 40 unit, kombinasi yang menghasilkan keuntungan maksimum adalah?",
+      "pilihan": [
+        "60 unit A dan 40 unit B",
+        "70 unit A dan 30 unit B",
+        "80 unit A dan 20 unit B",
+        "100 unit A dan 0 unit B"
+      ],
+      "jawaban_benar": "60 unit A dan 40 unit B",
+      "elemen": "Aljabar",
+      "subElemen": "Program Linear",
       "fase": "F",
       "kelas": 12,
       "taxonomiBloom": "C4"

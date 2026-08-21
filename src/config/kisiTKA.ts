@@ -2116,7 +2116,21 @@ const elemenFaseF: Elemen[] = [
         ]
       },
     ]
+  },
+
+  {
+    nama: 'TKA6',
+    fase: ['F'],
+   subElemen: [
+    {
+      nama: 'Kosong (TKA6)',
+      kelas: [12],
+      bloomTarget: ['C1']
+      // subSubElemen tidak perlu, biarkan kosong
+    }
+  ]
   }
+
 ];
 
 // ==================== GABUNGAN SEMUA FASE ====================

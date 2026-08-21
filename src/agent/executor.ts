@@ -33,7 +33,8 @@ Jangan mengulang jawaban yang sama.
       answer = tool.result;
     } else {
       // ✅ Gunakan fallback agar otomatis coba gemini lalu openrouter
-      answer = await askLLMWithFallback(prompt);
+      const response = await askLLMWithFallback(prompt);
+      answer = response.text;
     }
 
     results.push(`## ${step.title}\n\n${answer}`);

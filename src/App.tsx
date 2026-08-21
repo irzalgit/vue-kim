@@ -1,10 +1,8 @@
 // Ubah baris pertama di App.tsx menjadi:
 import { useEffect, Component, createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-
-
 import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
 import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
@@ -107,7 +105,7 @@ function AppContent() {
       <div
         className={`min-h-screen text-white transition-colors duration-500 relative ${import.meta.env.DEV ? "pt-16" : ""}`}
         style={{
-          backgroundColor: currentView === 'landing' ? '#16a34a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
+          backgroundColor: currentView === 'landing' ? '#0a0a0a' : currentView === 'dashboard' ? '#dc2626' : '#2563eb',
         }}
       >
         {/* Panel Debug — hanya tampil saat development (npm run dev),
@@ -152,9 +150,11 @@ function AppContent() {
 export default function App() {
   return (
     <ErrorBoundary>
-      <HashRouter>
-        <AppContent />
-      </HashRouter>
+      <AuthProvider>
+        <HashRouter>
+          <AppContent />
+        </HashRouter>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }

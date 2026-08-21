@@ -1,57 +1,287 @@
 {
-  "judul": "Fisika",
-  "kode": "fisika",
+  "judul": "Matematika Tingkat Lanjut",
+  "kode": "matematika_lanjut",
   "waktu": 90,
   "soal": [
     {
-      "pertanyaan": "Hukum Newton ke-2 menyatakan bahwa...",
-      "pilihan": ["F = ma", "F = mv", "F = m/a", "F = a/m"],
-      "jawaban_benar": "F = ma"
+      "pertanyaan": "Diketahui $f(x)=2x-3$. Jika $f^{-1}(x)$ merupakan fungsi invers dari $f(x)$, maka nilai $f^{-1}(7)$ adalah?",
+      "pilihan": ["3", "4", "5", "6"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi Invers",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Satuan daya dalam SI adalah?",
-      "pilihan": ["Watt", "Joule", "Newton", "Volt"],
-      "jawaban_benar": "Watt"
+      "pertanyaan": "Diketahui $f(x)=x+2$ dan $g(x)=3x-1$. Nilai $(f \\circ g)(4)$ adalah?",
+      "pilihan": ["11", "12", "13", "14"],
+      "jawaban_benar": "13",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi Komposisi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Kecepatan cahaya dalam vakuum adalah?",
-      "pilihan": ["3 × 10⁸ m/s", "3 × 10⁶ m/s", "3 × 10⁵ m/s", "3 × 10⁷ m/s"],
-      "jawaban_benar": "3 × 10⁸ m/s"
+      "pertanyaan": "Diketahui $(f \\circ g)(x)=x^2+4x+1$ dan $g(x)=x+2$. Nilai $f(3)$ adalah?",
+      "pilihan": ["4", "6", "8", "10"],
+      "jawaban_benar": "6",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi Komposisi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
     },
     {
-      "pertanyaan": "Apa satuan SI untuk gaya?",
-      "pilihan": ["Joule", "Newton", "Watt", "Pascal"],
-      "jawaban_benar": "Newton"
+      "pertanyaan": "Suku ke-10 dari barisan aritmetika $5, 8, 11, 14, \\ldots$ adalah?",
+      "pilihan": ["29", "30", "32", "35"],
+      "jawaban_benar": "32",
+      "elemen": "Aljabar",
+      "subElemen": "Barisan dan Deret Aritmetika",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Kecepatan didefinisikan sebagai...",
-      "pilihan": ["Jarak/Waktu", "Massa/Volume", "Gaya/Luas", "Usaha/Waktu"],
-      "jawaban_benar": "Jarak/Waktu"
+      "pertanyaan": "Jumlah 10 suku pertama barisan aritmetika $3, 7, 11, 15, \\ldots$ adalah?",
+      "pilihan": ["180", "200", "210", "220"],
+      "jawaban_benar": "210",
+      "elemen": "Aljabar",
+      "subElemen": "Barisan dan Deret Aritmetika",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Berapakah percepatan gravitasi bumi (m/s²)?",
-      "pilihan": ["8.8", "9.8", "10.8", "11.8"],
-      "jawaban_benar": "9.8"
+      "pertanyaan": "Suku pertama suatu barisan geometri adalah $3$ dan rasionya $2$. Suku ke-6 barisan tersebut adalah?",
+      "pilihan": ["48", "64", "96", "192"],
+      "jawaban_benar": "96",
+      "elemen": "Aljabar",
+      "subElemen": "Barisan dan Deret Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Energi yang dimiliki benda karena geraknya disebut...",
-      "pilihan": ["Potensial", "Kinetik", "Mekanik", "Listrik"],
-      "jawaban_benar": "Kinetik"
+      "pertanyaan": "Jumlah 5 suku pertama barisan geometri $2, 6, 18, \\ldots$ adalah?",
+      "pilihan": ["120", "180", "242", "260"],
+      "jawaban_benar": "242",
+      "elemen": "Aljabar",
+      "subElemen": "Barisan dan Deret Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Alat untuk mengukur arus listrik adalah...",
-      "pilihan": ["Voltmeter", "Amperemeter", "Ohmmeter", "Barometer"],
-      "jawaban_benar": "Amperemeter"
+      "pertanyaan": "Diketahui matriks $A=\\begin{pmatrix}2&1\\\\3&4\\end{pmatrix}$. Determinan matriks $A$ adalah?",
+      "pilihan": ["3", "5", "7", "11"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "subElemen": "Matriks",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
     },
     {
-      "pertanyaan": "Berapakah titik didih air dalam derajat Celsius?",
-      "pilihan": ["80", "90", "100", "110"],
-      "jawaban_benar": "100"
+      "pertanyaan": "Diketahui $A=\\begin{pmatrix}1&2\\\\2&5\\end{pmatrix}$. Invers matriks $A$ adalah?",
+      "pilihan": [
+        "$\\begin{pmatrix}5&-2\\\\-2&1\\end{pmatrix}$",
+        "$\\begin{pmatrix}5&2\\\\2&1\\end{pmatrix}$",
+        "$\\begin{pmatrix}1&-2\\\\-2&5\\end{pmatrix}$",
+        "$\\begin{pmatrix}2&-1\\\\-1&5\\end{pmatrix}$"
+      ],
+      "jawaban_benar": "$\\begin{pmatrix}5&-2\\\\-2&1\\end{pmatrix}$",
+      "elemen": "Aljabar",
+      "subElemen": "Matriks dan Invers Matriks",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     },
     {
-      "pertanyaan": "Apa yang menyebabkan benda jatuh ke bawah?",
-      "pilihan": ["Magnet", "Gravitasi", "Gesekan", "Tekanan"],
-      "jawaban_benar": "Gravitasi"
+      "pertanyaan": "Sistem persamaan $2x+y=7$ dan $x-y=2$ memiliki solusi $(x,y)$. Nilai $x+y$ adalah?",
+      "pilihan": ["3", "4", "5", "6"],
+      "jawaban_benar": "5",
+      "elemen": "Aljabar",
+      "subElemen": "Sistem Persamaan Linear",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai maksimum fungsi $f(x)=-x^2+6x-5$ adalah?",
+      "pilihan": ["3", "4", "5", "6"],
+      "jawaban_benar": "4",
+      "elemen": "Aljabar",
+      "subElemen": "Fungsi Kuadrat",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Persamaan kuadrat $x^2-6x+k=0$ mempunyai akar kembar. Nilai $k$ adalah?",
+      "pilihan": ["6", "8", "9", "12"],
+      "jawaban_benar": "9",
+      "elemen": "Aljabar",
+      "subElemen": "Persamaan Kuadrat",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Sebuah titik $P(2,3)$ ditranslasikan oleh vektor $\\begin{pmatrix}4\\\\-2\\end{pmatrix}$. Koordinat bayangan titik $P$ adalah?",
+      "pilihan": ["$(6,1)$", "$(6,5)$", "$(-2,1)$", "$(2,1)$"],
+      "jawaban_benar": "$(6,1)$",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Transformasi Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Titik $P(3,-2)$ dicerminkan terhadap sumbu-$x$. Koordinat bayangannya adalah?",
+      "pilihan": ["$(-3,-2)$", "$(3,2)$", "$(-3,2)$", "$(2,3)$"],
+      "jawaban_benar": "$(3,2)$",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Transformasi Geometri",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Persamaan lingkaran dengan pusat $(2,-1)$ dan jari-jari $5$ adalah?",
+      "pilihan": [
+        "$(x-2)^2+(y+1)^2=25$",
+        "$(x+2)^2+(y-1)^2=25$",
+        "$(x-2)^2+(y-1)^2=5$",
+        "$(x+2)^2+(y+1)^2=5$"
+      ],
+      "jawaban_benar": "$(x-2)^2+(y+1)^2=25$",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Lingkaran",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Jarak antara titik $A(1,2)$ dan $B(7,10)$ adalah?",
+      "pilihan": ["8", "9", "10", "12"],
+      "jawaban_benar": "10",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Jarak Dua Titik",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Persamaan garis yang melalui titik $(1,2)$ dan $(3,6)$ adalah?",
+      "pilihan": [
+        "$y=2x$",
+        "$y=2x+1$",
+        "$y=3x-1$",
+        "$y=x+1$"
+      ],
+      "jawaban_benar": "$y=2x$",
+      "elemen": "Geometri dan Pengukuran",
+      "subElemen": "Persamaan Garis",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai $\\lim_{x\\to 2}(3x^2-4x+1)$ adalah?",
+      "pilihan": ["3", "5", "7", "9"],
+      "jawaban_benar": "5",
+      "elemen": "Kalkulus",
+      "subElemen": "Limit Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Nilai $\\lim_{x\\to 2}\\frac{x^2-4}{x-2}$ adalah?",
+      "pilihan": ["2", "3", "4", "5"],
+      "jawaban_benar": "4",
+      "elemen": "Kalkulus",
+      "subElemen": "Limit Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Turunan pertama dari $f(x)=3x^2-4x+5$ adalah?",
+      "pilihan": [
+        "$6x-4$",
+        "$6x+4$",
+        "$3x-4$",
+        "$3x^2-4$"
+      ],
+      "jawaban_benar": "$6x-4$",
+      "elemen": "Kalkulus",
+      "subElemen": "Turunan Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C2"
+    },
+    {
+      "pertanyaan": "Gradien garis singgung grafik $y=x^2+3x-2$ pada $x=2$ adalah?",
+      "pilihan": ["5", "6", "7", "8"],
+      "jawaban_benar": "7",
+      "elemen": "Kalkulus",
+      "subElemen": "Turunan Fungsi",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Fungsi $f(x)=x^3-3x^2+2$ mempunyai titik stasioner ketika?",
+      "pilihan": [
+        "$x=0$ dan $x=1$",
+        "$x=0$ dan $x=2$",
+        "$x=1$ dan $x=2$",
+        "$x=2$ dan $x=3$"
+      ],
+      "jawaban_benar": "$x=0$ dan $x=2$",
+      "elemen": "Kalkulus",
+      "subElemen": "Aplikasi Turunan",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Sebuah persegi panjang memiliki luas $100$ cm². Jika panjangnya $x$ cm dan lebarnya $\\frac{100}{x}$ cm, nilai $x$ agar keliling minimum adalah?",
+      "pilihan": ["5 cm", "8 cm", "10 cm", "20 cm"],
+      "jawaban_benar": "10 cm",
+      "elemen": "Kalkulus",
+      "subElemen": "Aplikasi Turunan",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C4"
+    },
+    {
+      "pertanyaan": "Hasil dari $\\int (3x^2-4x+2)\\,dx$ adalah?",
+      "pilihan": [
+        "$x^3-2x^2+2x+C$",
+        "$3x^3-2x^2+2x+C$",
+        "$x^3-4x^2+2x+C$",
+        "$x^3-2x^2+x+C$"
+      ],
+      "jawaban_benar": "$x^3-2x^2+2x+C$",
+      "elemen": "Kalkulus",
+      "subElemen": "Integral Tak Tentu",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
+    },
+    {
+      "pertanyaan": "Nilai $\\int_0^2 (x+1)\\,dx$ adalah?",
+      "pilihan": ["3", "4", "5", "6"],
+      "jawaban_benar": "4",
+      "elemen": "Kalkulus",
+      "subElemen": "Integral Tentu",
+      "fase": "F",
+      "kelas": 12,
+      "taxonomiBloom": "C3"
     }
   ]
 }

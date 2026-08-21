@@ -31,19 +31,32 @@ export async function askLLM(
   }
 }
 
+export interface LLMResponse {
+  text: string;
+  model: string;
+}
+
 export async function askLLMWithFallback(
   prompt: string,
   systemPrompt?: string,
   preferredProviders: Provider[] = ["gemini"],
   apiKeyMap?: Partial<Record<Provider, string>>,
   maxTokens?: number
-): Promise<string> {
+): Promise<LLMResponse> {
   let lastError: Error | null = null;
-  
+
+  // Ambil model preferensi dari localStorage, atau gunakan default
+  const storedModel = typeof localStorage !== 'undefined' ? localStorage.getItem('preferredModel') : null;
+
   const geminiChain = [
-    AI_CONFIG.model || "gemini-3.5-flash-lite",
+    ...(storedModel ? [storedModel] : []),
+    "gemini-3.5-flash",
+    "gemini-3.7-flash",
     "gemini-3.6-flash",
-    "gemini-3.5-flash-lite"
+    "gemini-3.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash"
   ];
   const uniqueGeminiModels = Array.from(new Set(geminiChain));
 
@@ -52,19 +65,29 @@ export async function askLLMWithFallback(
       const apiKey = apiKeyMap?.[prov];
       
       if (prov === "gemini") {
-        let geminiError: Error | null = null;
+        let lastGeminiError: Error | null = null;
         for (const modelName of uniqueGeminiModels) {
           try {
             console.log(`[askLLMWithFallback] Mencoba model Gemini: ${modelName}`);
-            return await callGemini(prompt, systemPrompt, apiKey, modelName);
+            const text = await callGemini(prompt, systemPrompt, apiKey, modelName);
+            return { text, model: modelName };
           } catch (err) {
-            geminiError = err instanceof Error ? err : new Error(String(err));
-            console.warn(`[askLLMWithFallback] Model Gemini "${modelName}" gagal:`, geminiError.message);
+            lastGeminiError = err instanceof Error ? err : new Error(String(err));
+            console.warn(`[askLLMWithFallback] Model Gemini "${modelName}" gagal:`, lastGeminiError.message);
+            
+            // Jika error adalah QUOTA_EXCEEDED, lanjutkan ke model berikutnya
+            if (lastGeminiError.message.startsWith(QUOTA_EXCEEDED_ERROR)) {
+              console.log(`[askLLMWithFallback] Model ${modelName} kena kuota, mencoba berikutnya...`);
+              continue; 
+            }
+            // Jika error lain, mungkin ingin berhenti di provider ini atau lempar error
+            throw lastGeminiError;
           }
         }
-        throw geminiError || new Error("Semua model Gemini gagal.");
+        throw lastGeminiError || new Error("Semua model Gemini gagal.");
       } else {
-        return await askLLM(prov, prompt, systemPrompt, { apiKey, maxTokens });
+        const text = await askLLM(prov, prompt, systemPrompt, { apiKey, maxTokens });
+        return { text, model: prov };
       }
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
@@ -97,7 +120,7 @@ async function callGemini(
     throw new Error("Fitur AI ini hanya tersedia di math315.id, bukan di preview/hosting ini.");
   }
 
-  const model = modelOverride || "gemini-3.6-flash";
+  const model = modelOverride || "gemini-3.5-flash";
 
   const response = await fetch('/gemini-proxy.php', {
     method: "POST",

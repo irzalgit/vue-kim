@@ -35,18 +35,32 @@ export function parseJSONSoal(hasilMentah: string): any[] {
 }
 
 export function perbaikiJawabanBenar(s: any, i: number) {
-  if (!s.pilihan.includes(s.jawaban_benar)) {
-    console.warn(`[DEBUG-GENERATE] Soal ${i + 1}: jawaban_benar tidak cocok, memperbaiki...`);
-    const prefix = s.jawaban_benar.match(/^[A-D]\./)?.[0];
-    if (prefix) {
-      const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
-      if (cocok) {
-        s.jawaban_benar = cocok;
+  // Pastikan tipeSoal ada (default ke single)
+  if (!s.tipeSoal) s.tipeSoal = 'single';
+
+  if (s.tipeSoal === 'single') {
+    if (!s.pilihan.includes(s.jawaban_benar)) {
+      console.warn(`[DEBUG-GENERATE] Soal ${i + 1} (single): jawaban_benar tidak cocok, memperbaiki...`);
+      const prefix = typeof s.jawaban_benar === 'string' ? s.jawaban_benar.match(/^[A-E]\./)?.[0] : null;
+      if (prefix) {
+        const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
+        s.jawaban_benar = cocok || s.pilihan[0];
       } else {
         s.jawaban_benar = s.pilihan[0];
       }
-    } else {
-      s.jawaban_benar = s.pilihan[0];
+    }
+  } else if (s.tipeSoal === 'multi') {
+    // Pastikan jawaban_benar adalah array
+    if (!Array.isArray(s.jawaban_benar)) {
+      s.jawaban_benar = [s.jawaban_benar];
+    }
+    
+    // Filter hanya jawaban yang ada di pilihan
+    s.jawaban_benar = s.jawaban_benar.filter((j: string) => s.pilihan.includes(j));
+    
+    // Jika tidak ada yang valid, ambil pilihan pertama
+    if (s.jawaban_benar.length === 0) {
+      s.jawaban_benar = [s.pilihan[0]];
     }
   }
 }

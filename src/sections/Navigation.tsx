@@ -2,7 +2,14 @@ import { useEffect, useState } from 'react';
 import { siteConfig, navigationConfig } from '../config';
 import logo from '../assets/logo.png';
 
-export default function Navigation() {
+interface NavigationProps {
+  onLoginClick: () => void;
+  isLoggedIn: boolean;
+  onLogout: () => void;
+}
+
+export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: NavigationProps) {
+  console.log('Navigation isLoggedIn:', isLoggedIn);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -65,6 +72,51 @@ export default function Navigation() {
             {link.label}
           </a>
         ))}
+        
+        {isLoggedIn ? (
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'transparent',
+              color: '#ff4d4d',
+              border: '1px solid #ff4d4d',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            Logout
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={onLoginClick}
+              style={{
+                background: 'transparent',
+                color: 'white',
+                border: '1px solid #404040',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              Sign-in
+            </button>
+            <button
+              onClick={onLoginClick} // Assuming sign-up triggers same flow for now
+              style={{
+                background: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '8px',
+                cursor: 'pointer',
+              }}
+            >
+              Sign-up
+            </button>
+          </div>
+        )}
       </div>
 
       {navigationConfig.ctaText && (

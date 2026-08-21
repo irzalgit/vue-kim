@@ -6,7 +6,7 @@ import {
   type SelectedItem,
   type SoalHasil,
   type TopikRotasi
-} from '../../agent/generateSoalWithChecklist';
+} from '../../agent/generateSoalWithChecklist2026';
 import { MateriFilterChecklist } from '../MateriFilterChecklist';
 
 interface SesiBelajar {
@@ -192,7 +192,7 @@ export default function SoalGeneratorWithChecklist({
   const [isSesiAktif, setIsSesiAktif] = useState<boolean>(false);
   const [soalSaatIni, setSoalSaatIni] = useState<SoalHasil | null>(null);
   const [riwayatSesi, setRiwayatSesi] = useState<SesiBelajar[]>([]);
-  const [jawabanUser, setJawabanUser] = useState<string | string[] | null>(null);
+  const [jawabanUser, setJawabanUser] = useState<string>('');
   const [feedback, setFeedback] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -270,13 +270,13 @@ export default function SoalGeneratorWithChecklist({
       setFeedback('');
       setError(null);
 
-      // Mode AI
       const rotasi = daftarTopikRotasiRef.current;
       const ukuranKelompok = Math.max(1, jumlahSoalPerSesiRef.current);
       const topikIndex = rotasi.length > 0 ? Math.floor((sesi - 1) / ukuranKelompok) % rotasi.length : -1;
       const topik = topikIndex >= 0 ? rotasi[topikIndex] : undefined;
       const riwayatTopikIni = topik ? (riwayatPertanyaanRef.current[topik.id] || []) : [];
 
+      console.log(`[DEBUG-GENERATE-2026] Memulai generate soal untuk sesi ${sesi}...`);
       const soal = await generateSoalWithChecklist({
         selectedItems: selectedItems,
         sesiKe: sesi,
@@ -286,6 +286,7 @@ export default function SoalGeneratorWithChecklist({
         topikSesiIni: topik,
         riwayatPertanyaanTopik: riwayatTopikIni,
       });
+      console.log(`[DEBUG-GENERATE-2026] Berhasil generate soal:`, soal);
 
       if (topik) {
         riwayatPertanyaanRef.current = {
@@ -298,11 +299,41 @@ export default function SoalGeneratorWithChecklist({
       setSoalSaatIni(soal);
       setJawabanUser('');
     } catch (err: unknown) {
-      console.error('[DEBUG-GENERATE] Gagal generate! err:', err);
+      console.error('[DEBUG-GENERATE-2026] Gagal generate! err:', err);
       
       const errorMessage = err instanceof Error ? err.message : String(err);
-      setError(`Gagal: ${errorMessage.substring(0, 50)}...`);
-      setLoading(false);
+      setError(`Gagal membuat soal AI: ${errorMessage.substring(0, 50)}... Menggunakan soal cadangan.`);
+
+      try {
+        const mapel = simulasiKode === 'fisika' ? 'fisika' : 'matematika';
+        // Ensure the path is correct based on Vite public directory serving
+        const response = await fetch(`/data/soal-${mapel}.json`);
+        if (!response.ok) {
+           console.error(`[DEBUG-FETCH] Fetch failed for /data/soal-${mapel}.json: ${response.status} ${response.statusText}`);
+           throw new Error('Gagal memuat soal cadangan');
+        }
+        const data = await response.json();
+        const randomSoal = data.soal[Math.floor(Math.random() * data.soal.length)];
+        
+        const fallback: SoalHasil = {
+            id: 'fallback-' + Date.now(),
+            elemen: randomSoal.elemen,
+            subElemen: 'Umum',
+            kelas: randomSoal.kelas,
+            taxonomiBloom: randomSoal.taxonomiBloom,
+            pertanyaan: randomSoal.pertanyaan,
+            pilihan: randomSoal.pilihan,
+            jawaban_benar: randomSoal.jawaban_benar,
+            pembahasan: 'Soal cadangan.',
+        };
+        
+        setSoalSaatIni(fallback);
+        setJawabanUser('');
+        setFeedback('⚠️ Menggunakan soal cadangan.');
+      } catch (fallbackErr) {
+        console.error(fallbackErr);
+        setError('❌ Gagal membuat soal dan gagal memuat soal cadangan.');
+      }
     } finally {
       setLoading(false);
     }
@@ -340,17 +371,9 @@ export default function SoalGeneratorWithChecklist({
   }, [selectedItems, isSesiAktif, generateSoalSesi, onMulaiSesi, jumlahSesiTarget, jumlahSoalPerSesi]);
 
   const submitJawaban = useCallback(async () => {
-    if (!soalSaatIni || jawabanUser === null) return;
+    if (!soalSaatIni || !jawabanUser) return;
 
-    let benar = false;
-    if (soalSaatIni.tipeSoal === 'multi') {
-      const arrUser = Array.isArray(jawabanUser) ? jawabanUser : [jawabanUser];
-      const arrBenar = Array.isArray(soalSaatIni.jawaban_benar) ? soalSaatIni.jawaban_benar : [soalSaatIni.jawaban_benar];
-      benar = arrUser.length === arrBenar.length && arrUser.every(val => arrBenar.includes(val));
-    } else {
-      benar = jawabanUser === soalSaatIni.jawaban_benar;
-    }
-
+    const benar = jawabanUser === soalSaatIni.jawaban_benar;
     const sesiKe = riwayatSesi.length + 1;
 
     setRiwayatSesi(prev => {
@@ -361,7 +384,7 @@ export default function SoalGeneratorWithChecklist({
         soalTerakhir: soalSaatIni,
         riwayatJawaban: [{
           soalId: soalSaatIni.id,
-          jawabanUser: Array.isArray(jawabanUser) ? jawabanUser.join(', ') : (jawabanUser || ''),
+          jawabanUser,
           benar,
           timestamp: new Date().toISOString()
         }],
@@ -442,11 +465,6 @@ export default function SoalGeneratorWithChecklist({
           </div>
 
           <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
-          {/* Mode soal dikunci ke AI */}
-          <input type="hidden" value="ai" />
-          </div>
-
-          <div style={{ display: "flex", gap: "10px", marginBottom: "12px" }}>
             <label style={{ flex: 1, fontSize: "12px", color: "#94a3b8" }}>
               Jumlah Sesi
               <input
@@ -493,9 +511,9 @@ export default function SoalGeneratorWithChecklist({
           </div>
 
           <MateriFilterChecklist 
-            onSelectionChange={setSelectedItems} 
+            onSelectionChange={(items: SelectedItem[]) => setSelectedItems(items)} 
             triggerSelect={(actions) => { selectionActionsRef.current = actions; }}
-            use2026={false}
+            use2026={true}
           />
         </div>
         )}
@@ -533,38 +551,20 @@ export default function SoalGeneratorWithChecklist({
                 </div>
 
                 <div>
-                  {soalSaatIni.pilihan?.map((p: string, i: number) => {
-                    const isMulti = soalSaatIni.tipeSoal === 'multi';
-                    const isSelected = isMulti 
-                      ? Array.isArray(jawabanUser) && jawabanUser.includes(p)
-                      : jawabanUser === p;
-
-                    return (
-                      <button
-                        key={i}
-                        onClick={() => {
-                          if (feedback) return;
-                          if (isMulti) {
-                            setJawabanUser(prev => {
-                              const arr = Array.isArray(prev) ? prev : [];
-                              return arr.includes(p) ? arr.filter(v => v !== p) : [...arr, p];
-                            });
-                          } else {
-                            setJawabanUser(p);
-                          }
-                        }}
-                        disabled={!!feedback}
-                        style={{
-                          ...styles.pilihan,
-                          ...(isSelected ? styles.pilihanSelected : {}),
-                          ...(feedback ? styles.pilihanDisabled : {})
-                        }}
-                      >
-                        {isMulti && (isSelected ? '☑️ ' : '☐ ')}
-                        {p}
-                      </button>
-                    );
-                  })}
+                  {soalSaatIni.pilihan?.map((p: string, i: number) => (
+                    <button
+                      key={i}
+                      onClick={() => !feedback && setJawabanUser(p)}
+                      disabled={!!feedback}
+                      style={{
+                        ...styles.pilihan,
+                        ...(jawabanUser === p ? styles.pilihanSelected : {}),
+                        ...(feedback ? styles.pilihanDisabled : {})
+                      }}
+                    >
+                      {p}
+                    </button>
+                  ))}
                 </div>
 
                 {!feedback && (
