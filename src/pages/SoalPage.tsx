@@ -18,6 +18,7 @@ import {
 } from '../utils/riwayat';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { getSoalFromBank, saveSoalToBank } from '../utils/soalCache';
 import Certificate from '../components/Certificate';
 
 // Skor minimum (dalam %) supaya siswa berhak mendapatkan sertifikat.
@@ -187,10 +188,31 @@ async function buatSoalDariTopikRotasi(
     const riwayatTopikIni = riwayatPerTopik[topik.id] || [];
     const fokusSubSubElemen = topik.isSubSubElemen ? topik.namaFokus : undefined;
 
+    // 1. Cek ketersediaan di Bank Soal Lokal
+    let soalDariBank: SoalItemGenerated[] = [];
+    try {
+      const bankItems = await getSoalFromBank(topik.id, jumlahSoalPerSesi * 3);
+      soalDariBank = bankItems.filter((s) => !riwayatTopikIni.includes(s.pertanyaan));
+    } catch (e) {
+      console.warn('[buatSoalDariTopikRotasi] Gagal membaca bank cache:', e);
+    }
+
+    if (soalDariBank.length >= jumlahSoalPerSesi) {
+      const terpilih = soalDariBank.slice(0, jumlahSoalPerSesi);
+      riwayatPerTopik[topik.id] = [
+        ...riwayatTopikIni,
+        ...terpilih.map((s) => s.pertanyaan),
+      ];
+      hasil.push(...terpilih);
+      continue;
+    }
+
+    // 2. Jika di bank soal belum mencukupi, generate sisa kekurangan dengan AI
+    const sisaButuh = jumlahSoalPerSesi - soalDariBank.length;
     try {
       const soalBatch = await generateSoalAdaptif(
         mataPelajaran,
-        jumlahSoalPerSesi,
+        sisaButuh > 0 ? sisaButuh : jumlahSoalPerSesi,
         {},
         undefined,
         'sampai',
@@ -201,14 +223,23 @@ async function buatSoalDariTopikRotasi(
         fokusSubSubElemen,
         topik.kelasValid
       );
-      riwayatPerTopik[topik.id] = [...riwayatTopikIni, ...soalBatch.map(s => s.pertanyaan)];
-      hasil.push(...soalBatch);
+
+      // Simpan soal baru yang dibuat AI ke Bank Soal lokal
+      saveSoalToBank(topik.id, soalBatch).catch((err) =>
+        console.warn('[buatSoalDariTopikRotasi] Gagal simpan ke cache bank soal:', err)
+      );
+
+      const gabungan = [...soalDariBank, ...soalBatch].slice(0, jumlahSoalPerSesi);
+      riwayatPerTopik[topik.id] = [
+        ...riwayatTopikIni,
+        ...gabungan.map((s) => s.pertanyaan),
+      ];
+      hasil.push(...gabungan);
     } catch (err) {
-      // Kalau satu slot topik gagal (misal semua retry kena validasi kelas
-      // yang gagal terus), lanjut ke slot berikutnya alih-alih membuat
-      // seluruh quiz gagal total. Slot ini akan kosong (lebih baik soal
-      // sedikit daripada error total ke user).
       console.error(`[buatSoalDariTopikRotasi] Gagal generate untuk topik "${topik.konteksLengkap}":`, err);
+      if (soalDariBank.length > 0) {
+        hasil.push(...soalDariBank);
+      }
     }
   }
 
@@ -269,6 +300,9 @@ export default function SoalPage({
   const [analisisError, setAnalisisError] = useState<string>('');
   const [nilaiAkhir, setNilaiAkhir] = useState<number | null>(null);
   const [showCertificate, setShowCertificate] = useState<boolean>(false);
+  const [showSesiTransitionModal, setShowSesiTransitionModal] = useState<boolean>(false);
+  const [transitionModalData, setTransitionModalData] = useState<{ selesaiSesi: number; lanjutSesi: number } | null>(null);
+  const [showKonfirmasiRaportModal, setShowKonfirmasiRaportModal] = useState<boolean>(false);
 
   const [loadingMessage, setLoadingMessage] = useState<string>('Memuat soal...');
 
@@ -360,6 +394,7 @@ export default function SoalPage({
 
       setSoalList(soalFinal);
       setJawaban(new Array(soalFinal.length).fill(''));
+      setNomorSoal(0);
       setLoading(false);
     } catch (err: unknown) {
       console.error('Gagal memuat soal:', err);
@@ -382,6 +417,8 @@ export default function SoalPage({
   const [selectedModelForRetry, setSelectedModelForRetry] = useState<string>('gemini-3.5-flash');
 
   const kirimJawaban = useCallback(async (modelOverride?: string) => {
+    setShowKonfirmasiRaportModal(false);
+    setShowSesiTransitionModal(false);
     const total = soalList.length;
     const nilaiPerSoal = total > 0 ? 100 / total : 0;
     let nilai = 0;
@@ -521,6 +558,44 @@ export default function SoalPage({
     return `${String(menit).padStart(2, '0')}:${String(detik).padStart(2, '0')}`;
   };
 
+  // ==================== KALKULASI SESI ====================
+  const jumlahSoalPerSesiValid = Math.max(1, Math.min(20, Math.round(jumlahSoalPerSesi) || 1));
+  const totalSoal = soalList.length;
+  const totalSesi = totalSoal > 0 ? Math.max(1, Math.ceil(totalSoal / jumlahSoalPerSesiValid)) : Math.max(1, Math.round(jumlahSesi) || 10);
+
+  const currentSesiIndex = totalSoal > 0 ? Math.min(Math.floor(nomorSoal / jumlahSoalPerSesiValid), totalSesi - 1) : 0;
+  const currentSesi = currentSesiIndex + 1;
+
+  const startIdxSesi = currentSesiIndex * jumlahSoalPerSesiValid;
+  const endIdxSesi = Math.min((currentSesiIndex + 1) * jumlahSoalPerSesiValid, totalSoal);
+  const soalDiSesiIni = Math.max(1, endIdxSesi - startIdxSesi);
+  const nomorSoalDalamSesi = (nomorSoal - startIdxSesi) + 1;
+
+  const isLastQuestionOfSesi = nomorSoal === endIdxSesi - 1;
+  const isLastSesi = currentSesiIndex === totalSesi - 1;
+  const isLastQuestionOverall = nomorSoal === totalSoal - 1;
+
+  const tanganiLanjutSesi = () => {
+    if (isLastQuestionOfSesi && !isLastSesi) {
+      setTransitionModalData({
+        selesaiSesi: currentSesi,
+        lanjutSesi: currentSesi + 1,
+      });
+      setShowSesiTransitionModal(true);
+    } else if (nomorSoal < totalSoal - 1) {
+      setNomorSoal((prev) => prev + 1);
+    }
+  };
+
+  const tanganiSelesaiUjian = () => {
+    const belumDijawab = jawaban.filter((j) => !j || j === '[]').length;
+    if (belumDijawab > 0) {
+      setShowKonfirmasiRaportModal(true);
+    } else {
+      kirimJawaban();
+    }
+  };
+
   if (loading) {
     return <div className="loading"><p>{loadingMessage}</p></div>;
   }
@@ -537,6 +612,28 @@ export default function SoalPage({
           <h1>Rapor Hasil Belajar — {judul}</h1>
         </div>
         <div className="soal-container" style={{ padding: '24px' }}>
+          {/* Ringkasan Sesi */}
+          <div className="raport-sesi-summary">
+            <div className="raport-summary-item">
+              <span className="raport-summary-label">Total Sesi</span>
+              <span className="raport-summary-value">{totalSesi} Sesi</span>
+            </div>
+            <div className="raport-summary-item">
+              <span className="raport-summary-label">Soal / Sesi</span>
+              <span className="raport-summary-value">{jumlahSoalPerSesiValid} Soal</span>
+            </div>
+            <div className="raport-summary-item">
+              <span className="raport-summary-label">Total Soal</span>
+              <span className="raport-summary-value">{totalSoal} Soal</span>
+            </div>
+            <div className="raport-summary-item">
+              <span className="raport-summary-label">Nilai Akhir</span>
+              <span className="raport-summary-value" style={{ color: layakSertifikat ? '#34d399' : '#f59e0b' }}>
+                {nilaiAkhir !== null ? `${nilaiAkhir}/100` : '-'}
+              </span>
+            </div>
+          </div>
+
           {analisisLoading && <p>⏳ Sedang menganalisis jawabanmu dengan AI...</p>}
           {analisisError && (
             <div className="error-box" style={{ background: '#7f1d1d', padding: 16, borderRadius: 12, marginBottom: 16 }}>
@@ -614,19 +711,83 @@ export default function SoalPage({
   }
 
   const soal = soalList[nomorSoal];
+  if (!soal) {
+    return <div className="error">Soal tidak ditemukan.</div>;
+  }
 
   return (
     <div className="soal-page">
+      {/* Header Utama */}
       <div className="header">
         <button onClick={onKembali} className="btn-kembali">← Kembali</button>
         <h1>{judul}</h1>
-        <div className="timer">⏱️ {formatWaktu()}</div>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div className="sesi-badge-header">
+            <span>📌 Sesi {currentSesi}/{totalSesi}</span>
+          </div>
+          <div className="timer">⏱️ {formatWaktu()}</div>
+        </div>
       </div>
 
+      {/* Stepper Sesi Interaktif */}
+      {totalSesi > 1 && (
+        <div className="sesi-stepper-wrapper">
+          <div className="sesi-stepper-header">
+            <span>Pilih Sesi Ujian:</span>
+            <span>Sesi aktif: <strong>Sesi {currentSesi}</strong></span>
+          </div>
+          <div className="sesi-stepper">
+            {Array.from({ length: totalSesi }).map((_, sIdx) => {
+              const startS = sIdx * jumlahSoalPerSesiValid;
+              const endS = Math.min((sIdx + 1) * jumlahSoalPerSesiValid, totalSoal);
+              const jmlSoal = Math.max(1, endS - startS);
+              const terjawabCount = jawaban.slice(startS, endS).filter(j => j && j !== '[]').length;
+              const isComplete = terjawabCount === jmlSoal && jmlSoal > 0;
+              const isCurrent = sIdx === currentSesiIndex;
+
+              return (
+                <button
+                  key={sIdx}
+                  type="button"
+                  onClick={() => setNomorSoal(startS)}
+                  className={`sesi-pill ${isCurrent ? 'sesi-pill-active' : isComplete ? 'sesi-pill-complete' : 'sesi-pill-idle'}`}
+                >
+                  <span className="sesi-pill-title">
+                    {isComplete ? '✓ ' : ''}Sesi {sIdx + 1}
+                  </span>
+                  <span className="sesi-pill-count">
+                    {terjawabCount}/{jmlSoal} Soal
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Progress Bar Soal Keseluruhan */}
+      <div className="progress-bar">
+        <div
+          className="progress-fill"
+          style={{
+            width: `${totalSoal > 0 ? ((jawaban.filter(j => j && j !== '[]').length) / totalSoal) * 100 : 0}%`,
+          }}
+        />
+      </div>
+
+      {/* Area Soal */}
       <div className="soal-container">
         <div className="soal-item">
           <div className="soal-info">
-            <span className="nomor">Soal {nomorSoal + 1}/{soalList.length}</span>
+            <span className="nomor-badge-sesi">
+              Sesi {currentSesi} / {totalSesi}
+            </span>
+            <span className="nomor">
+              Soal {nomorSoalDalamSesi} / {soalDiSesiIni}
+            </span>
+            <span className="total-badge-sub">
+              (Total Soal: {nomorSoal + 1} / {totalSoal})
+            </span>
             <span className="info-badge">Fase {soal.fase}</span>
             {soal.kelas != null && <span className="info-badge">Kelas {soal.kelas}</span>}
             <span className="info-badge">Bloom: {soal.taxonomiBloom}</span>
@@ -639,6 +800,7 @@ export default function SoalPage({
             {soal.subElemen && <span className="info-topik">Sub Elemen: {soal.subElemen}</span>}
             {soal.subSubElemen && <span className="info-topik">Sub Sub Elemen: {soal.subSubElemen}</span>}
           </div>
+
           <p className="pertanyaan">
             <span dangerouslySetInnerHTML={{ __html: renderLatex(soal.pertanyaan) }} />
           </p>
@@ -677,17 +839,130 @@ export default function SoalPage({
           </div>
         </div>
 
+        {/* Navigasi Soal & Sesi */}
         <div className="navigasi">
-          <button onClick={() => navigasiSoal('prev')} disabled={nomorSoal === 0} className="btn-nav">
+          <button 
+            onClick={() => navigasiSoal('prev')} 
+            disabled={nomorSoal === 0} 
+            className="btn-nav"
+          >
             ← Sebelumnya
           </button>
-          {nomorSoal === soalList.length - 1 ? (
-            <button onClick={() => kirimJawaban()} className="btn-kirim">Kirim Jawaban</button>
+
+          {isLastQuestionOverall || (isLastQuestionOfSesi && isLastSesi) ? (
+            <button onClick={tanganiSelesaiUjian} className="btn-kirim">
+              🏁 Selesaikan Semua Sesi & Buat Rapor
+            </button>
+          ) : isLastQuestionOfSesi && !isLastSesi ? (
+            <button onClick={tanganiLanjutSesi} className="btn-lanjut-sesi">
+              ➡️ Selesai Sesi {currentSesi} & Lanjut ke Sesi {currentSesi + 1}
+            </button>
           ) : (
-            <button onClick={() => navigasiSoal('next')} className="btn-nav">Selanjutnya →</button>
+            <button onClick={tanganiLanjutSesi} className="btn-nav">
+              Selanjutnya →
+            </button>
           )}
         </div>
+
+        {/* Palette Daftar Soal Sesi Ini */}
+        <div className="nomor-navigasi-card">
+          <div className="nomor-navigasi-header">
+            <span>Daftar Soal Sesi {currentSesi} (Soal {startIdxSesi + 1} - {endIdxSesi}):</span>
+            <span>
+              {jawaban.slice(startIdxSesi, endIdxSesi).filter(j => j && j !== '[]').length}/{soalDiSesiIni} Terjawab
+            </span>
+          </div>
+          <div className="nomor-navigasi" style={{ marginTop: '4px' }}>
+            {soalList.slice(startIdxSesi, endIdxSesi).map((_, relIdx) => {
+              const absIdx = startIdxSesi + relIdx;
+              const sudahDijawab = Boolean(jawaban[absIdx] && jawaban[absIdx] !== '[]');
+              const isAktif = absIdx === nomorSoal;
+              return (
+                <button
+                  key={absIdx}
+                  type="button"
+                  onClick={() => setNomorSoal(absIdx)}
+                  className={`nomor-btn ${isAktif ? 'aktif' : ''} ${sudahDijawab ? 'sudah-jawab' : ''}`}
+                >
+                  {relIdx + 1}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* ===== MODAL TRANSISI ANTAR-SESI ===== */}
+      {showSesiTransitionModal && transitionModalData && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-icon">🎉</div>
+            <h3 className="modal-title">Sesi {transitionModalData.selesaiSesi} Selesai!</h3>
+            <p className="modal-desc">
+              Kamu telah menyelesaikan soal pada <strong>Sesi {transitionModalData.selesaiSesi}</strong>.
+              <br />
+              Lanjut mengerjakan <strong>Sesi {transitionModalData.lanjutSesi} dari {totalSesi}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-modal-primary"
+                onClick={() => {
+                  const nextStart = (transitionModalData.lanjutSesi - 1) * jumlahSoalPerSesiValid;
+                  setNomorSoal(nextStart);
+                  setShowSesiTransitionModal(false);
+                }}
+              >
+                🚀 Lanjut ke Sesi {transitionModalData.lanjutSesi}
+              </button>
+              <button
+                type="button"
+                className="btn-modal-secondary"
+                onClick={() => setShowSesiTransitionModal(false)}
+              >
+                🔍 Periksa Kembali Sesi {transitionModalData.selesaiSesi}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===== MODAL KONFIRMASI BUAT RAPORT ===== */}
+      {showKonfirmasiRaportModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <div className="modal-icon">📋</div>
+            <h3 className="modal-title">Selesaikan Semua Sesi?</h3>
+            <p className="modal-desc">
+              Masih ada{' '}
+              <strong style={{ color: '#f87171' }}>
+                {jawaban.filter((j) => !j || j === '[]').length} soal
+              </strong>{' '}
+              yang belum kamu jawab dari total {totalSoal} soal ({totalSesi} sesi).
+              <br />
+              Apakah kamu yakin ingin menyelesaikan dan membuat rapor hasil belajar sekarang?
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="btn-modal-primary"
+                style={{ background: '#ef4444' }}
+                onClick={() => kirimJawaban()}
+              >
+                📊 Ya, Buat Rapor Sekarang
+              </button>
+              <button
+                type="button"
+                className="btn-modal-secondary"
+                onClick={() => setShowKonfirmasiRaportModal(false)}
+              >
+                ✏️ Periksa Jawaban Lagi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
