@@ -314,8 +314,15 @@ export default function SoalPage({
     try {
       let response: Response;
       try {
-        const url = new URL(`/data/soal-${kodeSoal}.json`, window.location.origin).href;
-        response = await fetch(url);
+        const basePath = import.meta.env.BASE_URL || './';
+        const cleanBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
+        const primaryUrl = `${cleanBase}data/soal-${kodeSoal}.json`;
+
+        let res = await fetch(primaryUrl);
+        if (!res.ok) {
+          res = await fetch(`./data/soal-${kodeSoal}.json`);
+        }
+        response = res;
       } catch (errFetchJson) {
         console.error('[muatSoal] GAGAL DI TAHAP: fetch JSON statis', errFetchJson);
         throw new Error(`[TAHAP: fetch JSON] ${errFetchJson instanceof Error ? errFetchJson.message : String(errFetchJson)}`);

@@ -306,11 +306,15 @@ export default function SoalGeneratorWithChecklist({
 
       try {
         const mapel = simulasiKode === 'fisika' ? 'fisika' : 'matematika';
-        // Ensure the path is correct based on Vite public directory serving
-        const response = await fetch(`/data/soal-${mapel}.json`);
+        const basePath = import.meta.env.BASE_URL || './';
+        const cleanBase = basePath.endsWith('/') ? basePath : `${basePath}/`;
+        let response = await fetch(`${cleanBase}data/soal-${mapel}.json`);
         if (!response.ok) {
-           console.error(`[DEBUG-FETCH] Fetch failed for /data/soal-${mapel}.json: ${response.status} ${response.statusText}`);
-           throw new Error('Gagal memuat soal cadangan');
+          response = await fetch(`./data/soal-${mapel}.json`);
+        }
+        if (!response.ok) {
+          console.error(`[DEBUG-FETCH] Fetch failed for data/soal-${mapel}.json: ${response.status} ${response.statusText}`);
+          throw new Error('Gagal memuat soal cadangan');
         }
         const data = await response.json();
         const randomSoal = data.soal[Math.floor(Math.random() * data.soal.length)];

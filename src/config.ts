@@ -78,35 +78,35 @@ items: [
     slug: "teori-bilangan",
     description:
       "Pelajari konsep bilangan prima, FPB, KPK, kongruensi, dan teori bilangan melalui latihan interaktif.",
-    image: "/images/capability-1.jpg",
+    image: "./images/capability-1.jpg",
   },
   {
     title: "ALJABAR",
     slug: "aljabar",
     description:
       "Pelajari persamaan, pertidaksamaan, fungsi, dan bentuk aljabar dengan bantuan AI Tutor.",
-    image: "/images/capability-2.jpg",
+    image: "./images/capability-2.jpg",
   },
   {
     title: "TRIGONOMETRI",
     slug: "trigonometri",
     description:
       "Pelajari identitas trigonometri, grafik fungsi, serta penyelesaian soal secara bertahap.",
-    image: "/images/capability-3.jpg",
+    image: "./images/capability-3.jpg",
   },
   {
     title: "GEOMETRI",
     slug: "geometri",
     description:
       "Pelajari bangun datar, bangun ruang, serta geometri analitik dengan pembahasan lengkap.",
-    image: "/images/capability-3.jpg",
+    image: "./images/capability-3.jpg",
   },
   {
     title: "DATA & PELUANG",
     slug: "data-peluang",
     description:
       "Analisis data, statistika, peluang, dan interpretasi grafik melalui latihan adaptif.",
-    image: "/images/capability-4.jpg",
+    image: "./images/capability-4.jpg",
   },
 ],
 };
@@ -147,7 +147,7 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
     "Siswa dapat mengerjakan latihan adaptif sesuai kemampuan.",
     "Perkembangan belajar disimpan untuk evaluasi berikutnya.",
   ],
-  image: "/images/capability-1.jpg",
+  image: "./images/capability-1.jpg",
 },
 "aljabar": {
   title: "Aljabar",
@@ -158,7 +158,7 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
     "AI Tutor membantu menjelaskan setiap langkah penyelesaian.",
     "Analisis hasil belajar digunakan untuk menentukan materi berikutnya.",
   ],
-  image: "/images/capability-2.jpg",
+  image: "./images/capability-2.jpg",
 },
 "trigonometri": {
   title: "Trigonometri",
@@ -169,7 +169,7 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
     "AI Tutor memberikan pembahasan secara rinci.",
     "Hasil latihan dianalisis untuk meningkatkan pemahaman.",
   ],
-  image: "/images/capability-3.jpg",
+  image: "./images/capability-3.jpg",
 },
 "geometri": {
   title: "Geometri",
@@ -180,7 +180,7 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
     "AI Tutor membantu memahami konsep secara visual dan logis.",
     "Kemajuan belajar dicatat pada dashboard siswa.",
   ],
-  image: "/images/capability-3.jpg",
+  image: "./images/capability-3.jpg",
 },
 "data-peluang": {
   title: "Data dan Peluang",
@@ -191,7 +191,7 @@ export const capabilityDetailConfig: CapabilityDetailConfig = {
     "AI Tutor memberikan penjelasan setiap penyelesaian.",
     "Dashboard menampilkan perkembangan kemampuan siswa.",
   ],
-  image: "/images/capability-4.jpg",
+  image: "./images/capability-4.jpg",
 },
   },
 };
@@ -209,7 +209,7 @@ export interface ArchitectureConfig {
 
 export const architectureConfig: ArchitectureConfig = {
   sectionLabel: "Teknologi",
-  videoPath: "/videos/cinematic-vision.mp4",
+  videoPath: "./videos/cinematic-vision.mp4",
   title: "Matematika menjadi lebih mudah dengan AI",
   description: "CBT AI Tutor menggabungkan teknologi kecerdasan buatan dengan metodologi pengajaran yang terstruktur. Sistem kami menganalisis pola jawaban siswa, mengidentifikasi area yang perlu perbaikan, dan menghasilkan rencana belajar yang personalisasi untuk setiap individu.",
 };
@@ -233,14 +233,14 @@ export interface ResearchConfig {
 export const researchConfig: ResearchConfig = {
   sectionLabel: "Materi Pelajaran",
   projects: [
-    { title: "Kombinatorika", year: "XI", discipline: "PAS - Kombinatorika", image: "/images/research-1.jpg" },
-    { title: "Geometri Lingkaran", year: "XI", discipline: "PAS - Geometri", image: "/images/research-2.jpg" },
-    { title: "Barisan dan Deret", year: "X", discipline: "PAS - Deret", image: "/images/research-3.jpg" },
-    { title: "Statistika", year: "X", discipline: "PAS - Statistik", image: "/images/research-4.jpg" },
-    { title: "Peluang", year: "X", discipline: "PAS - Peluang", image: "/images/research-1.jpg" },
-    { title: "Trigonometri", year: "X", discipline: "PAS - Trigonometri", image: "/images/research-2.jpg" },
-    { title: "Fungsi", year: "X", discipline: "PAS - Fungsi", image: "/images/research-3.jpg" },
-    { title: "Permutasi", year: "XI", discipline: "PAS - Kombinatorika", image: "/images/research-4.jpg" },
+    { title: "Kombinatorika", year: "XI", discipline: "PAS - Kombinatorika", image: "./images/research-1.jpg" },
+    { title: "Geometri Lingkaran", year: "XI", discipline: "PAS - Geometri", image: "./images/research-2.jpg" },
+    { title: "Barisan dan Deret", year: "X", discipline: "PAS - Deret", image: "./images/research-3.jpg" },
+    { title: "Statistika", year: "X", discipline: "PAS - Statistik", image: "./images/research-4.jpg" },
+    { title: "Peluang", year: "X", discipline: "PAS - Peluang", image: "./images/research-1.jpg" },
+    { title: "Trigonometri", year: "X", discipline: "PAS - Trigonometri", image: "./images/research-2.jpg" },
+    { title: "Fungsi", year: "X", discipline: "PAS - Fungsi", image: "./images/research-3.jpg" },
+    { title: "Permutasi", year: "XI", discipline: "PAS - Kombinatorika", image: "./images/research-4.jpg" },
   ],
 };
 
