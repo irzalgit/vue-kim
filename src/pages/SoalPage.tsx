@@ -617,6 +617,10 @@ export default function SoalPage({
         <div className="header">
           <button onClick={onKembali} className="btn-kembali">← Kembali</button>
           <h1>Rapor Hasil Belajar — {judul}</h1>
+          {/* Credit badge */}
+          <div style={{ marginTop: 8, fontSize: 14, color: (window as any)._userCredits !== undefined && (window as any)._userCredits > 0 ? '#34d399' : '#f87171' }}>
+            Kredit tersisa: {(window as any)._userCredits !== undefined ? (window as any)._userCredits : '-'}
+          </div>
         </div>
         <div className="soal-container" style={{ padding: '24px' }}>
           {/* Ringkasan Sesi */}

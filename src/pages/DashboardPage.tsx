@@ -1,12 +1,17 @@
-// src/pages/DashboardPage.tsx
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SoalGeneratorWithChecklist from "../components/soal/SoalGeneratorWithChecklist";
 import SoalGeneratorWithChecklist2026 from "../components/soal/SoalGeneratorWithChecklist2026";
 import ProfileModal from "../components/ProfileModal";
+import BankSoalModal from "../components/BankSoalModal";
 import type { SelectedItem } from "../agent/generateSoalWithChecklist";
 import { 
-  Zap, User, LogOut, X
+  Zap, User, LogOut, X, Database, Coins
 } from 'lucide-react';
+import TokenPurchaseModal from '../components/TokenPurchaseModal';
+import { useAuth } from '../context/AuthContext';
+import { db } from '../lib/firebase';
+import { ref, onValue } from 'firebase/database';
+import { ensureCredits } from '../agent/credit';
 
 // ============================================
 // PROPS
@@ -36,9 +41,34 @@ export default function DashboardPage({
   const [kisiVersion, setKisiVersion] = useState<'lama' | '2026'>('lama');
   const [sesiDimulai, setSesiDimulai] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showBankSoalModal, setShowBankSoalModal] = useState<boolean>(false);
+  const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+  const { user } = useAuth();
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const [preferredModel, setPreferredModel] = useState<string>(
     localStorage.getItem('preferredModel') || 'gemini-3.5-flash'
   );
+
+  // Realtime listener kuota token
+  useEffect(() => {
+    if (!user) {
+      setUserCredits(null);
+      return;
+    }
+
+    // Pastikan user memiliki record kuota (default 10)
+    ensureCredits(user.uid);
+
+    const kuotaRef = ref(db, `data_siswa/${user.uid}/kuota`);
+    const unsubscribe = onValue(kuotaRef, (snapshot) => {
+      const val = snapshot.val();
+      if (typeof val === 'number') {
+        setUserCredits(val);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const handleModelChange = (model: string) => {
     localStorage.setItem('preferredModel', model);
@@ -135,6 +165,35 @@ export default function DashboardPage({
                 <option value="gemini-3.7-flash">Gemini 3.7 Flash</option>
               </select>
             </div>
+            {/* Badge Kuota Token & Tombol Beli */}
+            <button 
+              onClick={() => setShowTokenModal(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-yellow-300 border border-yellow-500/40 transition text-sm font-semibold shadow-sm group"
+              title="Klik untuk Beli / Tambah Token"
+            >
+              <Coins size={18} className="text-yellow-400 group-hover:rotate-12 transition-transform" />
+              <span>
+                {userCredits !== null ? (
+                  <>
+                    <span className="text-yellow-100 font-bold">{userCredits.toLocaleString('id-ID')}</span>
+                    <span className="text-yellow-400/80 text-xs ml-1 font-normal">Token</span>
+                  </>
+                ) : (
+                  <span className="text-yellow-400 font-normal">Token</span>
+                )}
+              </span>
+              <span className="text-xs px-1.5 py-0.5 rounded-md bg-yellow-500/30 text-yellow-200 border border-yellow-400/30 font-medium ml-0.5">
+                + Beli
+              </span>
+            </button>
+            <button 
+              onClick={() => setShowBankSoalModal(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 transition text-sm font-medium"
+              title="Bank Soal Lokal"
+            >
+              <Database size={16} />
+              <span className="hidden sm:inline">Bank Soal</span>
+            </button>
             <button 
               onClick={() => setShowProfileModal(true)}
               className="p-3 rounded-full bg-gray-700 hover:bg-gray-600 transition"
@@ -235,10 +294,21 @@ export default function DashboardPage({
         </div>
       )}
 
+      {/* ===== MODAL BANK SOAL ===== */}
+      <BankSoalModal
+        isOpen={showBankSoalModal}
+        onClose={() => setShowBankSoalModal(false)}
+      />
+
       {/* ===== MODAL PROFIL ===== */}
       <ProfileModal
         isOpen={showProfileModal}
         onClose={() => setShowProfileModal(false)}
+      />
+      
+      <TokenPurchaseModal
+        isOpen={showTokenModal}
+        onClose={() => setShowTokenModal(false)}
       />
     </div>
   );

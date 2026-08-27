@@ -485,6 +485,13 @@ document.getElementById('form').addEventListener('submit', async e => {
     // Generate invoice number
     const invoice = `INV${Date.now().toString().slice(-8)}${Math.random().toString(36).substring(2,5).toUpperCase()}`;
 
+    // Faspay API mensyaratkan item[product] berupa alphanumeric
+    const sanitizedProductName = (productName || "Product")
+      .replace(/[^a-zA-Z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 50) || "Product";
+
     // Siapkan payload
     const payload = {
       invoice_no: invoice,
@@ -494,7 +501,7 @@ document.getElementById('form').addEventListener('submit', async e => {
       msisdn: phone,
       uid: 'cpanel_' + Date.now(), // akan diisi oleh backend berdasarkan token
       item: [{
-        product: productName,
+        product: sanitizedProductName,
         qty: 1,
         amount: price
       }]

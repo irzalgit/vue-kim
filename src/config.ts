@@ -31,6 +31,7 @@ export const navigationConfig: NavigationConfig = {
     { label: "Fitur", href: "#fitur" },
     { label: "Simulasi", href: "#simulasi" },
     { label: "Materi", href: "#materi" },
+    { label: "🛒 Jualan Poster", href: "#/shop" },
     { label: "Kontak", href: "#footer" },
   ],
   ctaText: "Mulai",
@@ -274,7 +275,8 @@ export const footerConfig: FooterConfig = {
       "Simulasi TKA",
       "AI Tutor",
       "Jadwal Belajar",
-      "Analisis Performa",
+      "Jualan Poster",
+      "Admin Panel",
     ],
   },
   {
@@ -290,6 +292,7 @@ export const footerConfig: FooterConfig = {
 ],
   copyright: "\u00A9 2026 Irzal Achnad. Semua hak dilindungi.",
   bottomLinks: [
+    { label: "🛒 Jualan Poster", href: "#/shop" },
     { label: "Tentang", href: "/about.html" },
     { label: "Kebijakan Privasi", href: "https://math315.id/privacy.html" },
     { label: "Kontak", href: "/contact.html" },

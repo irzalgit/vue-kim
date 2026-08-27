@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Manajemen Token & Transaksi QRIS Math315</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- QRCode.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body {
+      background-color: #0f172a;
+      color: #e2e8f0;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+    .card {
+      background-color: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      color: #f8fafc;
+    }
+    .form-control, .form-select {
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      color: #f8fafc;
+    }
+    .form-control:focus, .form-select:focus {
+      background-color: #0f172a;
+      border-color: #38bdf8;
+      color: #f8fafc;
+      box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25);
+    }
+    .table {
+      color: #e2e8f0;
+    }
+    .table-dark {
+      --bs-table-bg: #1e293b;
+      --bs-table-border-color: #334155;
+    }
+    .badge-paid {
+      background-color: #059669;
+      color: white;
+    }
+    .badge-pending {
+      background-color: #d97706;
+      color: white;
+    }
+    .badge-failed {
+      background-color: #dc2626;
+      color: white;
+    }
+    .badge-qris {
+      background-color: #0284c7;
+      color: white;
+    }
+    .modal-content {
+      background-color: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #334155;
+    }
+    .stat-card {
+      border-left: 4px solid #38bdf8;
+    }
+    .access-denied-box {
+      max-width: 500px;
+      margin: 80px auto;
+      text-align: center;
+      padding: 40px 30px;
+    }
+    .qr-container {
+      background: white;
+      padding: 16px;
+      border-radius: 12px;
+      display: inline-block;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .qr-container img, .qr-container canvas {
+      display: block;
+      margin: 0 auto;
+    }
+    .nav-pills .nav-link {
+      color: #94a3b8;
+    }
+    .nav-pills .nav-link.active {
+      background-color: #0284c7;
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="py-4">
+  <!-- HALAMAN AKSES DITOLAK / BELUM LOGIN (DEFAULT) -->
+  <div id="accessGate" class="container">
+    <div class="card access-denied-box shadow-lg">
+      <div class="mb-3 text-warning">
+        <i class="fas fa-shield-alt fa-4x"></i>
+      </div>
+      <h3 class="fw-bold text-white mb-2" id="gateTitle">Admin Panel Math315</h3>
+      <p class="text-secondary small mb-4" id="gateDesc">
+        Akses dibatasi khusus untuk Administrator (<b class="text-info">irzalpa27@gmail.com</b>). Silakan login dengan akun Google terdaftar.
+      </p>
+      
+      <div id="gateErrorAlert" class="alert alert-danger d-none mb-3"></div>
+
+      <button id="gateLoginBtn" class="btn btn-info w-100 py-2 fw-semibold text-dark mb-2">
+        <i class="fab fa-google me-2"></i> Login dengan Google Admin
+      </button>
+      <a href="/" class="btn btn-outline-secondary w-100 py-2 btn-sm">
+        <i class="fas fa-arrow-left me-1"></i> Kembali ke Beranda
+      </a>
+    </div>
+  </div>
+
+  <!-- DASHBOARD UTAMA ADMIN -->
+  <div id="adminMainContent" class="container-fluid px-4 d-none">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
+      <div>
+        <h2 class="fw-bold mb-0 text-info"><i class="fa-solid fa-coins me-2"></i> Admin Panel Token & Pembayaran QRIS</h2>
+        <small class="text-secondary">Math315 Portal Manajemen Realtime Database & QRIS Gateway</small>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <a href="/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-home me-1"></i> Beranda</a>
+        <span id="userBadge" class="badge bg-success p-2"><i class="fas fa-user-shield me-1"></i> irzalpa27@gmail.com</span>
+        <button id="logoutBtn" class="btn btn-outline-danger btn-sm"><i class="fas fa-sign-out-alt me-1"></i> Logout</button>
+      </div>
+    </div>
+
+    <!-- Alert Notifikasi -->
+    <div id="alertContainer"></div>
+
+    <!-- Dashboard Quick Stats -->
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card stat-card p-3 shadow-sm">
+          <div class="text-secondary text-uppercase small fw-bold">Total Pengguna Terdaftar</div>
+          <div class="h3 fw-bold mt-1 text-white" id="totalUsersCount">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card p-3 shadow-sm border-warning">
+          <div class="text-secondary text-uppercase small fw-bold">Total Token Beredar</div>
+          <div class="h3 fw-bold mt-1 text-warning" id="totalTokensCirculating">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card p-3 shadow-sm border-success">
+          <div class="text-secondary text-uppercase small fw-bold">Total Transaksi</div>
+          <div class="h3 fw-bold mt-1 text-success" id="totalTrxCount">0</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card stat-card p-3 shadow-sm border-info" style="border-left-color: #0284c7;">
+          <div class="text-secondary text-uppercase small fw-bold">Total Transaksi QRIS</div>
+          <div class="h3 fw-bold mt-1 text-info" id="totalQrisTrxCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs Nav -->
+    <ul class="nav nav-pills mb-4" id="adminTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="users-tab" data-bs-toggle="pill" data-bs-target="#users-panel" type="button" role="tab">
+          <i class="fas fa-users me-1"></i> Manajemen User & Token
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="trx-tab" data-bs-toggle="pill" data-bs-target="#trx-panel" type="button" role="tab">
+          <i class="fas fa-file-invoice-dollar me-1"></i> Riwayat & Status Transaksi
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold text-info" id="qris-tab" data-bs-toggle="pill" data-bs-target="#qris-panel" type="button" role="tab">
+          <i class="fas fa-qrcode me-1"></i> Fitur & Konfigurasi QRIS
+        </button>
+      </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="adminTabContent">
+      <!-- PANEL USERS -->
+      <div class="tab-pane fade show active" id="users-panel" role="tabpanel">
+        <div class="card p-3 shadow-sm">
+          <div class="row g-2 mb-3">
+            <div class="col-md-6">
+              <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchUserInput" class="form-control" placeholder="Cari nama, email, atau UID...">
+              </div>
+            </div>
+            <div class="col-md-6 text-end">
+              <button class="btn btn-outline-info" onclick="loadUsersData()"><i class="fas fa-sync-alt me-1"></i> Refresh Data</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-dark table-hover table-bordered align-middle">
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Nama Pengguna</th>
+                  <th>Email / UID</th>
+                  <th>No. WhatsApp</th>
+                  <th>Saldo Token</th>
+                  <th>Status Premium</th>
+                  <th class="text-center">Aksi Token / Buat QRIS</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="7" class="text-center py-4">Memuat data pengguna...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL TRANSAKSI -->
+      <div class="tab-pane fade" id="trx-panel" role="tabpanel">
+        <div class="card p-3 shadow-sm">
+          <div class="row g-2 mb-3">
+            <div class="col-md-5">
+              <div class="input-group">
+                <span class="input-group-text bg-dark border-secondary text-secondary"><i class="fas fa-search"></i></span>
+                <input type="text" id="searchTrxInput" class="form-control" placeholder="Cari No Invoice / Email / Produk...">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <select id="filterPaymentMethod" class="form-select" onchange="filterTransactions()">
+                <option value="ALL">Semua Metode Pembayaran</option>
+                <option value="QRIS">Hanya QRIS</option>
+                <option value="VA">Virtual Account / Faspay</option>
+                <option value="MANUAL">Manual / Transfer Lainnya</option>
+              </select>
+            </div>
+            <div class="col-md-3 text-end">
+              <button class="btn btn-outline-info" onclick="loadTransactionsData()"><i class="fas fa-sync-alt me-1"></i> Refresh Transaksi</button>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-dark table-hover table-bordered align-middle">
+              <thead>
+                <tr>
+                  <th>Invoice No</th>
+                  <th>Pelanggan</th>
+                  <th>Produk / Nominal</th>
+                  <th>Metode</th>
+                  <th>Status Transaksi</th>
+                  <th>Callback</th>
+                  <th>Waktu</th>
+                  <th class="text-center">Aksi QRIS & Pelunasan</th>
+                </tr>
+              </thead>
+              <tbody id="trxTableBody">
+                <tr><td colspan="8" class="text-center py-4">Memuat data transaksi...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- PANEL QRIS -->
+      <div class="tab-pane fade" id="qris-panel" role="tabpanel">
+        <div class="row g-4">
+          <!-- Generator QRIS Manual / Tagihan Cepat -->
+          <div class="col-lg-6">
+            <div class="card p-4 shadow-sm h-100">
+              <h5 class="fw-bold text-info mb-3"><i class="fas fa-qrcode me-2"></i> Generator QRIS Instan</h5>
+              <p class="text-secondary small">Buat kode QR QRIS dinamis untuk tagihan token atau paket khusus pelanggan.</p>
+              
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Nama Tagihan / Customer</label>
+                <input type="text" id="qrisCustomerName" class="form-control" placeholder="Contoh: Budi Santoso (Paket Pro 200 Token)">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Nominal Pembayaran (Rp)</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-dark border-secondary text-white">Rp</span>
+                  <input type="number" id="qrisAmount" class="form-control" placeholder="Contoh: 35000" value="10000">
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Pilih Paket Token Terkait (Opsional)</label>
+                <select id="qrisTokenPackage" class="form-select">
+                  <option value="token_50">Starter (50 Token) - Rp 10.000</option>
+                  <option value="token_200">Pro (200 Token) - Rp 35.000</option>
+                  <option value="token_500">Business (500 Token) - Rp 75.000</option>
+                  <option value="token_1500">Enterprise (1500 Token) - Rp 150.000</option>
+                  <option value="custom">Kustom / Produk Lain</option>
+                </select>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">UID Pengguna Penerima (Opsional)</label>
+                <input type="text" id="qrisTargetUid" class="form-control font-monospace" placeholder="Paste UID user untuk auto-link...">
+              </div>
+
+              <div class="d-flex gap-2">
+                <button class="btn btn-primary flex-grow-1" onclick="generateAdminQRIS()">
+                  <i class="fas fa-bolt me-1"></i> Buat Kode QRIS
+                </button>
+                <button class="btn btn-outline-secondary" onclick="resetQrisForm()">
+                  <i class="fas fa-undo me-1"></i> Reset
+                </button>
+              </div>
+
+              <!-- Output Preview QRIS -->
+              <div id="qrisPreviewBox" class="mt-4 p-3 bg-dark border border-secondary rounded text-center d-none">
+                <h6 class="fw-bold text-white mb-2" id="qrisPreviewTitle">QRIS Math315 Payment</h6>
+                <div class="qr-container my-3" id="qrisQrCodeCanvas"></div>
+                <div class="text-warning fw-bold fs-5" id="qrisPreviewAmount">Rp 10.000</div>
+                <div class="small text-secondary mb-3" id="qrisPreviewInvoice">INV-QRIS-XXXXXX</div>
+                
+                <div class="d-flex justify-content-center gap-2">
+                  <button class="btn btn-sm btn-outline-success" onclick="copyQrisLink()">
+                    <i class="fas fa-copy me-1"></i> Salin Link / Data
+                  </button>
+                  <button class="btn btn-sm btn-success" onclick="createQrisInvoiceRecord()">
+                    <i class="fas fa-save me-1"></i> Simpan ke Riwayat Transaksi
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Konfigurasi Merchant QRIS -->
+          <div class="col-lg-6">
+            <div class="card p-4 shadow-sm h-100">
+              <h5 class="fw-bold text-info mb-3"><i class="fas fa-sliders-h me-2"></i> Pengaturan & Konfigurasi QRIS</h5>
+              <p class="text-secondary small">Pengaturan identitas merchant QRIS Statis / Gateway yang tersimpan di Firebase Database.</p>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Nama Merchant / Toko</label>
+                <input type="text" id="cfgMerchantName" class="form-control" value="Math315 Indonesia">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">NMID / ID Merchant QRIS</label>
+                <input type="text" id="cfgMerchantNmid" class="form-control font-monospace" placeholder="ID1020021XXXXX / Faspay Merchant ID" value="ID1020021389472">
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Payload QRIS String / URL Gambar QRIS Statis</label>
+                <textarea id="cfgQrisPayload" class="form-control font-monospace" rows="3" placeholder="00020101021126670016ID.CO.QRIS.WWW... atau URL Gambar QRIS"></textarea>
+                <small class="text-secondary">Dapat diisi raw data QRIS EMVCo standar Bank Indonesia atau link file QRIS.</small>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label text-secondary small">Instruksi Pembayaran untuk Pelanggan</label>
+                <textarea id="cfgQrisInstructions" class="form-control" rows="3">1. Buka aplikasi BCA, Mandiri, GoPay, OVO, Dana, ShopeePay atau mobile banking lainnya.
+2. Pilih menu Scan / Bayar QRIS.
+3. Arahkan kamera ke QR Code.
+4. Periksa nominal dan konfirmasi pembayaran.</textarea>
+              </div>
+
+              <div class="mb-3">
+                <div class="form-check form-switch">
+                  <input class="form-check-input" type="checkbox" id="cfgQrisActive" checked>
+                  <label class="form-check-label" for="cfgQrisActive">Aktifkan Metode QRIS di Halaman Checkout</label>
+                </div>
+              </div>
+
+              <div id="qrisRuleHelp" class="alert alert-warning py-2 px-3 small mb-3 d-none">
+                <i class="fas fa-exclamation-triangle me-1"></i> <b>Catatan Firebase Rules:</b> Jika muncul <i>Permission denied</i>, simpanan tetap diamankan di browser ini (LocalStorage). Untuk menyimpan global ke Realtime Database, pastikan path <code>"settings"</code> atau <code>"qris_config"</code> diizinkan tulis untuk admin di Firebase Console Security Rules.
+              </div>
+
+              <div class="text-end">
+                <button class="btn btn-info text-dark fw-semibold" onclick="saveQrisConfig()">
+                  <i class="fas fa-save me-1"></i> Simpan Pengaturan QRIS
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL EDIT TOKEN -->
+  <div class="modal fade" id="tokenModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title fw-bold text-info"><i class="fas fa-edit me-2"></i> Update Saldo Token User</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="tokenForm">
+            <input type="hidden" id="editUid">
+            <div class="mb-3">
+              <label class="form-label text-secondary small">Nama Pelanggan</label>
+              <input type="text" id="editUserName" class="form-control" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary small">UID User</label>
+              <input type="text" id="editUserUidDisplay" class="form-control font-monospace small" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary small">Saldo Saat Ini</label>
+              <input type="number" id="editCurrentTokens" class="form-control" readonly>
+            </div>
+            <hr class="border-secondary">
+            <div class="mb-3">
+              <label class="form-label fw-bold">Pilih Aksi</label>
+              <select id="tokenActionType" class="form-select mb-2" onchange="handleActionTypeChange()">
+                <option value="add">➕ Tambah Token (+)</option>
+                <option value="subtract">➖ Kurangi Token (-)</option>
+                <option value="set">✏️ Set Nilai Saldo Baru</option>
+                <option value="reset">🗑️ Reset Saldo Menjadi 0</option>
+              </select>
+            </div>
+            <div class="mb-3" id="tokenAmountGroup">
+              <label class="form-label fw-bold" id="tokenAmountLabel">Jumlah Token:</label>
+              <input type="number" id="editTokenAmount" class="form-control" value="50" min="0">
+            </div>
+            <div class="mb-3">
+              <label class="form-label text-secondary small">Catatan Perubahan (Opsional)</label>
+              <input type="text" id="editTokenNote" class="form-control" placeholder="Contoh: Pembayaran QRIS invoice INV...">
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="button" class="btn btn-primary" onclick="submitTokenUpdate()"><i class="fas fa-save me-1"></i> Simpan Perubahan</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TAMPILKAN QRIS TRANSAKSI -->
+  <div class="modal fade" id="showQrisModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content text-center p-3">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title fw-bold text-info"><i class="fas fa-qrcode me-2"></i> QRIS Pembayaran</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="text-secondary small mb-2" id="modalQrisInv">Invoice: -</div>
+          <div class="h4 fw-bold text-warning mb-3" id="modalQrisAmount">Rp 0</div>
+          
+          <div class="qr-container my-2" id="modalQrContainer"></div>
+          
+          <p class="text-secondary small mt-3 mb-1" id="modalQrisCustomer">Customer: -</p>
+          <div class="badge bg-secondary mb-3" id="modalQrisProduct">Paket: -</div>
+
+          <div class="alert alert-info py-2 small text-start">
+            <i class="fas fa-info-circle me-1"></i> Scan QRIS ini menggunakan aplikasi mobile banking atau e-wallet (BCA, Mandiri, BRI, BNI, GoPay, OVO, Dana, ShopeePay).
+          </div>
+        </div>
+        <div class="modal-footer border-0 justify-content-center pt-0">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Tutup</button>
+          <button type="button" class="btn btn-success" id="modalBtnMarkPaid">
+            <i class="fas fa-check-circle me-1"></i> Lunaskan Transaksi
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase App SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // ============================================================
+    // 🔒 EMAIL ADMIN YANG DIIZINKAN
+    // ============================================================
+    const AUTHORIZED_ADMIN_EMAIL = "irzalpa27@gmail.com";
+
+    // ============================================================
+    // 🔥 FIREBASE INITIALIZATION
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "AIzaSyCu4GQa-EOaPhpQP_y_QcsJxs05adQU2-M",
+      authDomain: "math314-app.firebaseapp.com",
+      databaseURL: "https://math314-app-default-rtdb.firebaseio.com",
+      projectId: "math314-app",
+      storageBucket: "math314-app.appspot.com",
+      messagingSenderId: "9019551034",
+      appId: "1:9019551034:web:de0c5e2b8b20c18ca0b403"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    let allUsers = {};
+    let allTransactions = {};
+    let tokenModalInstance = null;
+    let showQrisModalInstance = null;
+    let activeGeneratedQris = null;
+
+    document.addEventListener("DOMContentLoaded", () => {
+      tokenModalInstance = new bootstrap.Modal(document.getElementById('tokenModal'));
+      showQrisModalInstance = new bootstrap.Modal(document.getElementById('showQrisModal'));
+      
+      // Auto-update price when selecting token package in QRIS generator
+      document.getElementById("qrisTokenPackage").addEventListener("change", (e) => {
+        const val = e.target.value;
+        const prices = {
+          "token_50": 10000,
+          "token_200": 35000,
+          "token_500": 75000,
+          "token_1500": 150000
+        };
+        if (prices[val]) {
+          document.getElementById("qrisAmount").value = prices[val];
+        }
+      });
+
+      // Auth State Listener - Strict Email Check
+      auth.onAuthStateChanged(user => {
+        const accessGate = document.getElementById("accessGate");
+        const adminMainContent = document.getElementById("adminMainContent");
+        const gateErrorAlert = document.getElementById("gateErrorAlert");
+
+        if (user) {
+          if (user.email && user.email.toLowerCase() === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) {
+            // ADMIN RESMI TERVERIFIKASI
+            accessGate.classList.add("d-none");
+            adminMainContent.classList.remove("d-none");
+            gateErrorAlert.classList.add("d-none");
+            loadUsersData();
+            loadTransactionsData();
+            loadQrisConfig();
+          } else {
+            // LOGIN SEBAGAI USER BIASA BUKAN ADMIN
+            accessGate.classList.remove("d-none");
+            adminMainContent.classList.add("d-none");
+            gateErrorAlert.classList.remove("d-none");
+            gateErrorAlert.innerHTML = `<i class="fas fa-ban me-1"></i> Akses Ditolak! Akun <b>${user.email}</b> bukan Administrator.`;
+          }
+        } else {
+          // BELUM LOGIN
+          accessGate.classList.remove("d-none");
+          adminMainContent.classList.add("d-none");
+          gateErrorAlert.classList.add("d-none");
+        }
+      });
+
+      // Login Admin Button
+      document.getElementById("gateLoginBtn").addEventListener("click", async () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        try {
+          await auth.signInWithPopup(provider);
+        } catch (err) {
+          const alert = document.getElementById("gateErrorAlert");
+          alert.classList.remove("d-none");
+          alert.textContent = "Gagal login: " + err.message;
+        }
+      });
+
+      // Logout Button
+      document.getElementById("logoutBtn").addEventListener("click", async () => {
+        await auth.signOut();
+        window.location.reload();
+      });
+
+      // Search Listeners
+      document.getElementById("searchUserInput").addEventListener("input", filterUsers);
+      document.getElementById("searchTrxInput").addEventListener("input", filterTransactions);
+    });
+
+    // ============================================================
+    // 📢 ALERT HELPER
+    // ============================================================
+    function showAlert(msg, type = "info") {
+      const container = document.getElementById("alertContainer");
+      container.innerHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+          ${msg}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      `;
+    }
+
+    // ============================================================
+    // 👥 LOAD & RENDER USERS
+    // ============================================================
+    async function loadUsersData() {
+      const tbody = document.getElementById("usersTableBody");
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat pengguna...</td></tr>`;
+
+      try {
+        const snap = await db.ref("users").once("value");
+        allUsers = snap.val() || {};
+        renderUsers(allUsers);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Gagal memuat: ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderUsers(usersMap) {
+      const tbody = document.getElementById("usersTableBody");
+      const uids = Object.keys(usersMap);
+      
+      document.getElementById("totalUsersCount").textContent = uids.length;
+
+      let totalTokens = 0;
+      let html = "";
+
+      if (uids.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Belum ada data user.</td></tr>`;
+        return;
+      }
+
+      uids.forEach((uid, index) => {
+        const u = usersMap[uid];
+        const tokens = Number(u.tokens ?? u.token_balance ?? 0);
+        totalTokens += tokens;
+
+        const isPrem = u.isPremium ? `<span class="badge bg-success">Active</span>` : `<span class="badge bg-secondary">Free</span>`;
+        const name = u.name || u.displayName || "Tanpa Nama";
+        const email = u.email || "-";
+        const phone = u.phone || "-";
+
+        html += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>
+              <div class="fw-bold">${name}</div>
+              <small class="text-secondary font-monospace" style="font-size: 11px;">${uid}</small>
+            </td>
+            <td>${email}</td>
+            <td>${phone}</td>
+            <td>
+              <span class="badge bg-warning text-dark fs-6 px-2 py-1"><i class="fas fa-coins me-1"></i> ${tokens}</span>
+            </td>
+            <td>${isPrem}</td>
+            <td class="text-center">
+              <div class="btn-group">
+                <button class="btn btn-sm btn-info" onclick="openTokenModal('${uid}')" title="Kelola Token">
+                  <i class="fas fa-coins me-1"></i> Kelola Token
+                </button>
+                <button class="btn btn-sm btn-outline-primary" onclick="prepareQrisForUser('${uid}', '${name.replace(/'/g, "\\'")}')" title="Buat Tagihan QRIS">
+                  <i class="fas fa-qrcode"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("totalTokensCirculating").textContent = totalTokens.toLocaleString();
+      tbody.innerHTML = html;
+    }
+
+    function filterUsers() {
+      const query = document.getElementById("searchUserInput").value.toLowerCase();
+      const filtered = {};
+      Object.keys(allUsers).forEach(uid => {
+        const u = allUsers[uid];
+        const name = (u.name || "").toLowerCase();
+        const email = (u.email || "").toLowerCase();
+        const phone = (u.phone || "").toLowerCase();
+        if (name.includes(query) || email.includes(query) || phone.includes(query) || uid.toLowerCase().includes(query)) {
+          filtered[uid] = u;
+        }
+      });
+      renderUsers(filtered);
+    }
+
+    // ============================================================
+    // 💳 LOAD & RENDER TRANSACTIONS
+    // ============================================================
+    async function loadTransactionsData() {
+      const tbody = document.getElementById("trxTableBody");
+      tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4"><span class="spinner-border spinner-border-sm me-2"></span>Memuat transaksi...</td></tr>`;
+
+      try {
+        const snap = await db.ref("transactions").once("value");
+        allTransactions = snap.val() || {};
+        renderTransactions(allTransactions);
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center text-danger py-4">Gagal memuat: ${err.message}</td></tr>`;
+      }
+    }
+
+    function renderTransactions(trxMap) {
+      const tbody = document.getElementById("trxTableBody");
+      const invs = Object.keys(trxMap).reverse();
+      document.getElementById("totalTrxCount").textContent = invs.length;
+
+      let qrisCount = 0;
+
+      if (invs.length === 0) {
+        document.getElementById("totalQrisTrxCount").textContent = 0;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4">Belum ada riwayat transaksi.</td></tr>`;
+        return;
+      }
+
+      let html = "";
+      invs.forEach(inv => {
+        const t = trxMap[inv];
+        const status = (t.status || 'pending').toLowerCase();
+        let badgeClass = "badge-pending";
+        if (status === 'paid' || status === 'settlement' || status === 'success') badgeClass = "badge-paid";
+        else if (status === 'failed' || status === 'expired') badgeClass = "badge-failed";
+
+        const rawMethod = (t.payment_provider || t.payment_method || (inv.startsWith('INV-QRIS') ? 'QRIS' : 'VA')).toUpperCase();
+        if (rawMethod.includes('QRIS')) {
+          qrisCount++;
+        }
+
+        const methodBadge = rawMethod.includes('QRIS') 
+          ? `<span class="badge badge-qris"><i class="fas fa-qrcode me-1"></i> QRIS</span>`
+          : `<span class="badge bg-secondary">${rawMethod}</span>`;
+
+        const amount = Number(t.amount || 0).toLocaleString('id-ID');
+        const dateStr = t.created_at ? new Date(t.created_at).toLocaleString('id-ID') : '-';
+        const cbStatus = t.callback_received ? `<span class="badge bg-success">Received</span>` : `<span class="badge bg-danger">False</span>`;
+        const uid = t.uid || t.user_id || "-";
+        const customerName = t.customer_name || t.cust_name || 'Customer';
+        const productName = t.product_name || t.product_id || 'Paket Token';
+
+        html += `
+          <tr>
+            <td class="font-monospace fw-bold text-info">${inv}</td>
+            <td>
+              <div>${customerName}</div>
+              <small class="text-secondary font-monospace" style="font-size: 11px;">${t.customer_email || t.cust_email || uid}</small>
+            </td>
+            <td>
+              <div class="fw-bold">${productName}</div>
+              <small class="text-warning">Rp ${amount}</small>
+            </td>
+            <td>${methodBadge}</td>
+            <td><span class="badge ${badgeClass} text-uppercase">${status}</span></td>
+            <td>${cbStatus}</td>
+            <td><small>${dateStr}</small></td>
+            <td class="text-center">
+              <div class="btn-group">
+                <button class="btn btn-sm btn-outline-info" onclick="openShowQrisModal('${inv}', '${customerName.replace(/'/g, "\\'")}', '${productName.replace(/'/g, "\\'")}', ${t.amount || 0}, '${uid}', '${status}')" title="Lihat QR Code">
+                  <i class="fas fa-qrcode"></i> QR
+                </button>
+                ${status !== 'paid' ? `
+                  <button class="btn btn-sm btn-success" onclick="markPaidManual('${inv}', '${uid}', ${t.amount || 0}, '${t.product_id || ''}')" title="Tandai Lunas">
+                    <i class="fas fa-check"></i> Lunas
+                  </button>
+                ` : `
+                  <span class="btn btn-sm btn-dark text-success disabled"><i class="fas fa-check-double"></i></span>
+                `}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById("totalQrisTrxCount").textContent = qrisCount;
+      tbody.innerHTML = html;
+    }
+
+    function filterTransactions() {
+      const query = document.getElementById("searchTrxInput").value.toLowerCase();
+      const methodFilter = document.getElementById("filterPaymentMethod").value;
+      const filtered = {};
+
+      Object.keys(allTransactions).forEach(inv => {
+        const t = allTransactions[inv];
+        const name = (t.customer_name || t.cust_name || "").toLowerCase();
+        const email = (t.customer_email || t.cust_email || "").toLowerCase();
+        const prod = (t.product_name || t.product_id || "").toLowerCase();
+        const method = (t.payment_provider || t.payment_method || (inv.startsWith('INV-QRIS') ? 'QRIS' : 'VA')).toUpperCase();
+
+        const matchQuery = inv.toLowerCase().includes(query) || name.includes(query) || email.includes(query) || prod.includes(query);
+        
+        let matchMethod = true;
+        if (methodFilter === 'QRIS') {
+          matchMethod = method.includes('QRIS');
+        } else if (methodFilter === 'VA') {
+          matchMethod = method.includes('VA') || method.includes('FASPAY');
+        } else if (methodFilter === 'MANUAL') {
+          matchMethod = !method.includes('QRIS') && !method.includes('VA') && !method.includes('FASPAY');
+        }
+
+        if (matchQuery && matchMethod) {
+          filtered[inv] = t;
+        }
+      });
+
+      renderTransactions(filtered);
+    }
+
+    // ============================================================
+    // ⚙️ MODAL & FORM LOGIC: TOKEN CRUD
+    // ============================================================
+    function openTokenModal(uid) {
+      const user = allUsers[uid];
+      if (!user) return;
+
+      document.getElementById("editUid").value = uid;
+      document.getElementById("editUserUidDisplay").value = uid;
+      document.getElementById("editUserName").value = user.name || user.displayName || user.email || "User";
+      const curr = Number(user.tokens ?? user.token_balance ?? 0);
+      document.getElementById("editCurrentTokens").value = curr;
+      document.getElementById("tokenActionType").value = "add";
+      document.getElementById("editTokenAmount").value = 50;
+      document.getElementById("editTokenNote").value = "";
+      handleActionTypeChange();
+
+      tokenModalInstance.show();
+    }
+
+    function handleActionTypeChange() {
+      const type = document.getElementById("tokenActionType").value;
+      const grp = document.getElementById("tokenAmountGroup");
+      const lbl = document.getElementById("tokenAmountLabel");
+
+      if (type === "reset") {
+        grp.style.display = "none";
+      } else {
+        grp.style.display = "block";
+        if (type === "add") lbl.textContent = "Jumlah Token yang Ditambahkan (+):";
+        else if (type === "subtract") lbl.textContent = "Jumlah Token yang Dikurangi (-):";
+        else if (type === "set") lbl.textContent = "Set Jumlah Saldo Baru:";
+      }
+    }
+
+    async function submitTokenUpdate() {
+      const uid = document.getElementById("editUid").value;
+      const type = document.getElementById("tokenActionType").value;
+      const amountVal = parseInt(document.getElementById("editTokenAmount").value, 10) || 0;
+      const current = parseInt(document.getElementById("editCurrentTokens").value, 10) || 0;
+      const note = document.getElementById("editTokenNote").value;
+
+      let newBalance = current;
+
+      if (type === "add") {
+        newBalance = current + amountVal;
+      } else if (type === "subtract") {
+        newBalance = Math.max(0, current - amountVal);
+      } else if (type === "set") {
+        newBalance = Math.max(0, amountVal);
+      } else if (type === "reset") {
+        newBalance = 0;
+      }
+
+      try {
+        const updateData = {
+          tokens: newBalance,
+          token_balance: newBalance,
+          updated_at: firebase.database.ServerValue.TIMESTAMP
+        };
+
+        await db.ref(`users/${uid}`).update(updateData);
+
+        // Catat log histori CRUD token
+        await db.ref(`token_logs/${uid}`).push({
+          action: type,
+          previous_balance: current,
+          new_balance: newBalance,
+          delta: newBalance - current,
+          note: note || "Update manual oleh admin",
+          timestamp: firebase.database.ServerValue.TIMESTAMP,
+          admin_email: auth.currentUser ? auth.currentUser.email : "admin"
+        });
+
+        tokenModalInstance.hide();
+        showAlert(`✅ Berhasil memperbarui token untuk UID <code>${uid}</code> menjadi <b>${newBalance}</b>`, "success");
+        loadUsersData();
+      } catch (err) {
+        showAlert(`❌ Gagal update token: ${err.message}`, "danger");
+      }
+    }
+
+    // ============================================================
+    // ⚡ LUNASKAN TRANSAKSI MANUAL & TAMBAHKAN TOKEN
+    // ============================================================
+    async function markPaidManual(inv, uid, amount, productId) {
+      if (!confirm(`Konfirmasi pelunasan untuk invoice ${inv}?\nToken akan otomatis ditambahkan ke user.`)) {
+        return;
+      }
+
+      try {
+        // 1. Ekstrak token dari productId
+        let tokenAmount = 50; // default starter
+        if (productId && productId.startsWith("token_")) {
+          tokenAmount = parseInt(productId.replace("token_", ""), 10) || 50;
+        } else if (amount >= 150000) {
+          tokenAmount = 1500;
+        } else if (amount >= 75000) {
+          tokenAmount = 500;
+        } else if (amount >= 35000) {
+          tokenAmount = 200;
+        }
+
+        // 2. Update status transaksi
+        await db.ref(`transactions/${inv}`).update({
+          status: "paid",
+          callback_received: true,
+          manual_approval: true,
+          manual_approved_by: auth.currentUser ? auth.currentUser.email : "admin",
+          updated_at: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        // 3. Tambah token user jika UID valid
+        if (uid && uid !== "-" && uid !== "GUEST") {
+          const userSnap = await db.ref(`users/${uid}`).once("value");
+          const userData = userSnap.val() || {};
+          const currentTokens = Number(userData.tokens ?? userData.token_balance ?? 0);
+          const newTokens = currentTokens + tokenAmount;
+
+          await db.ref(`users/${uid}`).update({
+            tokens: newTokens,
+            token_balance: newTokens,
+            lastPaymentAmount: amount,
+            lastPaymentBillNo: inv,
+            lastPaymentDate: new Date().toISOString(),
+            updated_at: firebase.database.ServerValue.TIMESTAMP
+          });
+
+          await db.ref(`token_logs/${uid}`).push({
+            action: "manual_trx_approval",
+            bill_no: inv,
+            tokens_added: tokenAmount,
+            new_balance: newTokens,
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          });
+        }
+
+        showAlert(`✅ Invoice <b>${inv}</b> berhasil dilunaskan dan token (+${tokenAmount}) telah ditambahkan ke user.`, "success");
+        loadTransactionsData();
+        loadUsersData();
+      } catch (err) {
+        showAlert(`❌ Gagal update transaksi: ${err.message}`, "danger");
+      }
+    }
+
+    // ============================================================
+    // 🔲 FITUR GENERATOR & MANAJEMEN QRIS ADMIN
+    // ============================================================
+    function prepareQrisForUser(uid, userName) {
+      document.getElementById("qrisTargetUid").value = uid;
+      document.getElementById("qrisCustomerName").value = userName;
+      // Switch tab to QRIS
+      const qrisTab = new bootstrap.Tab(document.getElementById('qris-tab'));
+      qrisTab.show();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function generateAdminQRIS() {
+      const custName = document.getElementById("qrisCustomerName").value.trim() || "Customer Math315";
+      const amount = parseInt(document.getElementById("qrisAmount").value, 10) || 10000;
+      const pkg = document.getElementById("qrisTokenPackage").value;
+      const uid = document.getElementById("qrisTargetUid").value.trim() || "GUEST";
+      
+      const invNo = `INV-QRIS-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+
+      // Ambil konfigurasi QRIS payload
+      const customPayload = document.getElementById("cfgQrisPayload").value.trim();
+      
+      // QR Content string format
+      let qrContent = customPayload || `https://math315.id/checkout.html?invoice=${invNo}&amount=${amount}&uid=${encodeURIComponent(uid)}`;
+
+      // Render QRCode
+      const qrCanvas = document.getElementById("qrisQrCodeCanvas");
+      qrCanvas.innerHTML = "";
+      new QRCode(qrCanvas, {
+        text: qrContent,
+        width: 180,
+        height: 180,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
+      });
+
+      document.getElementById("qrisPreviewTitle").textContent = `QRIS: ${custName}`;
+      document.getElementById("qrisPreviewAmount").textContent = `Rp ${amount.toLocaleString('id-ID')}`;
+      document.getElementById("qrisPreviewInvoice").textContent = `${invNo} | Paket: ${pkg}`;
+      document.getElementById("qrisPreviewBox").classList.remove("d-none");
+
+      activeGeneratedQris = {
+        invoice: invNo,
+        customer_name: custName,
+        amount: amount,
+        product_id: pkg,
+        uid: uid,
+        payment_provider: 'QRIS',
+        payment_method: 'QRIS_STATIC',
+        qr_string: qrContent
+      };
+    }
+
+    function resetQrisForm() {
+      document.getElementById("qrisCustomerName").value = "";
+      document.getElementById("qrisAmount").value = "10000";
+      document.getElementById("qrisTargetUid").value = "";
+      document.getElementById("qrisPreviewBox").classList.add("d-none");
+      activeGeneratedQris = null;
+    }
+
+    function copyQrisLink() {
+      if (!activeGeneratedQris) return;
+      const copyText = `Tagihan QRIS Math315\nInvoice: ${activeGeneratedQris.invoice}\nCustomer: ${activeGeneratedQris.customer_name}\nNominal: Rp ${activeGeneratedQris.amount.toLocaleString('id-ID')}\nLink: ${activeGeneratedQris.qr_string}`;
+      navigator.clipboard.writeText(copyText).then(() => {
+        showAlert("📋 Informasi QRIS berhasil disalin ke clipboard!", "success");
+      });
+    }
+
+    async function createQrisInvoiceRecord() {
+      if (!activeGeneratedQris) return;
+
+      try {
+        const record = {
+          ...activeGeneratedQris,
+          status: 'pending',
+          created_at: firebase.database.ServerValue.TIMESTAMP,
+          callback_received: false,
+          created_by: auth.currentUser ? auth.currentUser.email : "admin"
+        };
+
+        await db.ref(`transactions/${activeGeneratedQris.invoice}`).set(record);
+        showAlert(`✅ Invoice QRIS <b>${activeGeneratedQris.invoice}</b> berhasil disimpan ke database transaksi!`, "success");
+        loadTransactionsData();
+      } catch (err) {
+        showAlert(`❌ Gagal menyimpan transaksi QRIS: ${err.message}`, "danger");
+      }
+    }
+
+    function openShowQrisModal(inv, customer, product, amount, uid, status) {
+      document.getElementById("modalQrisInv").textContent = `Invoice: ${inv}`;
+      document.getElementById("modalQrisCustomer").textContent = `Customer: ${customer}`;
+      document.getElementById("modalQrisProduct").textContent = `Paket: ${product}`;
+      document.getElementById("modalQrisAmount").textContent = `Rp ${Number(amount).toLocaleString('id-ID')}`;
+
+      const modalQr = document.getElementById("modalQrContainer");
+      modalQr.innerHTML = "";
+      
+      const customPayload = document.getElementById("cfgQrisPayload").value.trim();
+      const qrData = customPayload || `https://math315.id/checkout.html?invoice=${inv}&amount=${amount}`;
+
+      new QRCode(modalQr, {
+        text: qrData,
+        width: 190,
+        height: 190,
+        colorDark : "#000000",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
+      });
+
+      const btnMarkPaid = document.getElementById("modalBtnMarkPaid");
+      if (status === 'paid') {
+        btnMarkPaid.disabled = true;
+        btnMarkPaid.className = "btn btn-secondary";
+        btnMarkPaid.innerHTML = '<i class="fas fa-check-double me-1"></i> Sudah Lunas';
+      } else {
+        btnMarkPaid.disabled = false;
+        btnMarkPaid.className = "btn btn-success";
+        btnMarkPaid.innerHTML = '<i class="fas fa-check-circle me-1"></i> Lunaskan Transaksi';
+        btnMarkPaid.onclick = () => {
+          showQrisModalInstance.hide();
+          markPaidManual(inv, uid, amount, product);
+        };
+      }
+
+      showQrisModalInstance.show();
+    }
+
+    // ============================================================
+    // ⚙️ KONFIGURASI QRIS FIREBASE & LOCALSTORAGE FALLBACK
+    // ============================================================
+    async function loadQrisConfig() {
+      // 1. Coba baca dari LocalStorage terlebih dahulu sebagai fallback cepat
+      try {
+        const localCfg = localStorage.getItem("math315_qris_config");
+        if (localCfg) {
+          applyQrisConfigForm(JSON.parse(localCfg));
+        }
+      } catch (e) {}
+
+      // 2. Baca dari Firebase Database
+      try {
+        let snap = await db.ref("settings/qris").once("value");
+        let cfg = snap.val();
+        if (!cfg) {
+          snap = await db.ref("qris_config").once("value");
+          cfg = snap.val();
+        }
+        if (cfg) {
+          applyQrisConfigForm(cfg);
+          localStorage.setItem("math315_qris_config", JSON.stringify(cfg));
+        }
+      } catch (err) {
+        console.warn("Info pembacaan settings/qris dari Firebase:", err.message);
+      }
+    }
+
+    function applyQrisConfigForm(cfg) {
+      if (!cfg) return;
+      if (cfg.merchant_name) document.getElementById("cfgMerchantName").value = cfg.merchant_name;
+      if (cfg.merchant_nmid) document.getElementById("cfgMerchantNmid").value = cfg.merchant_nmid;
+      if (cfg.qris_payload) document.getElementById("cfgQrisPayload").value = cfg.qris_payload;
+      if (cfg.instructions) document.getElementById("cfgQrisInstructions").value = cfg.instructions;
+      if (typeof cfg.active === 'boolean') document.getElementById("cfgQrisActive").checked = cfg.active;
+    }
+
+    async function saveQrisConfig() {
+      const cfg = {
+        merchant_name: document.getElementById("cfgMerchantName").value.trim(),
+        merchant_nmid: document.getElementById("cfgMerchantNmid").value.trim(),
+        qris_payload: document.getElementById("cfgQrisPayload").value.trim(),
+        instructions: document.getElementById("cfgQrisInstructions").value.trim(),
+        active: document.getElementById("cfgQrisActive").checked,
+        updated_at: firebase.database.ServerValue.TIMESTAMP,
+        updated_by: auth.currentUser ? auth.currentUser.email : "admin"
+      };
+
+      // Simpan selalu ke LocalStorage browser admin agar generator langsung menggunakan data ini
+      try {
+        localStorage.setItem("math315_qris_config", JSON.stringify(cfg));
+      } catch (e) {}
+
+      try {
+        // Coba simpan ke Firebase node settings/qris
+        await db.ref("settings/qris").set(cfg);
+        document.getElementById("qrisRuleHelp").classList.add("d-none");
+        showAlert("✅ Pengaturan QRIS berhasil disimpan ke Firebase Realtime Database!", "success");
+      } catch (err) {
+        console.warn("Gagal simpan ke Firebase Database:", err);
+        // Tampilkan box bantuan Firebase rules
+        const helpBox = document.getElementById("qrisRuleHelp");
+        if (helpBox) helpBox.classList.remove("d-none");
+
+        if (err.message && err.message.includes("PERMISSION_DENIED")) {
+          showAlert(
+            `⚠️ <b>Tersimpan di Browser (LocalStorage)</b>, namun Firebase menolak tulis (<code>PERMISSION_DENIED</code>).<br>` +
+            `<small>Untuk menyimpan permanen di cloud database, tambahkan izin tulis untuk node <code>"settings"</code> di <b>Firebase Console &gt; Realtime Database &gt; Rules</b>.</small>`,
+            "warning"
+          );
+        } else {
+          showAlert(`⚠️ Pengaturan tersimpan secara lokal di browser, namun Firebase gagal: ${err.message}`, "warning");
+        }
+      }
+    }
+  </script>
+</body>
+</html>

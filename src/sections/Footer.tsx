@@ -3,7 +3,8 @@ import {
   ClipboardCheck,
   Bot,
   Calendar,
-  BarChart3,
+  ShoppingBag,
+  ShieldCheck,
   Hash,
   Sigma,
   Triangle,
@@ -16,7 +17,8 @@ const FOOTER_LINK_ICONS: Record<string, LucideIcon> = {
   "Simulasi TKA": ClipboardCheck,
   "AI Tutor": Bot,
   "Jadwal Belajar": Calendar,
-  "Analisis Performa": BarChart3,
+  "Jualan Poster": ShoppingBag,
+  "Admin Panel": ShieldCheck,
   "Teori Bilangan": Hash,
   "Aljabar": Sigma,
   "Trigonometri": Triangle,
@@ -82,10 +84,13 @@ export default function Footer() {
                 )}
                 {column.links.map((link) => {
                   const Icon = FOOTER_LINK_ICONS[link];
+                  let href = "#";
+                  if (link === "Jualan Poster") href = "#/shop";
+                  else if (link === "Admin Panel") href = "/admin.html";
                   return (
                     <a
                       key={link}
-                      href="#"
+                      href={href}
                       className="nav-link"
                       style={{
                         width: 'fit-content',

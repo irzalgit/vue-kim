@@ -7,6 +7,7 @@ import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
+import ShopPage from './pages/ShopPage';
 import { PaymentModal } from './components/PaymentModal';
 import type { SelectedItem } from './agent/generateSoalWithChecklist';
 
@@ -120,6 +121,7 @@ function AppContent() {
 
         <Routes>
           <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
+          <Route path="/shop" element={<ShopPage />} />
           <Route 
             path="/dashboard" 
             element={

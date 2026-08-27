@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jualan Poster - Poster Pendidikan & Sains</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .glass-card { background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px); }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen pb-24 selection:bg-indigo-500 selection:text-white">
+
+  <!-- TOP BAR -->
+  <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 lg:px-8 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <a href="/" class="p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium">
+          ← <span class="hidden sm:inline">Beranda</span>
+        </a>
+        <div class="h-6 w-px bg-slate-800 hidden sm:block"></div>
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-indigo-500/25">
+            ✨
+          </div>
+          <div>
+            <h1 class="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-indigo-300 bg-clip-text text-transparent">
+              Jualan Poster
+            </h1>
+            <p class="text-xs text-indigo-400 font-medium hidden sm:block">Poster Pendidikan & Sains Edukatif</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Search -->
+      <div class="flex-1 max-w-md hidden md:block">
+        <input 
+          id="searchInput"
+          type="text" 
+          placeholder="Cari poster matematika, kimia, fisika, biologi..." 
+          oninput="handleSearch(this.value)"
+          class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+
+      <!-- Cart Button -->
+      <div>
+        <button 
+          onclick="openCart()"
+          class="relative flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-semibold shadow-lg shadow-indigo-600/30 transition-all transform hover:scale-105 active:scale-95"
+        >
+          🛒 <span class="hidden sm:inline text-sm">Keranjang</span>
+          <span id="navCartCount" class="bg-rose-500 text-white text-xs font-extrabold px-2 py-0.5 rounded-full hidden">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO BANNER -->
+  <section class="relative bg-gradient-to-b from-indigo-950/60 via-slate-900 to-slate-950 px-4 lg:px-8 py-10 border-b border-slate-800 text-center">
+    <div class="max-w-4xl mx-auto">
+      <span class="inline-block px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold uppercase tracking-wider mb-3">
+        ✨ Toko Resmi Poster Pendidikan
+      </span>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-white mb-3">Poster Visual Edukasi Berkualitas Tinggi</h2>
+      <p class="text-slate-300 text-sm sm:text-base max-w-2xl mx-auto mb-6">
+        Tingkatkan semangat belajar Sains & Matematika dengan poster A3+ beresolusi tajam, laminasi awet, dan infografis modern.
+      </p>
+
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-xs">
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
+          <div class="text-slate-400">Harga Satuan</div>
+          <div class="font-bold text-white text-sm">Rp 8.500 - 10.000</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
+          <div class="text-slate-400">Kuantitas Bebas</div>
+          <div class="font-bold text-white text-sm">Beli 1 atau Banyak</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
+          <div class="text-slate-400">Bahan Kertas</div>
+          <div class="font-bold text-white text-sm">Art Paper 260gsm</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-xl">
+          <div class="text-slate-400">Packing Standar</div>
+          <div class="font-bold text-white text-sm">Tabung Selongsong</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CATEGORIES -->
+  <section class="max-w-7xl mx-auto px-4 lg:px-8 pt-6 pb-2">
+    <div class="flex items-center gap-2 overflow-x-auto pb-2" id="categoryContainer">
+      <!-- Generated via JS -->
+    </div>
+  </section>
+
+  <!-- PRODUCT GRID -->
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 py-6">
+    <div class="flex items-center justify-between mb-6">
+      <h3 class="text-xl font-bold text-white">Daftar Poster Pendidikan</h3>
+      <span class="text-xs text-slate-400">5 Pilihan Poster Edukatif</span>
+    </div>
+    <div id="productGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Rendered via JS -->
+    </div>
+  </main>
+
+  <!-- FLOATING CART BAR -->
+  <div id="floatingCartBar" class="fixed bottom-4 left-4 right-4 max-w-2xl mx-auto z-40 bg-slate-900/95 border border-indigo-500/40 backdrop-blur-xl p-4 rounded-2xl shadow-2xl flex items-center justify-between gap-3 hidden">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold">🛒</div>
+      <div>
+        <div class="text-xs text-slate-400"><span id="floatingCartQty">0</span> Poster di Keranjang</div>
+        <div class="text-lg font-black text-emerald-400" id="floatingCartTotal">Rp 0</div>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="openCart()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold">
+        Lihat Keranjang
+      </button>
+      <button onclick="openCheckout()" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/30">
+        Checkout →
+      </button>
+    </div>
+  </div>
+
+  <!-- CART MODAL -->
+  <div id="cartModal" class="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm hidden">
+    <div class="w-full max-w-md bg-slate-900 border-l border-slate-800 h-full flex flex-col shadow-2xl">
+      <div class="p-5 border-b border-slate-800 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">🛒</span>
+          <div>
+            <h3 class="font-bold text-white text-base">Keranjang Belanja</h3>
+            <p class="text-xs text-slate-400">Jualan Poster</p>
+          </div>
+        </div>
+        <button onclick="closeCart()" class="p-1.5 text-slate-400 hover:text-white rounded-lg">✕</button>
+      </div>
+
+      <div id="cartItemsList" class="flex-1 overflow-y-auto p-5 space-y-4">
+        <!-- Rendered via JS -->
+      </div>
+
+      <div id="cartFooter" class="p-5 border-t border-slate-800 bg-slate-950/60 space-y-3 hidden">
+        <div class="flex justify-between text-sm font-bold text-white">
+          <span>Total Pembayaran:</span>
+          <span class="text-emerald-400 text-lg" id="cartTotalPrice">Rp 0</span>
+        </div>
+        <button onclick="openCheckout()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 text-sm">
+          Lanjut ke Pembayaran →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHECKOUT MODAL -->
+  <div id="checkoutModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800 mb-4">
+        <h3 class="font-bold text-lg text-white">Checkout Pesanan Poster</h3>
+        <button onclick="closeCheckout()" class="text-slate-400 hover:text-white">✕</button>
+      </div>
+
+      <form onsubmit="handleCheckout(event)" class="space-y-4">
+        <div class="bg-slate-800/80 p-3.5 rounded-xl text-xs space-y-1" id="checkoutSummary">
+          <!-- Summary items -->
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nama Lengkap *</label>
+          <input id="orderName" type="text" required placeholder="Nama Anda" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Nomor WhatsApp *</label>
+          <input id="orderPhone" type="tel" required placeholder="08xxxxxxxxxx" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Metode Pembayaran</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="p-2.5 rounded-xl border border-indigo-500 bg-indigo-600/20 text-white font-bold flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="shopPayment" value="qris" checked onchange="updatePayBtnText()" class="accent-indigo-500">
+              <span>⚡ QRIS / checkout.html</span>
+            </label>
+            <label class="p-2.5 rounded-xl border border-slate-700 bg-slate-800 text-slate-300 flex items-center gap-2 cursor-pointer">
+              <input type="radio" name="shopPayment" value="whatsapp" onchange="updatePayBtnText()" class="accent-indigo-500">
+              <span>💬 WhatsApp Manual</span>
+            </label>
+          </div>
+        </div>
+
+        <button id="submitOrderBtn" type="submit" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-600/30 text-sm">
+          Lanjut ke Pembayaran QRIS →
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const PRODUCTS = [
+      {
+        id: 'poster-matematika',
+        name: 'Poster Rumus Matematika SMA & Aljabar Lengkap',
+        category: 'Matematika',
+        price: 8500,
+        originalPrice: 15000,
+        rating: 4.9,
+        soldCount: 320,
+        size: 'A3+ (32 x 48 cm)',
+        description: 'Rangkuman visual rumus penting aljabar, trigonometri, geometri, kalkulus, deret angka, dan matriks SMA.',
+        badge: 'Terlaris',
+        gradient: 'from-blue-600 to-indigo-700',
+        icon: '∑ ∫ √ π'
+      },
+      {
+        id: 'poster-kimia',
+        name: 'Poster Tabel Periodik Unsur Kimia Modern HD',
+        category: 'Kimia',
+        price: 9000,
+        originalPrice: 16000,
+        rating: 4.8,
+        soldCount: 245,
+        size: 'A3+ (32 x 48 cm)',
+        description: 'Tabel periodik unsur IUPAC terbaru 118 unsur lengkap dengan nomor atom, massa, dan konfigurasi elektron.',
+        badge: 'Populer',
+        gradient: 'from-teal-600 to-emerald-700',
+        icon: '⚗️ H₂O NaCl'
+      },
+      {
+        id: 'poster-fisika',
+        name: 'Poster Hukum Fisika, Gaya & Tata Surya Semesta',
+        category: 'Fisika',
+        price: 9500,
+        originalPrice: 17500,
+        rating: 5.0,
+        soldCount: 180,
+        size: 'A3+ (32 x 48 cm)',
+        description: 'Infografis komprehensif Hukum Newton, Termodinamika, Gelombang Optik, Elektromagnetik, dan Tata Surya.',
+        badge: 'Rekomendasi',
+        gradient: 'from-purple-600 to-indigo-800',
+        icon: '⚛️ E=mc²'
+      },
+      {
+        id: 'poster-biologi',
+        name: 'Poster Anatomi Tubuh Manusia & Sistem Organ',
+        category: 'Biologi',
+        price: 9000,
+        originalPrice: 16000,
+        rating: 4.9,
+        soldCount: 210,
+        size: 'A3+ (32 x 48 cm)',
+        description: 'Visualisasi 3D anatomi organ sistem peredaran darah, pernapasan, pencernaan, rangka, dan saraf.',
+        badge: 'Edukasi Lengkap',
+        gradient: 'from-rose-600 to-amber-700',
+        icon: '🫀 🧬 🔬'
+      },
+      {
+        id: 'poster-geografi',
+        name: 'Poster Peta Indonesia 38 Provinsi & Geografi Nusantara',
+        category: 'Geografi',
+        price: 10000,
+        originalPrice: 18000,
+        rating: 4.9,
+        soldCount: 290,
+        size: 'A3+ (32 x 48 cm)',
+        description: 'Peta resmi pembagian 38 Provinsi NKRI lengkap dengan ibukota, pulau utama, selat, dan zona waktu.',
+        badge: 'Edisi 38 Provinsi',
+        gradient: 'from-amber-600 to-orange-700',
+        icon: '🗺️ 🇮🇩 🧭'
+      }
+    ];
+
+    let cart = JSON.parse(localStorage.getItem('jualan_poster_cart') || '[]');
+    let currentCategory = 'Semua';
+    let searchQuery = '';
+
+    function formatRupiah(num) {
+      return 'Rp ' + Number(num).toLocaleString('id-ID');
+    }
+
+    function saveCart() {
+      localStorage.setItem('jualan_poster_cart', JSON.stringify(cart));
+      updateCartUI();
+    }
+
+    function addToCart(productId, qty = 1) {
+      const p = PRODUCTS.find(x => x.id === productId);
+      if (!p) return;
+      const existing = cart.find(x => x.id === productId);
+      if (existing) {
+        existing.quantity += qty;
+      } else {
+        cart.push({ id: p.id, name: p.name, price: p.price, gradient: p.gradient, category: p.category, quantity: qty });
+      }
+      saveCart();
+      renderProducts();
+    }
+
+    function updateQty(productId, delta) {
+      const item = cart.find(x => x.id === productId);
+      if (!item) return;
+      item.quantity += delta;
+      if (item.quantity <= 0) {
+        cart = cart.filter(x => x.id !== productId);
+      }
+      saveCart();
+      renderProducts();
+      renderCartItems();
+    }
+
+    function updateCartUI() {
+      const totalQty = cart.reduce((sum, i) => sum + i.quantity, 0);
+      const totalPrice = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+
+      const navBadge = document.getElementById('navCartCount');
+      if (totalQty > 0) {
+        navBadge.textContent = totalQty;
+        navBadge.classList.remove('hidden');
+      } else {
+        navBadge.classList.add('hidden');
+      }
+
+      const floatingBar = document.getElementById('floatingCartBar');
+      if (totalQty > 0) {
+        floatingBar.classList.remove('hidden');
+        document.getElementById('floatingCartQty').textContent = totalQty;
+        document.getElementById('floatingCartTotal').textContent = formatRupiah(totalPrice);
+      } else {
+        floatingBar.classList.add('hidden');
+      }
+    }
+
+    function renderCategories() {
+      const cats = ['Semua', 'Matematika', 'Kimia', 'Fisika', 'Biologi', 'Geografi'];
+      const cont = document.getElementById('categoryContainer');
+      cont.innerHTML = cats.map(c => `
+        <button 
+          onclick="filterCategory('${c}')" 
+          class="px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${currentCategory === c ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/30' : 'bg-slate-900 text-slate-400 hover:text-white border border-slate-800'}"
+        >
+          ${c}
+        </button>
+      `).join('');
+    }
+
+    function filterCategory(cat) {
+      currentCategory = cat;
+      renderCategories();
+      renderProducts();
+    }
+
+    function handleSearch(q) {
+      searchQuery = q.toLowerCase();
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const filtered = PRODUCTS.filter(p => {
+        const matchCat = currentCategory === 'Semua' || p.category === currentCategory;
+        const matchQ = p.name.toLowerCase().includes(searchQuery) || p.description.toLowerCase().includes(searchQuery);
+        return matchCat && matchQ;
+      });
+
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = filtered.map(p => {
+        const inCart = cart.find(x => x.id === p.id);
+        const inCartQty = inCart ? inCart.quantity : 0;
+
+        return `
+          <div class="bg-slate-900 border border-slate-800 hover:border-indigo-500/50 rounded-2xl overflow-hidden shadow-xl flex flex-col">
+            <div class="h-48 bg-gradient-to-br ${p.gradient} p-5 flex flex-col justify-between relative">
+              <div class="flex justify-between items-start">
+                <span class="bg-black/40 text-white text-xs font-semibold px-2.5 py-1 rounded-full backdrop-blur-md">${p.category}</span>
+                <span class="bg-amber-500 text-slate-950 text-xs font-extrabold px-2.5 py-0.5 rounded-full">${p.badge}</span>
+              </div>
+              <div class="text-center text-3xl font-extrabold text-white drop-shadow font-mono">${p.icon}</div>
+              <div class="text-xs text-white/90 font-medium">Format Cetak ${p.size}</div>
+            </div>
+
+            <div class="p-5 flex-1 flex flex-col justify-between">
+              <div>
+                <h4 class="font-bold text-white text-base mb-2">${p.name}</h4>
+                <p class="text-xs text-slate-400 mb-4 leading-relaxed">${p.description}</p>
+              </div>
+
+              <div>
+                <div class="flex items-baseline gap-2 mb-4">
+                  <span class="text-2xl font-extrabold text-emerald-400">${formatRupiah(p.price)}</span>
+                  <span class="text-xs text-slate-500 line-through">${formatRupiah(p.originalPrice)}</span>
+                </div>
+
+                ${inCartQty > 0 ? `
+                  <div class="flex items-center justify-between bg-slate-800 border border-indigo-500/40 rounded-xl p-1.5">
+                    <button onclick="updateQty('${p.id}', -1)" class="w-8 h-8 rounded bg-slate-700 text-white font-bold">-</button>
+                    <span class="text-xs font-bold text-white">${inCartQty} di Keranjang</span>
+                    <button onclick="updateQty('${p.id}', 1)" class="w-8 h-8 rounded bg-indigo-600 text-white font-bold">+</button>
+                  </div>
+                ` : `
+                  <button onclick="addToCart('${p.id}', 1)" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition-all">
+                    🛒 Tambah ke Keranjang
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function openCart() {
+      document.getElementById('cartModal').classList.remove('hidden');
+      renderCartItems();
+    }
+
+    function closeCart() {
+      document.getElementById('cartModal').classList.add('hidden');
+    }
+
+    function renderCartItems() {
+      const list = document.getElementById('cartItemsList');
+      const footer = document.getElementById('cartFooter');
+      if (cart.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-12 text-slate-400 text-sm">
+            Keranjang belanja masih kosong.
+          </div>
+        `;
+        footer.classList.add('hidden');
+        return;
+      }
+
+      list.innerHTML = cart.map(i => `
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-3 flex gap-3 items-center">
+          <div class="w-12 h-12 rounded-lg bg-gradient-to-br ${i.gradient} flex items-center justify-center text-white font-bold text-xs">
+            ${i.category.slice(0,3)}
+          </div>
+          <div class="flex-1 min-w-0">
+            <h5 class="text-xs font-bold text-white truncate">${i.name}</h5>
+            <div class="text-xs text-emerald-400 font-semibold">${formatRupiah(i.price)}</div>
+            <div class="text-[11px] text-slate-400">Total: ${formatRupiah(i.price * i.quantity)}</div>
+          </div>
+          <div class="flex items-center gap-1 bg-slate-900 rounded-lg p-1">
+            <button onclick="updateQty('${i.id}', -1)" class="w-6 h-6 rounded bg-slate-800 text-white text-xs font-bold">-</button>
+            <span class="text-xs font-bold px-1.5 text-white">${i.quantity}</span>
+            <button onclick="updateQty('${i.id}', 1)" class="w-6 h-6 rounded bg-indigo-600 text-white text-xs font-bold">+</button>
+          </div>
+        </div>
+      `).join('');
+
+      footer.classList.remove('hidden');
+      const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+      document.getElementById('cartTotalPrice').textContent = formatRupiah(total);
+    }
+
+    function openCheckout() {
+      closeCart();
+      if (cart.length === 0) return;
+      const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+      const totalQty = cart.reduce((sum, i) => sum + i.quantity, 0);
+
+      document.getElementById('checkoutSummary').innerHTML = `
+        <div class="font-bold text-indigo-400 mb-1 flex justify-between">
+          <span>Pesanan (${totalQty} pcs):</span>
+          <span class="text-emerald-400">${formatRupiah(total)}</span>
+        </div>
+        ${cart.map(i => `
+          <div class="flex justify-between text-slate-300">
+            <span class="truncate">• ${i.name} (x${i.quantity})</span>
+            <span>${formatRupiah(i.price * i.quantity)}</span>
+          </div>
+        `).join('')}
+      `;
+      document.getElementById('checkoutModal').classList.remove('hidden');
+    }
+
+    function closeCheckout() {
+      document.getElementById('checkoutModal').classList.add('hidden');
+    }
+
+    function updatePayBtnText() {
+      const isQris = document.querySelector('input[name="shopPayment"]:checked').value === 'qris';
+      const btn = document.getElementById('submitOrderBtn');
+      if (btn) {
+        btn.textContent = isQris ? 'Lanjut ke Pembayaran QRIS →' : 'Kirim Pesanan via WhatsApp →';
+      }
+    }
+
+    function handleCheckout(e) {
+      e.preventDefault();
+      const name = document.getElementById('orderName').value.trim();
+      const phone = document.getElementById('orderPhone').value.trim();
+      const address = document.getElementById('orderAddress').value.trim();
+      const total = cart.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+      const totalQty = cart.reduce((sum, i) => sum + i.quantity, 0);
+      const isQris = document.querySelector('input[name="shopPayment"]:checked').value === 'qris';
+
+      const itemsText = cart.map((i, idx) => `${idx + 1}. ${i.name} (${i.quantity} pcs x ${formatRupiah(i.price)} = ${formatRupiah(i.price * i.quantity)})`).join('\n');
+      const waMsg = 
+`🛒 *PESANAN BARU - JUALAN POSTER*
+---------------------------------------
+👤 *Data Pembeli:*
+- Nama: ${name}
+- No. WA: ${phone}
+- Alamat: ${address}
+- Metode: ${isQris ? 'QRIS / checkout.html' : 'WhatsApp Manual'}
+
+📦 *Rincian Produk:*
+${itemsText}
+
+---------------------------------------
+📊 *Total:* ${totalQty} pcs | *${formatRupiah(total)}*
+Mohon informasi pembayaran & konfirmasi pengiriman. Terima kasih!`;
+
+      // Simpan data order
+      const invoiceNo = `INV-POSTER-${Date.now().toString().slice(-6)}`;
+      localStorage.setItem('last_poster_invoice', invoiceNo);
+      localStorage.setItem('last_poster_cart', JSON.stringify(cart));
+
+      cart = [];
+      saveCart();
+      closeCheckout();
+
+      if (isQris) {
+        const productName = `Pesanan Poster Edukasi (${totalQty} pcs)`;
+        const checkoutUrl = `/checkout.html?productId=poster_order_${Date.now().toString().slice(-4)}&productName=${encodeURIComponent(productName)}&price=${total}&phone=${encodeURIComponent(phone)}&name=${encodeURIComponent(name)}`;
+        window.location.href = checkoutUrl;
+      } else {
+        window.open('https://wa.me/6281234567890?text=' + encodeURIComponent(waMsg), '_blank');
+        alert('Pesanan Anda berhasil dibuat dan diteruskan ke WhatsApp admin!');
+      }
+    }
+
+    // Init
+    renderCategories();
+    renderProducts();
+    updateCartUI();
+  </script>
+</body>
+</html>

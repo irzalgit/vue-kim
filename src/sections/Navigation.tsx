@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { siteConfig, navigationConfig } from '../config';
 import logo from '../assets/logo.png';
 
@@ -11,6 +12,7 @@ interface NavigationProps {
 export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: NavigationProps) {
   console.log('Navigation isLoggedIn:', isLoggedIn);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -22,6 +24,14 @@ export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: Navig
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    if (href.startsWith('#/')) {
+      navigate(href.replace('#', ''));
+      return;
+    }
+    if (href.startsWith('/')) {
+      navigate(href);
+      return;
+    }
     const el = document.querySelector(href);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth' });

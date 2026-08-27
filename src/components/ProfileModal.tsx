@@ -1,8 +1,9 @@
 
 import { X, User, BarChart, BookOpen, GraduationCap, Calendar, Coins, LogOut } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { auth } from '../lib/firebase';
+import { auth, db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
+import { ref, onValue } from 'firebase/database';
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface UserData {
 export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [firebaseUser, setFirebaseUser] = useState<any>(null);
+  const [userCredits, setUserCredits] = useState<number | null>(null);
   const { logout } = useAuth();
 
   useEffect(() => {
@@ -26,7 +28,25 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       if (savedUser) {
         setUserData(JSON.parse(savedUser));
       }
-      setFirebaseUser(auth.currentUser);
+      const curUser = auth.currentUser;
+      setFirebaseUser(curUser);
+
+      if (curUser) {
+        const userRef = ref(db, `users/${curUser.uid}`);
+        const unsubscribe = onValue(userRef, (snapshot) => {
+          const val = snapshot.val();
+          if (val) {
+            const tokens = Number(val.tokens ?? val.token_balance ?? val.kuota ?? 0);
+            setUserCredits(tokens);
+          } else {
+            setUserCredits(0);
+          }
+        }, (err) => {
+          console.error("Gagal membaca kuota token user:", err);
+          setUserCredits(0);
+        });
+        return () => unsubscribe();
+      }
     }
   }, [isOpen]);
 
@@ -95,20 +115,29 @@ export default function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
           </select>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="bg-gray-700/50 p-4 rounded-xl text-center">
-            <div className="flex justify-center text-blue-400 mb-2">
-              <BookOpen size={24} />
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          <div className="bg-gray-700/50 p-3 rounded-xl text-center">
+            <div className="flex justify-center text-yellow-400 mb-1">
+              <Coins size={22} />
             </div>
-            <div className="text-2xl font-bold">12</div>
-            <div className="text-xs text-gray-400">Simulasi</div>
+            <div className="text-xl font-bold text-yellow-300">
+              {userCredits !== null ? userCredits.toLocaleString('id-ID') : '-'}
+            </div>
+            <div className="text-[11px] text-gray-400">Kuota Token</div>
           </div>
-          <div className="bg-gray-700/50 p-4 rounded-xl text-center">
-            <div className="flex justify-center text-yellow-400 mb-2">
-              <BarChart size={24} />
+          <div className="bg-gray-700/50 p-3 rounded-xl text-center">
+            <div className="flex justify-center text-blue-400 mb-1">
+              <BookOpen size={22} />
             </div>
-            <div className="text-2xl font-bold">150</div>
-            <div className="text-xs text-gray-400">Soal Dikerjakan</div>
+            <div className="text-xl font-bold">12</div>
+            <div className="text-[11px] text-gray-400">Simulasi</div>
+          </div>
+          <div className="bg-gray-700/50 p-3 rounded-xl text-center">
+            <div className="flex justify-center text-emerald-400 mb-1">
+              <BarChart size={22} />
+            </div>
+            <div className="text-xl font-bold">150</div>
+            <div className="text-[11px] text-gray-400">Soal Dikerjakan</div>
           </div>
         </div>
 

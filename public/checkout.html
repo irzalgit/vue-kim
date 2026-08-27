@@ -117,6 +117,7 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
 
 <body>
 <div class="card">
+  <div id="creditBadge" class="info" style="margin-top:10px;"></div>
   <h2>🚀 Checkout Premium</h2>
 
   <form id="form" style="display: none;">
@@ -130,7 +131,41 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
     <label>📱 Nomor WhatsApp</label>
     <input id="phone" type="tel" placeholder="081234567890" required>
     <small>Contoh: 081234567890</small>
-    <button id="pay" disabled>💰 Bayar Sekarang</button>
+
+    <label class="mt-3">💳 Pilih Metode Pembayaran</label>
+    <div style="display: flex; gap: 10px; margin-top: 6px;">
+      <label style="flex: 1; border: 2px solid #667eea; border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer; background: #f0f4ff; margin: 0;">
+        <input type="radio" name="payment_channel" value="qris" checked style="width: auto; margin-right: 6px;">
+        <strong style="color: #4338ca;">⚡ QRIS DANA</strong>
+        <div style="font-size: 11px; color: #64748b;">Semua Bank & e-Wallet</div>
+      </label>
+      <label style="flex: 1; border: 1.5px solid #e0e0e0; border-radius: 10px; padding: 10px 8px; text-align: center; cursor: pointer; background: #fafafa; margin: 0;">
+        <input type="radio" name="payment_channel" value="gateway" style="width: auto; margin-right: 6px;">
+        <strong style="color: #334155;">🏦 Virtual Account</strong>
+        <div style="font-size: 11px; color: #64748b;">Faspay Gateway</div>
+      </label>
+    </div>
+
+    <!-- BOX TAMPILAN QRIS DANA DINAMIS -->
+    <div id="qrisContainer" style="display: none; margin-top: 18px; padding: 16px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; text-align: center;">
+      <div style="font-weight: bold; color: #1e293b; font-size: 15px;">QRIS DANA Math315</div>
+      <small style="color: #64748b; display: block; margin-bottom: 10px;">Scan dengan aplikasi DANA, GoPay, OVO, ShopeePay, BCA, Mandiri, BRI, dll.</small>
+      
+      <div style="background: white; padding: 12px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
+        <div id="qrisQrDisplay"></div>
+      </div>
+
+      <div style="margin-top: 10px; font-weight: bold; font-size: 18px; color: #0284c7;" id="qrisAmountDisplay">Rp 0</div>
+      <div style="font-size: 12px; color: #64748b; font-family: monospace; margin-top: 2px;" id="qrisInvoiceDisplay">INV-QRIS-XXXXX</div>
+
+      <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+        <button type="button" id="confirmWaBtn" style="background: #16a34a; margin-top: 0; padding: 10px; font-size: 14px;">
+          📱 Konfirmasi ke WhatsApp Admin
+        </button>
+      </div>
+    </div>
+
+    <button id="pay" disabled style="display: block;">💰 Bayar Sekarang</button>
   </form>
 
   <div id="status" class="status info"><span class="loading"></span>Memeriksa login...</div>
@@ -140,6 +175,9 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
     <button id="loginBtn" class="google-btn">Login dengan Google</button>
   </div>
 </div>
+
+<!-- QRCode Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -190,12 +228,16 @@ const queryProductId = urlParams.get('productId');
 const queryProductName = urlParams.get('productName');
 const queryPrice = urlParams.get('price');
 const queryToken = urlParams.get('token');
+const queryPhone = urlParams.get('phone');
+const queryName = urlParams.get('name');
 
 window._checkoutData = {
   productId: queryProductId || null,
   productName: queryProductName || null,
   price: queryPrice ? parseInt(queryPrice) : null,
-  token: queryToken ? parseInt(queryToken) : null
+  token: queryToken ? parseInt(queryToken) : null,
+  phone: queryPhone || null,
+  name: queryName || null
 };
 
 // ============================================================
@@ -273,6 +315,20 @@ function findProductKey(productData, targetId, targetName, targetPrice) {
 }
 
 function renderProducts(productData) {
+  // Injeksi produk kustom bila dikirim via URL query (misal: jualan poster)
+  const data = window._checkoutData;
+  if (data && data.price && (data.productId || data.productName)) {
+    const customKey = data.productId || 'custom_order';
+    if (!productData[customKey]) {
+      productData[customKey] = {
+        name: data.productName || 'Paket Pesanan Khusus',
+        price: data.price,
+        token_amount: data.token || 0,
+        description: data.productName || 'Pesanan Khusus'
+      };
+    }
+  }
+
   productEl.innerHTML = '<option value="">-- Pilih Produk --</option>';
   let hasProduct = false;
   for (const key in productData) {
@@ -291,46 +347,52 @@ function renderProducts(productData) {
   }
 
   // ======================= OTOMATIS PILIH PRODUK =======================
-  const data = window._checkoutData;
   if (data && (data.productId || data.productName || data.price)) {
     const foundKey = findProductKey(productData, data.productId, data.productName, data.price);
     if (foundKey) {
-      // Set value secara langsung
       productEl.value = foundKey;
-      // Nonaktifkan dropdown
       productEl.disabled = true;
-      // Trigger change untuk update harga
       productEl.dispatchEvent(new Event('change'));
-      // 🔥 Validasi langsung
       validateForm();
-    } else {
-      // Jika tidak ditemukan, tampilkan data dari URL sebagai fallback (tapi tetap dropdown kosong)
-      if (data.price) {
-        priceEl.innerHTML = `${formatRupiah(data.price)}<br><small>${data.productName || 'Paket'}</small>`;
-      }
     }
   }
-
-  validateForm();
 }
 
 // ============================================================
-// 👤 TAMPILKAN FORM
+// 👤 TAMPILKAN FORM & LOAD USER DATA
 // ============================================================
 function enableCheckout(user) {
-  nameEl.value = user.displayName || user.name || "User";
+  nameEl.value = user.displayName || user.name || window._checkoutData.name || "User";
   emailEl.value = user.email || "";
+  if (window._checkoutData.phone) {
+    phoneEl.value = window._checkoutData.phone;
+  }
   formEl.style.display = 'block';
   loginSection.style.display = 'none';
   const displayName = user.displayName || user.name || 'Pengguna';
   setStatus(`✅ Login berhasil sebagai <strong>${displayName}</strong>`, 'success');
+
   if (user.uid) {
-    db.ref(`users/${user.uid}`).once('value').then(snap => {
+    const userRef = db.ref(`users/${user.uid}`);
+    userRef.once('value').then(snap => {
       const data = snap.val() || {};
-      if (data.phone) phoneEl.value = data.phone;
+      const badge = document.getElementById('creditBadge');
+      if (typeof data.credits === 'number') {
+        window._userCredits = data.credits;
+        if (badge) {
+          badge.style.display = 'block';
+          badge.textContent = `Kredit saat ini: ${data.credits}`;
+        }
+      }
+      if (data.phone && !phoneEl.value) {
+        phoneEl.value = data.phone;
+      }
       validateForm();
-    }).catch(() => {});
+    }).catch(err => {
+      console.warn("Gagal membaca profil user:", err);
+    });
   }
+
   loadProducts();
   validateForm();
 }
@@ -353,10 +415,8 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   try {
     userToken = await user.getIdToken();
-    console.log("✅ Token Firebase didapatkan, UID:", user.uid);
   } catch (err) {
-    console.error("❌ Gagal mendapatkan token:", err);
-    setStatus("❌ Gagal autentikasi. Refresh halaman.", "error");
+    setStatus("❌ Gagal autentikasi.", "error");
     return;
   }
   enableCheckout(user);
@@ -371,38 +431,161 @@ async function loadProducts() {
     const data = snap.val() || {};
     if (data && Object.keys(data).length > 0) {
       for (const key in data) {
-        if (!data[key].token_amount) {
-          data[key].token_amount = getTokenAmountFromKey(key);
-        }
+        if (!data[key].token_amount) data[key].token_amount = getTokenAmountFromKey(key);
       }
       products = data;
-      console.log("✅ Produk dari Firebase:", products);
       renderProducts(products);
-      setStatus("✅ Produk dimuat dari Firebase", "success");
     } else {
-      console.warn("⚠️ Firebase kosong, pakai fallback hardcode");
       products = FALLBACK_PRODUCTS;
       renderProducts(products);
-      setStatus("⚠️ Menggunakan produk default (fallback)", "warning");
     }
   } catch (err) {
-    console.error("❌ Gagal memuat produk dari Firebase:", err);
     products = FALLBACK_PRODUCTS;
     renderProducts(products);
-    setStatus("⚠️ Gagal memuat produk. Menggunakan default.", "warning");
   }
   validateForm();
 }
 
 // ============================================================
-// ✅ VALIDASI FORM
 // ============================================================
+// ✅ QRIS DANA DINAMIS (EMVCo Toko Poster Math315)
+// ============================================================
+const QRIS_STATIC_DANA = "00020101021126570011ID.DANA.WWW011893600915383556205402098355620540303UMI51440014ID.CO.QRIS.WWW0215ID10253755165860303UMI5204899953033605802ID5919Toko Poster Math3156014Kota Pekanbaru6105393936304DC0D";
+
+function calculateCRC16(str) {
+  let crc = 0xFFFF;
+  for (let i = 0; i < str.length; i++) {
+    crc ^= str.charCodeAt(i) << 8;
+    for (let j = 0; j < 8; j++) {
+      if ((crc & 0x8000) !== 0) {
+        crc = ((crc << 1) ^ 0x1021) & 0xFFFF;
+      } else {
+        crc = (crc << 1) & 0xFFFF;
+      }
+    }
+  }
+  return (crc & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+}
+
+function generateDynamicQris(nominal) {
+  let qris = QRIS_STATIC_DANA.trim();
+  if (qris.includes('6304')) {
+    qris = qris.substring(0, qris.lastIndexOf('6304'));
+  }
+  qris = qris.replace("010211", "010212");
+
+  const nominalStr = parseInt(nominal, 10).toString();
+  const lenStr = nominalStr.length.toString().padStart(2, '0');
+  const tag54 = `54${lenStr}${nominalStr}`;
+
+  const parts = qris.split("5802ID");
+  const newQrisWithoutCrc = `${parts[0]}${tag54}5802ID${parts[1]}6304`;
+  const newCrc = calculateCRC16(newQrisWithoutCrc);
+
+  return `${newQrisWithoutCrc}${newCrc}`;
+}
+
+let currentInvoiceNo = null;
+let currentQrisAmount = 0;
+
+function getSelectedPaymentChannel() {
+  const radio = document.querySelector('input[name="payment_channel"]:checked');
+  return radio ? radio.value : 'qris';
+}
+
+function updateQrisDisplay() {
+  const selectedKey = productEl.value;
+  const product = products[selectedKey];
+  const channel = getSelectedPaymentChannel();
+  const qrisContainer = document.getElementById("qrisContainer");
+
+  if (channel === 'qris' && product && currentUser) {
+    qrisContainer.style.display = 'block';
+    payBtn.style.display = 'none';
+
+    if (!currentInvoiceNo) {
+      currentInvoiceNo = `INV-DANA-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
+    }
+    currentQrisAmount = product.price;
+
+    document.getElementById("qrisAmountDisplay").textContent = formatRupiah(currentQrisAmount);
+    document.getElementById("qrisInvoiceDisplay").textContent = `${currentInvoiceNo} • ${product.name}`;
+
+    // Render QRCode QRIS DANA Dinamis (Standar EMVCo Bank Indonesia)
+    const qrDisplay = document.getElementById("qrisQrDisplay");
+    qrDisplay.innerHTML = "";
+    
+    const qrContent = generateDynamicQris(currentQrisAmount);
+    
+    new QRCode(qrDisplay, {
+      text: qrContent,
+      width: 170,
+      height: 170,
+      colorDark : "#000000",
+      colorLight : "#ffffff",
+      correctLevel : QRCode.CorrectLevel.M
+    });
+
+    // Simpan transaksi pending QRIS DANA ke Firebase
+    savePendingQrisTransaction(currentInvoiceNo, product, selectedKey);
+  } else {
+    qrisContainer.style.display = 'none';
+    payBtn.style.display = 'block';
+  }
+}
+
+async function savePendingQrisTransaction(invoiceNo, product, selectedKey) {
+  if (!currentUser) return;
+  try {
+    await db.ref(`transactions/${invoiceNo}`).update({
+      customer_name: nameEl.value.trim() || currentUser.displayName || 'Customer',
+      customer_email: emailEl.value.trim() || currentUser.email || '',
+      product_name: product.name,
+      product_id: selectedKey,
+      amount: product.price,
+      token_amount: product.token_amount || 0,
+      payment_provider: 'QRIS_DANA',
+      payment_method: 'QRIS',
+      status: 'pending',
+      uid: currentUser.uid,
+      user_id: currentUser.uid,
+      created_at: Date.now()
+    });
+  } catch (e) {
+    console.warn("Gagal auto-record transaksi pending QRIS:", e);
+  }
+}
+
+// Handler WhatsApp Konfirmasi
+document.getElementById("confirmWaBtn").addEventListener("click", () => {
+  if (!currentUser || !currentInvoiceNo) return;
+  const selectedKey = productEl.value;
+  const product = products[selectedKey] || { name: 'Token', price: currentQrisAmount };
+  const adminWa = "6282189392233"; // Nomor WhatsApp Admin
+
+  const text = `Halo Admin Math315, saya telah melakukan pembayaran via *QRIS DANA*:\n\n` +
+    `📄 *No Invoice:* ${currentInvoiceNo}\n` +
+    `👤 *Nama:* ${nameEl.value.trim() || currentUser.displayName || 'User'}\n` +
+    `📧 *Email:* ${emailEl.value.trim() || currentUser.email || ''}\n` +
+    `📦 *Paket:* ${product.name}\n` +
+    `💰 *Nominal Transfer:* ${formatRupiah(product.price)}\n` +
+    `🆔 *UID:* ${currentUser.uid}\n\n` +
+    `Mohon konfirmasi dan aktivasi tokennya. Terima kasih!`;
+
+  window.open(`https://wa.me/${adminWa}?text=${encodeURIComponent(text)}`, '_blank');
+});
+
+document.querySelectorAll('input[name="payment_channel"]').forEach(r => {
+  r.addEventListener('change', () => {
+    updateQrisDisplay();
+    validateForm();
+  });
+});
+
 function validateForm() {
-  const phoneOk = validPhone(phoneEl.value);
+  const phoneOk = validPhone(phoneEl.value.trim());
   const productSelected = productEl.value !== "" && productEl.value !== null;
   const userLoggedIn = currentUser !== null;
-
-  console.log('🔍 validateForm:', { phoneOk, productSelected, userLoggedIn, productValue: productEl.value });
 
   payBtn.disabled = !(phoneOk && productSelected && userLoggedIn);
   phoneEl.style.borderColor = (!phoneOk && phoneEl.value) ? "#dc3545" : "#e0e0e0";
@@ -417,6 +600,8 @@ productEl.addEventListener("change", () => {
   } else {
     priceEl.innerHTML = "Rp -";
   }
+  currentInvoiceNo = null; // reset invoice untuk produk baru
+  updateQrisDisplay();
   validateForm();
 });
 
@@ -442,7 +627,7 @@ loginBtn.addEventListener('click', async () => {
 });
 
 // ============================================================
-// 💳 SUBMIT PEMBAYARAN
+// 💳 SUBMIT PEMBAYARAN GATEWAY
 // ============================================================
 document.getElementById("form").addEventListener("submit", async e => {
   e.preventDefault();
@@ -464,6 +649,12 @@ document.getElementById("form").addEventListener("submit", async e => {
     });
     const timestamp = Date.now();
     const invoice = `INV${timestamp.toString().slice(-8)}${Math.random().toString(36).substring(2, 5).toUpperCase()}`;
+    const sanitizedProductName = (selectedProduct.name || "Product")
+      .replace(/[^a-zA-Z0-9 ]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 50) || "Product";
+
     const amount = Number(selectedProduct.price);
     const tokenAmount = selectedProduct.token_amount || 0;
 
@@ -475,7 +666,7 @@ document.getElementById("form").addEventListener("submit", async e => {
       msisdn: phone,
       uid: currentUser.uid,
       token_amount: tokenAmount,
-      item: [{ product: selectedProduct.name, qty: 1, amount }]
+      item: [{ product: sanitizedProductName, qty: 1, amount }]
     };
 
     const res = await fetch(`${API_BASE}/api/create-transaction`, {
@@ -513,7 +704,7 @@ document.getElementById("form").addEventListener("submit", async e => {
 // ============================================================
 // 🚀 INISIALISASI
 // ============================================================
-console.log("🚀 Checkout Math315 (Firebase) siap!");
+console.log("🚀 Checkout Math315 (QRIS DANA + Faspay) siap!");
 if (window._checkoutData && window._checkoutData.productId) {
   setStatus(`📦 Data dari dashboard: ${window._checkoutData.productName || 'Paket'} - ${formatRupiah(window._checkoutData.price || 0)}`, "info");
 }
