@@ -8,6 +8,7 @@ import {
   type TopikRotasi
 } from '../../agent/generateSoalWithChecklist2026';
 import { MateriFilterChecklist } from '../MateriFilterChecklist';
+import { bersihkanPrefixPilihan } from '../../services/soal-generator/parser';
 
 interface SesiBelajar {
   sesiKe: number;
@@ -555,20 +556,24 @@ export default function SoalGeneratorWithChecklist({
                 </div>
 
                 <div>
-                  {soalSaatIni.pilihan?.map((p: string, i: number) => (
-                    <button
-                      key={i}
-                      onClick={() => !feedback && setJawabanUser(p)}
-                      disabled={!!feedback}
-                      style={{
-                        ...styles.pilihan,
-                        ...(jawabanUser === p ? styles.pilihanSelected : {}),
-                        ...(feedback ? styles.pilihanDisabled : {})
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ))}
+                  {soalSaatIni.pilihan?.map((p: string, i: number) => {
+                    const abjad = String.fromCharCode(65 + i);
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => !feedback && setJawabanUser(p)}
+                        disabled={!!feedback}
+                        style={{
+                          ...styles.pilihan,
+                          ...(jawabanUser === p ? styles.pilihanSelected : {}),
+                          ...(feedback ? styles.pilihanDisabled : {})
+                        }}
+                      >
+                        <span style={{ fontWeight: 600, marginRight: '8px' }}>{abjad}.</span>
+                        {bersihkanPrefixPilihan(p)}
+                      </button>
+                    );
+                  })}
                 </div>
 
                 {!feedback && (

@@ -63,5 +63,8 @@ export async function decrementCredit(uid: string): Promise<number> {
 export async function loadUserCreditsToWindow(uid: string): Promise<void> {
   const credit = await ensureCredits(uid);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any)._userCredits = credit;
+  if (typeof globalThis !== 'undefined' && (globalThis as any).window) {
+    (globalThis as any).window._userCredits = credit;
+  }
 }
+

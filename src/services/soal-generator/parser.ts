@@ -34,33 +34,106 @@ export function parseJSONSoal(hasilMentah: string): any[] {
   }
 }
 
-export function perbaikiJawabanBenar(s: any, i: number) {
+/**
+ * Membersihkan awalan abjad/nomor pilihan jawaban seperti "A. ", "B) ", "(C) ", "[D] ", "A - ", dll.
+ * Hanya membersihkan prefix penomoran abjad/angka dan menyisakan isi murni pilihan jawaban.
+ */
+export function bersihkanPrefixPilihan(pilihan: string): string {
+  if (!pilihan || typeof pilihan !== 'string') return '';
+  return pilihan
+    .replace(/^(\([A-Ea-e\d]\)|\[[A-Ea-e\d]\]|(?:Pilihan\s+)?[A-Ea-e\d][\.\)\:\-]\s*|[A-Ea-e]\s*[-–—]\s*)/i, '')
+    .trim();
+}
+
+export function perbaikiJawabanBenar(s: any, _i?: number) {
   // Pastikan tipeSoal ada (default ke single)
   if (!s.tipeSoal) s.tipeSoal = 'single';
 
+  if (!Array.isArray(s.pilihan)) {
+    s.pilihan = [];
+  }
+
+  const pilihanMentah: string[] = s.pilihan.map((p: any) => (p != null ? String(p) : ''));
+  const pilihanBersih: string[] = pilihanMentah.map((p: string) => bersihkanPrefixPilihan(p));
+  s.pilihan = pilihanBersih;
+
   if (s.tipeSoal === 'single') {
-    if (!s.pilihan.includes(s.jawaban_benar)) {
-      console.warn(`[DEBUG-GENERATE] Soal ${i + 1} (single): jawaban_benar tidak cocok, memperbaiki...`);
-      const prefix = typeof s.jawaban_benar === 'string' ? s.jawaban_benar.match(/^[A-E]\./)?.[0] : null;
-      if (prefix) {
-        const cocok = s.pilihan.find((p: string) => p.startsWith(prefix));
-        s.jawaban_benar = cocok || s.pilihan[0];
-      } else {
-        s.jawaban_benar = s.pilihan[0];
+    let indexBenar = -1;
+    const jb = s.jawaban_benar != null ? String(s.jawaban_benar).trim() : '';
+    const jbClean = bersihkanPrefixPilihan(jb);
+
+    // 1. Cocok persis dengan pilihan mentah
+    indexBenar = pilihanMentah.findIndex((p) => p === jb);
+
+    // 2. Cocok dengan pilihan bersih
+    if (indexBenar === -1) {
+      indexBenar = pilihanBersih.findIndex((p) => p === jb || p === jbClean);
+    }
+
+    // 3. Jika jawaban_benar hanya berupa huruf abjad seperti "A", "B", "C", "D", "E" atau "A."
+    if (indexBenar === -1) {
+      const matchAbjad = jb.match(/^([A-Ea-e])[\.\)\:\-]?$/);
+      if (matchAbjad) {
+        const idxAbjad = matchAbjad[1].toUpperCase().charCodeAt(0) - 65;
+        if (idxAbjad >= 0 && idxAbjad < pilihanBersih.length) {
+          indexBenar = idxAbjad;
+        }
       }
     }
+
+    // 4. Cek apakah prefix huruf cocok dengan pilihan mentah (misal "A. ..." atau "B. ...")
+    if (indexBenar === -1) {
+      const prefix = jb.match(/^[A-Ea-e][\.\)\:\-]/)?.[0]?.toUpperCase();
+      if (prefix) {
+        indexBenar = pilihanMentah.findIndex((p) => p.toUpperCase().startsWith(prefix));
+      }
+    }
+
+    // Fallback jika tidak ditemukan
+    if (indexBenar === -1 || indexBenar >= pilihanBersih.length) {
+      indexBenar = 0;
+    }
+
+    s.jawaban_benar = pilihanBersih[indexBenar] || pilihanBersih[0] || '';
   } else if (s.tipeSoal === 'multi') {
     // Pastikan jawaban_benar adalah array
-    if (!Array.isArray(s.jawaban_benar)) {
-      s.jawaban_benar = [s.jawaban_benar];
-    }
-    
-    // Filter hanya jawaban yang ada di pilihan
-    s.jawaban_benar = s.jawaban_benar.filter((j: string) => s.pilihan.includes(j));
-    
+    const rawArray: any[] = Array.isArray(s.jawaban_benar) ? s.jawaban_benar : [s.jawaban_benar];
+    const hasilJawaban: string[] = [];
+
+    rawArray.forEach((item) => {
+      const jb = item != null ? String(item).trim() : '';
+      const jbClean = bersihkanPrefixPilihan(jb);
+
+      let idx = pilihanMentah.findIndex((p) => p === jb);
+      if (idx === -1) {
+        idx = pilihanBersih.findIndex((p) => p === jb || p === jbClean);
+      }
+      if (idx === -1) {
+        const matchAbjad = jb.match(/^([A-Ea-e])[\.\)\:\-]?$/);
+        if (matchAbjad) {
+          const idxAbjad = matchAbjad[1].toUpperCase().charCodeAt(0) - 65;
+          if (idxAbjad >= 0 && idxAbjad < pilihanBersih.length) {
+            idx = idxAbjad;
+          }
+        }
+      }
+      if (idx === -1) {
+        const prefix = jb.match(/^[A-Ea-e][\.\)\:\-]/)?.[0]?.toUpperCase();
+        if (prefix) {
+          idx = pilihanMentah.findIndex((p) => p.toUpperCase().startsWith(prefix));
+        }
+      }
+
+      if (idx !== -1 && pilihanBersih[idx] && !hasilJawaban.includes(pilihanBersih[idx])) {
+        hasilJawaban.push(pilihanBersih[idx]);
+      }
+    });
+
     // Jika tidak ada yang valid, ambil pilihan pertama
-    if (s.jawaban_benar.length === 0) {
-      s.jawaban_benar = [s.pilihan[0]];
+    if (hasilJawaban.length === 0 && pilihanBersih.length > 0) {
+      hasilJawaban.push(pilihanBersih[0]);
     }
+
+    s.jawaban_benar = hasilJawaban;
   }
 }

@@ -8,6 +8,7 @@ import {
   type TopikRotasi
 } from '../../agent/generateSoalWithChecklist';
 import { MateriFilterChecklist } from '../MateriFilterChecklist';
+import { bersihkanPrefixPilihan } from '../../services/soal-generator/parser';
 
 interface SesiBelajar {
   sesiKe: number;
@@ -538,6 +539,7 @@ export default function SoalGeneratorWithChecklist({
                     const isSelected = isMulti 
                       ? Array.isArray(jawabanUser) && jawabanUser.includes(p)
                       : jawabanUser === p;
+                    const abjad = String.fromCharCode(65 + i);
 
                     return (
                       <button
@@ -561,7 +563,8 @@ export default function SoalGeneratorWithChecklist({
                         }}
                       >
                         {isMulti && (isSelected ? '☑️ ' : '☐ ')}
-                        {p}
+                        <span style={{ fontWeight: 600, marginRight: '8px' }}>{abjad}.</span>
+                        {bersihkanPrefixPilihan(p)}
                       </button>
                     );
                   })}

@@ -19,10 +19,91 @@ app.post('/api/generate-soal', async (req, res) => {
   }
 });
 
+// Endpoint Animasi Matematika via Python Engine
+app.post('/api/animate-math', async (req, res) => {
+  try {
+    const { spawn } = await import('child_process');
+    const pythonProcess = spawn('python3', ['/root/vue-kim/src/agent/math_animator.py']);
+    
+    let output = '';
+    let errorOutput = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      errorOutput += data.toString();
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code === 0 && output) {
+        try {
+          const parsed = JSON.parse(output);
+          return res.json(parsed);
+        } catch (e) {
+          return res.status(500).json({ error: 'Failed to parse python output' });
+        }
+      }
+      res.status(500).json({ error: errorOutput || 'Python process exited with error' });
+    });
+
+    pythonProcess.stdin.write(JSON.stringify(req.body));
+    pythonProcess.stdin.end();
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check, berguna untuk cek server aktif dari browser/HP
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+// ==================== RAJAONGKIR SHIPPING ENDPOINTS ====================
+import { getProvinces, getCities, calculateShippingCost } from './service/rajaongkir.js';
+
+// Ambil daftar provinsi
+app.get('/api/shipping/provinces', async (_req, res) => {
+  try {
+    const provinces = await getProvinces();
+    res.json(provinces);
+  } catch (err: any) {
+    res.status(500).json({ error: err.response?.data || err.message });
+  }
+});
+
+// Ambil daftar kota (bisa filter ?provinceId=...)
+app.get('/api/shipping/cities', async (req, res) => {
+  try {
+    const provinceId = req.query.provinceId as string | undefined;
+    const cities = await getCities(provinceId);
+    res.json(cities);
+  } catch (err: any) {
+    res.status(500).json({ error: err.response?.data || err.message });
+  }
+});
+
+// Hitung ongkir pesanan poster
+app.post('/api/shipping/cost', async (req, res) => {
+  try {
+    const { destinationCityId, courier, items, customWeightInGram } = req.body;
+    if (!destinationCityId) {
+      return res.status(400).json({ error: 'destinationCityId wajib diisi' });
+    }
+
+    const result = await calculateShippingCost({
+      destinationCityId,
+      courier,
+      items,
+      customWeightInGram,
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.response?.data || err.message });
+  }
+});
+// =======================================================================
 
 const oauth2Client = new OAuth2Client(
   process.env.GOOGLE_CLIENT_ID,

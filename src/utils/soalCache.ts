@@ -232,3 +232,41 @@ export async function getBankSoalStats(): Promise<{
     detail,
   };
 }
+
+/**
+ * Ekspor semua data bank soal dari semua topik
+ */
+export async function exportAllBankSoal(): Promise<Record<string, SoalItemGenerated[]>> {
+  const result: Record<string, SoalItemGenerated[]> = {};
+
+  try {
+    const db = await openDB();
+    const records = await new Promise<BankRecord[]>((resolve) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+
+    for (const rec of records) {
+      if (rec.topikId && rec.soal && rec.soal.length > 0) {
+        result[rec.topikId] = rec.soal;
+      }
+    }
+  } catch {
+    // Fallback ambil dari localStorage
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith(LOCALSTORAGE_PREFIX)) {
+        const topikId = key.replace(LOCALSTORAGE_PREFIX, '');
+        const soal = getFromLocalStorage(topikId);
+        if (soal.length > 0) {
+          result[topikId] = soal;
+        }
+      }
+    }
+  }
+
+  return result;
+}

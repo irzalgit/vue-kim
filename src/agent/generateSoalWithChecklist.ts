@@ -3,6 +3,7 @@
 import KISI_MATEMATIKA from '../config/kisiTKA';
 import { generateSoalAdaptif } from './generateSoal';
 import { getSoalFromBank, saveSoalToBank } from '../utils/soalCache';
+import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
 // ... (rest of the file)
 export interface SelectedItem {
   id: string;
@@ -12,6 +13,7 @@ export interface SelectedItem {
   subElemenNama?: string;
   type?: string;
   kelas?: number[];
+  refNomor?: number;
 }
 
 export interface SoalHasil {
@@ -251,6 +253,22 @@ export async function generateSoalWithChecklist({
       );
 
       if (freshFromBank) {
+        const rawPilihan = Array.isArray(freshFromBank.pilihan) ? freshFromBank.pilihan : [];
+        const cleanPilihan = rawPilihan.map((p: string) => bersihkanPrefixPilihan(p));
+        const rawJawaban = freshFromBank.jawaban_benar || (rawPilihan.length > 0 ? rawPilihan[0] : '');
+        let cleanJawaban: string | string[];
+        if (Array.isArray(rawJawaban)) {
+          cleanJawaban = rawJawaban.map((j: string) => {
+            const jc = bersihkanPrefixPilihan(j);
+            const idx = rawPilihan.findIndex((p: string) => p === j || bersihkanPrefixPilihan(p) === jc);
+            return idx !== -1 ? cleanPilihan[idx] : jc;
+          });
+        } else {
+          const jc = bersihkanPrefixPilihan(String(rawJawaban));
+          const idx = rawPilihan.findIndex((p: string) => p === rawJawaban || bersihkanPrefixPilihan(p) === jc);
+          cleanJawaban = idx !== -1 ? cleanPilihan[idx] : jc;
+        }
+
         return {
           id: `soal-cache-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           elemen: freshFromBank.elemen,
@@ -259,8 +277,8 @@ export async function generateSoalWithChecklist({
           kelas: freshFromBank.kelas,
           taxonomiBloom: freshFromBank.taxonomiBloom,
           pertanyaan: freshFromBank.pertanyaan,
-          pilihan: freshFromBank.pilihan,
-          jawaban_benar: freshFromBank.jawaban_benar,
+          pilihan: cleanPilihan,
+          jawaban_benar: cleanJawaban,
           tipeSoal: freshFromBank.tipeSoal,
           pembahasan: freshFromBank.pembahasan,
           model: freshFromBank.model || 'bank-lokal',

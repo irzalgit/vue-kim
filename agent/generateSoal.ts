@@ -318,8 +318,8 @@ Buat 1 soal pilihan ganda untuk topik:
 Format JSON (dalam bentuk array atau objek tunggal yang valid):
 {
   "pertanyaan": "...",
-  "pilihan": ["A. ...", "B. ...", "C. ...", "D. ..."],
-  "jawaban_benar": "A. ...",
+  "pilihan": ["Pilihan satu", "Pilihan dua", "Pilihan tiga", "Pilihan empat"],
+  "jawaban_benar": "Pilihan satu",
   "pembahasan": "..."
 }
 `;
@@ -751,11 +751,7 @@ export async function generateSoalAdaptif(
     .replace("{{ringkasanPerforma}}", ringkasanPerforma)
     .replace("{{jumlahSoal}}", String(jumlahSoal));
 
-  // INSTRUKSI TAMBAHAN: minta LLM agar jawaban_benar SELALU persis sama
-  // (karakter demi karakter, termasuk prefix "A. "/"B. "/"C. "/"D. ")
-  // dengan salah satu string di array "pilihan". Ini mengurangi kemungkinan
-  // mismatch yang membuat perbaikiJawabanBenar() harus turun tangan.
-  prompt += `\n\nPENTING: Field "jawaban_benar" HARUS persis sama karakter demi karakter dengan salah satu string di array "pilihan" (termasuk prefix "A. "/"B. "/"C. "/"D. "). Jangan menulis jawaban_benar dalam format lain (misalnya hanya angka atau tanpa prefix huruf).`;
+  prompt += `\n\nPENTING: Pilihan jawaban HANYA berisi teks pilihan tanpa awalan abjad A/B/C/D. Field "jawaban_benar" HARUS persis sama karakter demi karakter dengan salah satu string di array "pilihan".`;
 
   if (bloomTarget) {
     prompt += `\n\nINSTRUKSI TAMBAHAN: Pastikan semua soal memiliki tingkat taksonomi Bloom minimal ${bloomTarget}.`;

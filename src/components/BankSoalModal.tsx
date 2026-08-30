@@ -154,3 +154,5 @@ export default function BankSoalModal({ isOpen, onClose }: BankSoalModalProps) {
     </div>
   );
 }
+
+

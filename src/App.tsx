@@ -7,8 +7,10 @@ import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
+import AnimasiMatematikaPage from './pages/AnimasiMatematikaPage';
 import ShopPage from './pages/ShopPage';
 import { PaymentModal } from './components/PaymentModal';
+import { FloatingOnlineUsers } from './components/FloatingOnlineUsers';
 import type { SelectedItem } from './agent/generateSoalWithChecklist';
 
 // --- Context ---
@@ -56,6 +58,8 @@ interface SoalNavigationState {
   selectedItems?: SelectedItem[];
   jumlahSesi?: number;
   jumlahSoalPerSesi?: number;
+  customSoal?: any[];
+  customJudul?: string;
 }
 
 // --- Wrapper ---
@@ -78,6 +82,8 @@ function SoalPageWrapper() {
       selectedItems={state.selectedItems}
       jumlahSesi={state.jumlahSesi}
       jumlahSoalPerSesi={state.jumlahSoalPerSesi}
+      customSoal={state.customSoal}
+      customJudul={state.customJudul}
       onKembali={() => navigate('/dashboard')}
     />
   );
@@ -122,6 +128,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
           <Route path="/shop" element={<ShopPage />} />
+          <Route path="/animasi-matematika" element={<AnimasiMatematikaPage />} />
           <Route 
             path="/dashboard" 
             element={
@@ -130,10 +137,18 @@ function AppContent() {
                   kode: string,
                   selectedItems?: SelectedItem[],
                   jumlahSesi?: number,
-                  jumlahSoalPerSesi?: number
+                  jumlahSoalPerSesi?: number,
+                  customSoal?: any[],
+                  customJudul?: string
                 ) =>
                   navigate(`/soal/${kode}`, {
-                    state: { selectedItems, jumlahSesi, jumlahSoalPerSesi } as SoalNavigationState,
+                    state: { 
+                      selectedItems, 
+                      jumlahSesi, 
+                      jumlahSoalPerSesi,
+                      customSoal,
+                      customJudul
+                    } as SoalNavigationState,
                   })
                 }
                 onKembaliKeLanding={() => navigate('/')} 
@@ -143,6 +158,7 @@ function AppContent() {
           <Route path="/soal/:kode" element={<SoalPageWrapper />} />
         </Routes>
         <PaymentModal open={showPayment} onOpenChange={setShowPayment} />
+        <FloatingOnlineUsers />
       </div>
     </PaymentContext.Provider>
   );

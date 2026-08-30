@@ -9,6 +9,7 @@ import {
   SubSubElemen,
   getFaseDariKelas 
 } from '../config/kisiTKA';
+import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
 
 // ==================== TIPE DATA ====================
 interface SelectedItem {
@@ -452,20 +453,24 @@ export default function SoalGeneratorWithChecklist() {
 
               {/* Pilihan Jawaban */}
               <div className="space-y-2 mb-4">
-                {soalSaatIni.pilihan?.map((p: string, i: number) => (
-                  <button
-                    key={i}
-                    onClick={() => setJawabanUser(p)}
-                    disabled={!!feedback}
-                    className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
-                      jawabanUser === p
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-slate-200 hover:border-slate-300'
-                    } ${feedback ? 'cursor-not-allowed opacity-75' : ''}`}
-                  >
-                    <span className="text-sm">{p}</span>
-                  </button>
-                ))}
+                {soalSaatIni.pilihan?.map((p: string, i: number) => {
+                  const abjad = String.fromCharCode(65 + i);
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => setJawabanUser(p)}
+                      disabled={!!feedback}
+                      className={`w-full text-left px-3 py-2 rounded-lg border transition-colors ${
+                        jawabanUser === p
+                          ? 'border-emerald-500 bg-emerald-50'
+                          : 'border-slate-200 hover:border-slate-300'
+                      } ${feedback ? 'cursor-not-allowed opacity-75' : ''}`}
+                    >
+                      <span className="text-sm font-semibold mr-2">{abjad}.</span>
+                      <span className="text-sm">{bersihkanPrefixPilihan(p)}</span>
+                    </button>
+                  );
+                })}
               </div>
 
               {/* Tombol Submit */}

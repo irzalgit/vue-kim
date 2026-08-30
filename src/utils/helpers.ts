@@ -1,3 +1,5 @@
+import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
+
 /**
  * Shuffle array in place using Fisher-Yates algorithm
  */
@@ -58,7 +60,7 @@ export function formatSoalUntukChat(soalItem: SoalItem, index: number): string {
   if (soalItem.opsi && soalItem.opsi.length > 0) {
     text += `**Pilihan Jawaban:**\n`;
     soalItem.opsi.forEach((op: string, i: number) => {
-      text += `${String.fromCharCode(65 + i)}. ${op}\n`;
+      text += `${String.fromCharCode(65 + i)}. ${bersihkanPrefixPilihan(op)}\n`;
     });
   }
   return text;
@@ -84,7 +86,7 @@ export function generateLocalFallback(question: string, questionData: QuestionDa
   if (options.length > 0) {
     response += `## 📝 Pilihan Jawaban\n`;
     options.forEach((op: string, i: number) => {
-      response += `${String.fromCharCode(65 + i)}. ${op}\n`;
+      response += `${String.fromCharCode(65 + i)}. ${bersihkanPrefixPilihan(op)}\n`;
     });
     response += `\n`;
   }

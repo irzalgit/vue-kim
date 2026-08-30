@@ -71,6 +71,14 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
     }
   }, [triggerSelect, allItems]); // allItems added to dependencies
 
+  const itemNumberMap = useMemo(() => {
+    const map = new Map<string, number>();
+    allItems.forEach((item, index) => {
+      map.set(item.id, index + 1);
+    });
+    return map;
+  }, [allItems]);
+
   // Kelompokkan item berdasarkan elemenNama
   const groupedItems = useMemo(() => {
     const groups: Record<string, SelectedItem[]> = {};
@@ -149,10 +157,10 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
         const jumlahPilih = Math.ceil(semuaSubSub.length * PERSENTASE_ACAK);
         const terpilih = shuffled.slice(0, jumlahPilih);
 
-        terpilih.forEach(item => newSet.add(item.id));
+        terpilih.forEach(t => newSet.add(t.id));
       }
     } else {
-      // Toggle normal untuk item lain
+      // Perilaku normal untuk item selain TKA6
       if (newSet.has(id)) {
         newSet.delete(id);
       } else {
@@ -161,38 +169,38 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
     }
 
     setSelectedItemIds(newSet);
-    const selectedFullItems = allItems.filter(item => newSet.has(item.id));
-    onSelectionChange(selectedFullItems);
+    onSelectionChange(allItems.filter(i => newSet.has(i.id)));
   };
 
   // Fungsi untuk mencentang/menghapus semua item dalam satu elemen
   const toggleAllInElemen = (items: SelectedItem[]) => {
-    const semuaIds = items.map(i => i.id);
-    const semuaTercentang = semuaIds.every(id => selectedItemIds.has(id));
-
+    const allSelected = items.every(i => selectedItemIds.has(i.id));
     const newSet = new Set(selectedItemIds);
-    if (semuaTercentang) {
-      semuaIds.forEach(id => newSet.delete(id));
-    } else {
-      semuaIds.forEach(id => newSet.add(id));
-    }
+
+    items.forEach(item => {
+      if (allSelected) {
+        newSet.delete(item.id);
+      } else {
+        newSet.add(item.id);
+      }
+    });
 
     setSelectedItemIds(newSet);
-    const selectedFullItems = allItems.filter(item => newSet.has(item.id));
-    onSelectionChange(selectedFullItems);
+    onSelectionChange(allItems.filter(item => newSet.has(item.id)));
   };
 
   return (
-    <div className="border rounded-lg p-4 bg-white shadow-sm">
-      {/* Tombol Filter */}
-      <div className="mb-4 flex flex-wrap gap-2">
+    <div className="bg-white p-3 rounded-lg border border-gray-200">
+      {/* Filter Kancing (Fase / Kelas) */}
+      <div className="flex flex-wrap gap-1 mb-3">
         {FILTER_OPTIONS.map(opt => (
           <button
             key={opt.value}
+            type="button"
             onClick={() => toggleFilter(opt.value)}
-            className={`px-3 py-1 text-xs font-medium rounded-full border transition-colors ${
+            className={`text-xs px-2 py-1 rounded border transition-colors ${
               activeFilters.includes(opt.value)
-                ? 'bg-blue-600 text-white border-blue-600'
+                ? 'bg-blue-600 text-white border-blue-600 font-bold'
                 : 'bg-gray-50 text-gray-700 border-gray-300 hover:bg-gray-100'
             }`}
           >
@@ -238,6 +246,7 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
               {isExpanded && (
                 <div className="ml-6 space-y-1 pb-1">
                   {items.map((item: SelectedItem) => {
+                    const noUrut = itemNumberMap.get(item.id);
                     let displayText = item.nama;
                     if (item.type === 'subSubElemen') {
                       displayText = `  ${item.nama}`;
@@ -254,6 +263,14 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
                           onChange={() => toggleItemSelection(item.id)}
                           className="rounded text-blue-600 focus:ring-blue-500"
                         />
+                        <span className="text-xs font-mono font-bold text-blue-600 min-w-[32px]">
+                          #{noUrut}
+                        </span>
+                        {item.refNomor && (
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 bg-purple-100 text-purple-700 font-semibold rounded" title={`Merujuk ke Topik Kurikulum Merdeka #${item.refNomor}`}>
+                            (KM #{item.refNomor})
+                          </span>
+                        )}
                         <span className="text-sm text-gray-700">
                           {displayText}
                         </span>
@@ -261,6 +278,7 @@ export const MateriFilterChecklist: React.FC<MateriFilterChecklistProps> = ({
                           {item.type === 'subSubElemen' ? '↳' : ''}
                         </span>
                       </label>
+
                     );
                   })}
                 </div>

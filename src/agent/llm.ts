@@ -2,6 +2,8 @@
 import { getEnv } from "./envUtil";
 import { AI_CONFIG } from "./config";
 import { QUOTA_EXCEEDED_ERROR } from "./providers/gemini";
+import { auth } from "../lib/firebase";
+import { decrementCredit } from "./credit";
 
 export type Provider = "gemini" | "openrouter" | "openai" | "groq";
 
@@ -11,24 +13,47 @@ export interface AskOptions {
   modelOverride?: string;
 }
 
+/**
+ * Mengurangi token user sebanyak 1 jika user sedang login setelah AI sukses merespons.
+ */
+async function consumeUserTokenIfAuthenticated(): Promise<void> {
+  try {
+    const user = auth.currentUser;
+    if (user?.uid) {
+      await decrementCredit(user.uid);
+    }
+  } catch (err) {
+    console.warn("[llm] Gagal mengurangi kredit token:", err);
+  }
+}
+
 export async function askLLM(
   provider: Provider,
   prompt: string,
   systemPrompt?: string,
   options: AskOptions = {}
 ): Promise<string> {
+  let result = "";
   switch (provider) {
     case "gemini":
-      return callGemini(prompt, systemPrompt, options.apiKey, options.modelOverride);
+      result = await callGemini(prompt, systemPrompt, options.apiKey, options.modelOverride);
+      break;
     case "openrouter":
-      return callOpenRouter(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      result = await callOpenRouter(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      break;
     case "openai":
-      return callOpenAI(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      result = await callOpenAI(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      break;
     case "groq":
-      return callGroq(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      result = await callGroq(prompt, systemPrompt, options.apiKey, options.maxTokens);
+      break;
     default:
       throw new Error(`Provider tidak dikenal: ${provider}`);
   }
+
+  // Kurangi 1 token setiap kali AI berhasil menghasilkan output
+  await consumeUserTokenIfAuthenticated();
+  return result;
 }
 
 export interface LLMResponse {
@@ -70,6 +95,7 @@ export async function askLLMWithFallback(
           try {
             console.log(`[askLLMWithFallback] Mencoba model Gemini: ${modelName}`);
             const text = await callGemini(prompt, systemPrompt, apiKey, modelName);
+            await consumeUserTokenIfAuthenticated();
             return { text, model: modelName };
           } catch (err) {
             lastGeminiError = err instanceof Error ? err : new Error(String(err));
@@ -101,46 +127,100 @@ export async function askLLMWithFallback(
 // GEMINI — Lewat PHP Proxy (key tidak di frontend)
 // Parameter _apiKey tetap ada untuk compat, tapi tidak dipakai
 // ============================================================
-const ALLOWED_HOSTS_FOR_AI = ["math315.id", "www.math315.id", "localhost", "127.0.0.1"];
 
-function isAIAllowedOnThisHost(): boolean {
-  const win = (globalThis as unknown as { window?: { location?: { hostname?: string } } }).window;
-  if (!win || !win.location || !win.location.hostname) return true; // Node/build time, tidak relevan
-  const host = win.location.hostname;
-  return ALLOWED_HOSTS_FOR_AI.some((h) => host === h || host.endsWith("." + h));
-}
 
-async function callGemini(
+async function callDirectGemini(
   prompt: string,
   systemPrompt?: string,
-  _apiKey?: string,
+  apiKey?: string,
   modelOverride?: string
 ): Promise<string> {
-  if (!isAIAllowedOnThisHost()) {
-    throw new Error("Fitur AI ini hanya tersedia di math315.id, bukan di preview/hosting ini.");
+  const key = apiKey || AI_CONFIG.apiKey || getEnv("VITE_GEMINI_API_KEY");
+  if (!key) {
+    throw new Error("Gemini API key tidak ditemukan (set VITE_GEMINI_API_KEY di .env)");
   }
 
-  const model = modelOverride || "gemini-3.5-flash";
+  const model = modelOverride || "gemini-1.5-flash";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
 
-  const response = await fetch('/gemini-proxy.php', {
+  const payload: any = {
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+  };
+  if (systemPrompt) {
+    payload.systemInstruction = { parts: [{ text: systemPrompt }] };
+  }
+
+  const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: model,
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     const detail = (err as any)?.error?.message;
     if (response.status === 429) throw new Error(`QUOTA_EXCEEDED${detail ? `: ${detail}` : ""}`);
-    throw new Error(detail || `Gemini API error: ${response.status}`);
+    throw new Error(detail || `Gemini Direct API error: ${response.status}`);
   }
 
   const data = await response.json();
   return (data as any)?.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respons.";
+}
+
+async function callGemini(
+  prompt: string,
+  systemPrompt?: string,
+  apiKey?: string,
+  modelOverride?: string
+): Promise<string> {
+  const model = modelOverride || "gemini-1.5-flash";
+
+  // Coba lewat proxy terlebih dahulu
+  try {
+    const response = await fetch('/gemini-proxy.php', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: model,
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
+      }),
+    });
+
+    const text = await response.text();
+    // Jika response bukan JSON (misalnya script PHP mentah karena di dev server)
+    if (text.trim().startsWith("<?php") || text.trim().startsWith("<")) {
+      console.warn("[callGemini] Proxy mengembalikan teks/HTML bukan JSON. Menggunakan fallback ke direct API...");
+      return await callDirectGemini(prompt, systemPrompt, apiKey, modelOverride);
+    }
+
+    let data: any = {};
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.warn("[callGemini] Response bukan JSON valid. Menggunakan fallback direct API...");
+      return await callDirectGemini(prompt, systemPrompt, apiKey, modelOverride);
+    }
+
+    if (!response.ok) {
+      const detail = data?.error?.message;
+      if (response.status === 429) throw new Error(`QUOTA_EXCEEDED${detail ? `: ${detail}` : ""}`);
+      throw new Error(detail || `Gemini API error: ${response.status}`);
+    }
+
+    return data?.candidates?.[0]?.content?.parts?.[0]?.text || "Tidak ada respons.";
+  } catch (err: any) {
+    // Jika proxy gagal konek / error, coba fallback direct API jika ada key
+    if (err?.message && !err.message.startsWith("QUOTA_EXCEEDED")) {
+      console.warn("[callGemini] Gagal lewat proxy, mencoba direct call:", err.message);
+      try {
+        return await callDirectGemini(prompt, systemPrompt, apiKey, modelOverride);
+      } catch (directErr) {
+        throw directErr;
+      }
+    }
+    throw err;
+  }
 }
 
 // ============================================================

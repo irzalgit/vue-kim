@@ -146,10 +146,61 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
       </label>
     </div>
 
+    <!-- OPSI PENGIRIMAN FISIK (RAJAONGKIR) -->
+    <div id="shippingToggleSection" style="margin-top: 14px; background: #f8fafc; padding: 12px; border-radius: 10px; border: 1px solid #e2e8f0;">
+      <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; margin: 0; font-weight: 600; color: #1e293b; font-size: 14px;">
+        <input type="checkbox" id="needShipping" style="width: 18px; height: 18px; accent-color: #667eea; cursor: pointer;">
+        🚚 Butuh Pengiriman Fisik? (Poster/Barang)
+      </label>
+    </div>
+
+    <div id="shippingSection" style="display: none; margin-top: 10px; padding: 14px; background: #f1f5f9; border-radius: 12px; border: 1.5px solid #cbd5e1;">
+      <div style="font-weight: 700; color: #1e293b; font-size: 14px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+        📍 Hitung Ongkos Kirim (RajaOngkir)
+      </div>
+
+      <label for="shippingProvince">Provinsi Tujuan</label>
+      <select id="shippingProvince">
+        <option value="">-- Pilih Provinsi --</option>
+      </select>
+
+      <label for="shippingCity">Kota / Kabupaten Tujuan</label>
+      <select id="shippingCity" disabled>
+        <option value="">-- Pilih Kota --</option>
+      </select>
+
+      <label for="shippingCourier">Pilihan Kurir</label>
+      <select id="shippingCourier">
+        <option value="jne">JNE (Reguler / OKE / YES)</option>
+        <option value="pos">POS Indonesia</option>
+        <option value="tiki">TIKI</option>
+      </select>
+
+      <label for="shippingService">Layanan & Ongkir</label>
+      <select id="shippingService" disabled>
+        <option value="">-- Pilih Layanan Kurir --</option>
+      </select>
+
+      <div id="shippingCostSummary" style="margin-top: 10px; font-size: 13px; color: #334155; display: none; background: white; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1;">
+        <div style="display: flex; justify-content: space-between;">
+          <span>Harga Barang:</span>
+          <strong id="summaryProductPrice">Rp 0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 4px;">
+          <span>Ongkos Kirim:</span>
+          <strong id="summaryShippingCost" style="color: #0284c7;">+ Rp 0</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #cbd5e1; font-size: 14px;">
+          <strong>Total Bayar:</strong>
+          <strong id="summaryTotalPrice" style="color: #4338ca;">Rp 0</strong>
+        </div>
+      </div>
+    </div>
+
     <!-- BOX TAMPILAN QRIS DANA DINAMIS -->
     <div id="qrisContainer" style="display: none; margin-top: 18px; padding: 16px; background: #f8fafc; border: 1.5px solid #cbd5e1; border-radius: 12px; text-align: center;">
-      <div style="font-weight: bold; color: #1e293b; font-size: 15px;">QRIS DANA Math315</div>
-      <small style="color: #64748b; display: block; margin-bottom: 10px;">Scan dengan aplikasi DANA, GoPay, OVO, ShopeePay, BCA, Mandiri, BRI, dll.</small>
+      <div style="font-weight: bold; color: #1e293b; font-size: 15px;">⚡ QRIS DANA Math315</div>
+      <small style="color: #64748b; display: block; margin-bottom: 10px;">Scan langsung atau simpan QR ke galeri jika membuka dari HP.</small>
       
       <div style="background: white; padding: 12px; border-radius: 10px; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.08);">
         <div id="qrisQrDisplay"></div>
@@ -158,8 +209,36 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
       <div style="margin-top: 10px; font-weight: bold; font-size: 18px; color: #0284c7;" id="qrisAmountDisplay">Rp 0</div>
       <div style="font-size: 12px; color: #64748b; font-family: monospace; margin-top: 2px;" id="qrisInvoiceDisplay">INV-QRIS-XXXXX</div>
 
+      <!-- PANDUAN SINGKAT BAYAR DARI HP -->
+      <div style="margin-top: 14px; padding: 10px; background: #eff6ff; border-radius: 8px; text-align: left; font-size: 12px; color: #1e40af; border-left: 3px solid #3b82f6;">
+        <strong>📱 Cara Bayar dari HP (Solusi Galeri):</strong>
+        <ol style="margin: 4px 0 0 16px; padding: 0; line-height: 1.5;">
+          <li>Klik tombol <b>"📥 Simpan QRIS ke Galeri"</b> di bawah.</li>
+          <li>Buka aplikasi <b>DANA / GoPay / BCA / m-Banking</b> Anda.</li>
+          <li>Pilih menu <b>Scan QRIS</b>, lalu klik ikon <b>Galeri / Foto</b> dan pilih gambar QR tadi.</li>
+          <li>Selesaikan pembayaran, lalu klik <b>Konfirmasi WhatsApp</b>.</li>
+        </ol>
+      </div>
+
+      <!-- ACTION BUTTONS SOLUSI A -->
       <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
-        <button type="button" id="confirmWaBtn" style="background: #16a34a; margin-top: 0; padding: 10px; font-size: 14px;">
+        <!-- Tombol Simpan QRIS ke Galeri -->
+        <button type="button" id="downloadQrisBtn" style="background: #2563eb; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: bold; font-size: 14px; cursor: pointer; margin-top: 0;">
+          📥 Simpan QRIS ke Galeri (HP)
+        </button>
+
+        <!-- Shortcut Buka Aplikasi E-Wallet -->
+        <div style="display: grid; grid-cols: 2; grid-template-columns: 1fr 1fr; gap: 6px;">
+          <a href="dana://" id="openDanaAppBtn" style="background: #118eea; color: white; text-decoration: none; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center; display: block;">
+            ⚡ Buka DANA
+          </a>
+          <a href="gojek://" id="openGojekAppBtn" style="background: #00880f; color: white; text-decoration: none; padding: 9px; border-radius: 8px; font-size: 12px; font-weight: bold; text-align: center; display: block;">
+            🟢 Buka Gojek/GoPay
+          </a>
+        </div>
+
+        <!-- Konfirmasi WhatsApp -->
+        <button type="button" id="confirmWaBtn" style="background: #16a34a; color: white; border: none; margin-top: 4px; padding: 10px; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;">
           📱 Konfirmasi ke WhatsApp Admin
         </button>
       </div>
@@ -404,30 +483,63 @@ function showLoginRequired() {
 }
 
 // ============================================================
-// 🔐 AUTH STATE
+// 🔐 AUTH STATE & FALLBACK
 // ============================================================
+let authResolved = false;
+
+// 1. Cek User dari localStorage yang disimpan oleh App/Dashboard (jika ada)
+try {
+  const cachedUserStr = localStorage.getItem('currentUser');
+  if (cachedUserStr) {
+    const cached = JSON.parse(cachedUserStr);
+    if (cached && (cached.email || cached.displayName || cached.uid)) {
+      currentUser = cached;
+      enableCheckout(cached);
+      authResolved = true;
+    }
+  }
+} catch (e) {
+  console.warn("Gagal parse cached user:", e);
+}
+
+// 2. Firebase Auth Listener
 auth.onAuthStateChanged(async user => {
+  authResolved = true;
   if (!user) {
-    showLoginRequired();
-    loadProducts();
+    // Jika tidak ada session firebase dan tidak ada cached user, tampilkan tombol login
+    if (!currentUser) {
+      showLoginRequired();
+      loadProducts();
+    }
     return;
   }
   currentUser = user;
   try {
     userToken = await user.getIdToken();
   } catch (err) {
-    setStatus("❌ Gagal autentikasi.", "error");
-    return;
+    console.warn("Gagal get token:", err);
   }
   enableCheckout(user);
 });
+
+// 3. Safety Timeout jika Firebase Auth lambat/tergantung koneksi
+setTimeout(() => {
+  if (!authResolved && !currentUser) {
+    console.warn("Firebase Auth timeout, fallback to login screen / guest checkout");
+    showLoginRequired();
+    loadProducts();
+  }
+}, 3000);
 
 // ============================================================
 // 📦 LOAD PRODUCTS
 // ============================================================
 async function loadProducts() {
   try {
-    const snap = await db.ref("product").once("value");
+    const snap = await Promise.race([
+      db.ref("product").once("value"),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 2500))
+    ]);
     const data = snap.val() || {};
     if (data && Object.keys(data).length > 0) {
       for (const key in data) {
@@ -487,6 +599,315 @@ function generateDynamicQris(nominal) {
 
 let currentInvoiceNo = null;
 let currentQrisAmount = 0;
+let currentShippingCost = 0;
+let selectedShippingService = null;
+
+// ============================================================
+// 🚚 LOGIKA RAJAONGKIR PENGIRIMAN FISIK
+// ============================================================
+const needShippingEl = document.getElementById("needShipping");
+const shippingSectionEl = document.getElementById("shippingSection");
+const shippingProvinceEl = document.getElementById("shippingProvince");
+const shippingCityEl = document.getElementById("shippingCity");
+const shippingCourierEl = document.getElementById("shippingCourier");
+const shippingServiceEl = document.getElementById("shippingService");
+const shippingCostSummaryEl = document.getElementById("shippingCostSummary");
+const summaryProductPriceEl = document.getElementById("summaryProductPrice");
+const summaryShippingCostEl = document.getElementById("summaryShippingCost");
+const summaryTotalPriceEl = document.getElementById("summaryTotalPrice");
+
+const SHIPPING_API_BASE = window.location.origin.includes("localhost") || window.location.origin.includes("127.0.0.1")
+  ? "http://localhost:5000"
+  : "";
+
+const CLIENT_PROVINCES = [
+  { province_id: "1", province: "Bali" },
+  { province_id: "2", province: "Bangka Belitung" },
+  { province_id: "3", province: "Banten" },
+  { province_id: "4", province: "Bengkulu" },
+  { province_id: "5", province: "DI Yogyakarta" },
+  { province_id: "6", province: "DKI Jakarta" },
+  { province_id: "7", province: "Gorontalo" },
+  { province_id: "8", province: "Jambi" },
+  { province_id: "9", province: "Jawa Barat" },
+  { province_id: "10", province: "Jawa Tengah" },
+  { province_id: "11", province: "Jawa Timur" },
+  { province_id: "12", province: "Kalimantan Barat" },
+  { province_id: "13", province: "Kalimantan Selatan" },
+  { province_id: "14", province: "Kalimantan Tengah" },
+  { province_id: "15", province: "Kalimantan Timur" },
+  { province_id: "16", province: "Kalimantan Utara" },
+  { province_id: "17", province: "Kepulauan Riau" },
+  { province_id: "18", province: "Lampung" },
+  { province_id: "19", province: "Maluku" },
+  { province_id: "20", province: "Maluku Utara" },
+  { province_id: "21", province: "Nanggroe Aceh Darussalam (NAD)" },
+  { province_id: "22", province: "Nusa Tenggara Barat (NTB)" },
+  { province_id: "23", province: "Nusa Tenggara Timur (NTT)" },
+  { province_id: "24", province: "Papua" },
+  { province_id: "25", province: "Papua Barat" },
+  { province_id: "26", province: "Riau" },
+  { province_id: "27", province: "Sulawesi Barat" },
+  { province_id: "28", province: "Sulawesi Selatan" },
+  { province_id: "29", province: "Sulawesi Tengah" },
+  { province_id: "30", province: "Sulawesi Tenggara" },
+  { province_id: "31", province: "Sulawesi Utara" },
+  { province_id: "32", province: "Sumatera Barat" },
+  { province_id: "33", province: "Sumatera Selatan" },
+  { province_id: "34", province: "Sumatera Utara" }
+];
+
+const CLIENT_CITIES = [
+  // DKI Jakarta (6)
+  { city_id: "151", province_id: "6", province: "DKI Jakarta", type: "Kota", city_name: "Jakarta Barat" },
+  { city_id: "152", province_id: "6", province: "DKI Jakarta", type: "Kota", city_name: "Jakarta Pusat" },
+  { city_id: "153", province_id: "6", province: "DKI Jakarta", type: "Kota", city_name: "Jakarta Selatan" },
+  { city_id: "154", province_id: "6", province: "DKI Jakarta", type: "Kota", city_name: "Jakarta Timur" },
+  { city_id: "155", province_id: "6", province: "DKI Jakarta", type: "Kota", city_name: "Jakarta Utara" },
+
+  // Jawa Barat (9)
+  { city_id: "22", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Bandung" },
+  { city_id: "23", province_id: "9", province: "Jawa Barat", type: "Kabupaten", city_name: "Bandung" },
+  { city_id: "54", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Bekasi" },
+  { city_id: "55", province_id: "9", province: "Jawa Barat", type: "Kabupaten", city_name: "Bekasi" },
+  { city_id: "78", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Bogor" },
+  { city_id: "79", province_id: "9", province: "Jawa Barat", type: "Kabupaten", city_name: "Bogor" },
+  { city_id: "115", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Depok" },
+  { city_id: "468", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Tasikmalaya" },
+  { city_id: "108", province_id: "9", province: "Jawa Barat", type: "Kota", city_name: "Cirebon" },
+
+  // Banten (3)
+  { city_id: "455", province_id: "3", province: "Banten", type: "Kota", city_name: "Tangerang" },
+  { city_id: "456", province_id: "3", province: "Banten", type: "Kota", city_name: "Tangerang Selatan" },
+  { city_id: "457", province_id: "3", province: "Banten", type: "Kabupaten", city_name: "Tangerang" },
+  { city_id: "402", province_id: "3", province: "Banten", type: "Kota", city_name: "Serang" },
+  { city_id: "106", province_id: "3", province: "Banten", type: "Kota", city_name: "Cilegon" },
+
+  // Jawa Tengah (10)
+  { city_id: "398", province_id: "10", province: "Jawa Tengah", type: "Kota", city_name: "Semarang" },
+  { city_id: "399", province_id: "10", province: "Jawa Tengah", type: "Kabupaten", city_name: "Semarang" },
+  { city_id: "444", province_id: "10", province: "Jawa Tengah", type: "Kota", city_name: "Surakarta (Solo)" },
+  { city_id: "74", province_id: "10", province: "Jawa Tengah", type: "Kabupaten", city_name: "Banyumas (Purwokerto)" },
+  { city_id: "249", province_id: "10", province: "Jawa Tengah", type: "Kota", city_name: "Magelang" },
+  { city_id: "427", province_id: "10", province: "Jawa Tengah", type: "Kabupaten", city_name: "Sragen" },
+  { city_id: "433", province_id: "10", province: "Jawa Tengah", type: "Kabupaten", city_name: "Sukoharjo" },
+
+  // DI Yogyakarta (5)
+  { city_id: "501", province_id: "5", province: "DI Yogyakarta", type: "Kota", city_name: "Yogyakarta" },
+  { city_id: "419", province_id: "5", province: "DI Yogyakarta", type: "Kabupaten", city_name: "Sleman" },
+  { city_id: "39", province_id: "5", province: "DI Yogyakarta", type: "Kabupaten", city_name: "Bantul" },
+  { city_id: "135", province_id: "5", province: "DI Yogyakarta", type: "Kabupaten", city_name: "Gunung Kidul" },
+  { city_id: "210", province_id: "5", province: "DI Yogyakarta", type: "Kabupaten", city_name: "Kulon Progo" },
+
+  // Jawa Timur (11)
+  { city_id: "444", province_id: "11", province: "Jawa Timur", type: "Kota", city_name: "Surabaya" },
+  { city_id: "255", province_id: "11", province: "Jawa Timur", type: "Kota", city_name: "Malang" },
+  { city_id: "409", province_id: "11", province: "Jawa Timur", type: "Kabupaten", city_name: "Sidoarjo" },
+  { city_id: "133", province_id: "11", province: "Jawa Timur", type: "Kabupaten", city_name: "Gresik" },
+  { city_id: "178", province_id: "11", province: "Jawa Timur", type: "Kota", city_name: "Kediri" },
+  { city_id: "250", province_id: "11", province: "Jawa Timur", type: "Kota", city_name: "Madiun" },
+
+  // Bali (1)
+  { city_id: "114", province_id: "1", province: "Bali", type: "Kota", city_name: "Denpasar" },
+  { city_id: "17", province_id: "1", province: "Bali", type: "Kabupaten", city_name: "Badung" },
+
+  // Sumatera & Lainnya
+  { city_id: "278", province_id: "34", province: "Sumatera Utara", type: "Kota", city_name: "Medan" },
+  { city_id: "318", province_id: "32", province: "Sumatera Barat", type: "Kota", city_name: "Padang" },
+  { city_id: "350", province_id: "26", province: "Riau", type: "Kota", city_name: "Pekanbaru" },
+  { city_id: "327", province_id: "33", province: "Sumatera Selatan", type: "Kota", city_name: "Palembang" },
+  { city_id: "21", province_id: "18", province: "Lampung", type: "Kota", city_name: "Bandar Lampung" },
+  { city_id: "254", province_id: "28", province: "Sulawesi Selatan", type: "Kota", city_name: "Makassar" },
+  { city_id: "387", province_id: "15", province: "Kalimantan Timur", type: "Kota", city_name: "Samarinda" },
+  { city_id: "19", province_id: "15", province: "Kalimantan Timur", type: "Kota", city_name: "Balikpapan" }
+];
+
+let provincesLoaded = false;
+
+async function loadProvinces() {
+  if (provincesLoaded) return;
+  shippingProvinceEl.innerHTML = '<option value="">⏳ Memuat daftar provinsi...</option>';
+  
+  let list = [];
+  try {
+    if (SHIPPING_API_BASE) {
+      const res = await fetch(`${SHIPPING_API_BASE}/api/shipping/provinces`);
+      if (res.ok) {
+        list = await res.json();
+      }
+    }
+  } catch (err) {
+    console.warn("Backend shipping endpoint offline, using client data:", err);
+  }
+
+  if (!list || !list.length) {
+    list = CLIENT_PROVINCES;
+  }
+
+  shippingProvinceEl.innerHTML = '<option value="">-- Pilih Provinsi --</option>';
+  list.forEach(prov => {
+    const opt = document.createElement("option");
+    opt.value = prov.province_id;
+    opt.textContent = prov.province;
+    shippingProvinceEl.appendChild(opt);
+  });
+  provincesLoaded = true;
+}
+
+async function loadCities(provinceId) {
+  if (!provinceId) {
+    shippingCityEl.innerHTML = '<option value="">-- Pilih Kota --</option>';
+    shippingCityEl.disabled = true;
+    return;
+  }
+  shippingCityEl.disabled = true;
+  shippingCityEl.innerHTML = '<option value="">⏳ Memuat kota/kabupaten...</option>';
+
+  let list = [];
+  try {
+    if (SHIPPING_API_BASE) {
+      const res = await fetch(`${SHIPPING_API_BASE}/api/shipping/cities?provinceId=${provinceId}`);
+      if (res.ok) {
+        list = await res.json();
+      }
+    }
+  } catch (err) {
+    console.warn("Backend cities endpoint offline, using client data:", err);
+  }
+
+  if (!list || !list.length) {
+    list = CLIENT_CITIES.filter(c => String(c.province_id) === String(provinceId));
+    if (list.length === 0) {
+      list = [{ city_id: "0", province_id: provinceId, type: "Wilayah", city_name: "Semua Kota di Provinsi Ini" }];
+    }
+  }
+
+  shippingCityEl.innerHTML = '<option value="">-- Pilih Kota / Kabupaten --</option>';
+  list.forEach(city => {
+    const opt = document.createElement("option");
+    opt.value = city.city_id;
+    opt.textContent = `${city.type || 'Kota'} ${city.city_name}`;
+    shippingCityEl.appendChild(opt);
+  });
+  shippingCityEl.disabled = false;
+}
+
+async function calculateShipping() {
+  const destinationCityId = shippingCityEl.value;
+  const courier = shippingCourierEl.value;
+  if (!destinationCityId) {
+    shippingServiceEl.innerHTML = '<option value="">-- Pilih Layanan Kurir --</option>';
+    shippingServiceEl.disabled = true;
+    currentShippingCost = 0;
+    updateShippingSummary();
+    updateQrisDisplay();
+    return;
+  }
+
+  shippingServiceEl.disabled = true;
+  shippingServiceEl.innerHTML = '<option value="">⏳ Menghitung ongkir...</option>';
+
+  let costs = [];
+  try {
+    if (SHIPPING_API_BASE) {
+      const res = await fetch(`${SHIPPING_API_BASE}/api/shipping/cost`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destinationCityId,
+          courier,
+          customWeightInGram: 1000
+        })
+      });
+      if (res.ok) {
+        const result = await res.json();
+        costs = result.results?.[0]?.costs || [];
+      }
+    }
+  } catch (err) {
+    console.warn("Backend cost calculation offline, using standard rate table:", err);
+  }
+
+  // Fallback standar bila live tanpa server backend terpisah
+  if (!costs || !costs.length) {
+    const baseRate = courier === 'pos' ? 18000 : courier === 'tiki' ? 22000 : 20000;
+    costs = [
+      { service: 'REG', description: 'Layanan Reguler', cost: [{ value: baseRate, etd: '2-4' }] },
+      { service: 'EXP', description: 'Layanan Cepat / Express', cost: [{ value: baseRate + 12000, etd: '1-2' }] }
+    ];
+  }
+
+  shippingServiceEl.innerHTML = '<option value="">-- Pilih Layanan Pengiriman --</option>';
+  costs.forEach((c, idx) => {
+    const costVal = c.cost?.[0]?.value || 0;
+    const etd = c.cost?.[0]?.etd ? ` (${c.cost[0].etd} hari)` : '';
+    const opt = document.createElement("option");
+    opt.value = costVal;
+    opt.dataset.service = c.service;
+    opt.dataset.desc = c.description;
+    opt.textContent = `${c.service} - ${formatRupiah(costVal)}${etd}`;
+    shippingServiceEl.appendChild(opt);
+    if (idx === 0) {
+      opt.selected = true;
+      currentShippingCost = costVal;
+      selectedShippingService = `${courier.toUpperCase()} ${c.service}`;
+    }
+  });
+  shippingServiceEl.disabled = false;
+
+  updateShippingSummary();
+  updateQrisDisplay();
+  validateForm();
+}
+
+function updateShippingSummary() {
+  const selectedKey = productEl.value;
+  const product = products[selectedKey];
+  const productPrice = product ? Number(product.price) : 0;
+
+  if (needShippingEl.checked && currentShippingCost > 0) {
+    shippingCostSummaryEl.style.display = "block";
+    summaryProductPriceEl.textContent = formatRupiah(productPrice);
+    summaryShippingCostEl.textContent = `+ ${formatRupiah(currentShippingCost)}`;
+    summaryTotalPriceEl.textContent = formatRupiah(productPrice + currentShippingCost);
+  } else {
+    shippingCostSummaryEl.style.display = "none";
+  }
+}
+
+needShippingEl.addEventListener("change", () => {
+  if (needShippingEl.checked) {
+    shippingSectionEl.style.display = "block";
+    loadProvinces();
+  } else {
+    shippingSectionEl.style.display = "none";
+    currentShippingCost = 0;
+    selectedShippingService = null;
+  }
+  updateShippingSummary();
+  updateQrisDisplay();
+  validateForm();
+});
+
+shippingProvinceEl.addEventListener("change", (e) => {
+  loadCities(e.target.value);
+  currentShippingCost = 0;
+  updateShippingSummary();
+  updateQrisDisplay();
+});
+
+shippingCityEl.addEventListener("change", calculateShipping);
+shippingCourierEl.addEventListener("change", calculateShipping);
+shippingServiceEl.addEventListener("change", (e) => {
+  currentShippingCost = Number(e.target.value) || 0;
+  const opt = e.target.selectedOptions[0];
+  if (opt && opt.dataset.service) {
+    selectedShippingService = `${shippingCourierEl.value.toUpperCase()} ${opt.dataset.service}`;
+  }
+  updateShippingSummary();
+  updateQrisDisplay();
+  validateForm();
+});
 
 function getSelectedPaymentChannel() {
   const radio = document.querySelector('input[name="payment_channel"]:checked');
@@ -506,10 +927,13 @@ function updateQrisDisplay() {
     if (!currentInvoiceNo) {
       currentInvoiceNo = `INV-DANA-${Date.now().toString().slice(-6)}-${Math.floor(100 + Math.random() * 900)}`;
     }
-    currentQrisAmount = product.price;
+    
+    // Total QRIS = Harga Produk + Ongkos Kirim (bila ada)
+    currentQrisAmount = Number(product.price) + (needShippingEl.checked ? currentShippingCost : 0);
 
     document.getElementById("qrisAmountDisplay").textContent = formatRupiah(currentQrisAmount);
-    document.getElementById("qrisInvoiceDisplay").textContent = `${currentInvoiceNo} • ${product.name}`;
+    const shippingInfo = (needShippingEl.checked && selectedShippingService) ? ` + Ongkir ${selectedShippingService}` : '';
+    document.getElementById("qrisInvoiceDisplay").textContent = `${currentInvoiceNo} • ${product.name}${shippingInfo}`;
 
     // Render QRCode QRIS DANA Dinamis (Standar EMVCo Bank Indonesia)
     const qrDisplay = document.getElementById("qrisQrDisplay");
@@ -555,6 +979,81 @@ async function savePendingQrisTransaction(invoiceNo, product, selectedKey) {
     console.warn("Gagal auto-record transaksi pending QRIS:", e);
   }
 }
+
+// Handler Download Gambar QRIS ke Galeri (Solusi A)
+document.getElementById("downloadQrisBtn").addEventListener("click", () => {
+  const container = document.getElementById("qrisQrDisplay");
+  const qrCanvas = container.querySelector("canvas");
+  const qrImg = container.querySelector("img");
+
+  if (!qrCanvas && (!qrImg || !qrImg.src)) {
+    alert("⚠️ Kode QR belum selesai dimuat. Silakan tunggu sebentar.");
+    return;
+  }
+
+  // Buat canvas gambar estetik untuk disimpan ke galeri
+  const exportCanvas = document.createElement("canvas");
+  const ctx = exportCanvas.getContext("2d");
+  exportCanvas.width = 320;
+  exportCanvas.height = 420;
+
+  // Background putih bersih dengan border halus
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, 320, 420);
+
+  // Header Title
+  ctx.fillStyle = "#0f172a";
+  ctx.font = "bold 16px sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("QRIS Toko Math315", 160, 32);
+
+  ctx.fillStyle = "#64748b";
+  ctx.font = "11px sans-serif";
+  ctx.fillText("Scan / Upload dari Galeri E-Wallet", 160, 50);
+
+  // Gambar QR Code di tengah
+  const drawQR = (source) => {
+    ctx.drawImage(source, 70, 68, 180, 180);
+
+    // Box Nominal
+    ctx.fillStyle = "#f1f5f9";
+    ctx.fillRect(20, 262, 280, 64);
+
+    ctx.fillStyle = "#0284c7";
+    ctx.font = "bold 20px sans-serif";
+    ctx.fillText(formatRupiah(currentQrisAmount), 160, 292);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "11px monospace";
+    ctx.fillText(currentInvoiceNo || "INV-QRIS-DANA", 160, 314);
+
+    // Footer Info
+    ctx.fillStyle = "#94a3b8";
+    ctx.font = "10px sans-serif";
+    ctx.fillText("BCA • Mandiri • BRI • DANA • GoPay • OVO", 160, 354);
+    ctx.fillText("1. Buka App E-Wallet > Scan > Pilih Galeri", 160, 374);
+    ctx.fillText("2. Upload foto QR ini untuk menyelesaikan bayar", 160, 390);
+
+    // Eksekusi Download File
+    const link = document.createElement("a");
+    link.download = `QRIS-${currentInvoiceNo || 'Math315'}.png`;
+    link.href = exportCanvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setStatus("✅ Gambar QRIS berhasil diunduh ke galeri! Buka aplikasi e-wallet Anda lalu upload dari galeri.", "success");
+  };
+
+  if (qrCanvas) {
+    drawQR(qrCanvas);
+  } else if (qrImg && qrImg.src) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => drawQR(img);
+    img.src = qrImg.src;
+  }
+});
 
 // Handler WhatsApp Konfirmasi
 document.getElementById("confirmWaBtn").addEventListener("click", () => {

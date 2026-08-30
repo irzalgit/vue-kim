@@ -3,6 +3,7 @@
 import { kisiTKA as KISI_MATEMATIKA_2026 } from '../config/kisiTKA2026';
 import { generateSoalAdaptif } from './generateSoal';
 import { getSoalFromBank, saveSoalToBank } from '../utils/soalCache';
+import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
 
 export interface SelectedItem {
   id: string;
@@ -12,6 +13,7 @@ export interface SelectedItem {
   type: 'subMateri';
   fase?: string;
   kelas?: number[];
+  refNomor?: number;
 }
 
 export interface SoalHasil {
@@ -46,6 +48,25 @@ export interface TopikRotasi {
   kelasValid: number[];
 }
 
+// Pemetaan sinkronisasi topik TKA 2026 ke nomor topik Kurikulum Merdeka (Fase E & F)
+const TKA_2026_MAPPING: Record<string, { refNomor: number; fase: string; kelas: number[] }> = {
+  'bilangan-real': { refNomor: 500, fase: 'E', kelas: [10] },
+  'persamaan-pertidaksamaan': { refNomor: 537, fase: 'E', kelas: [10] },
+  'program-linear': { refNomor: 660, fase: 'F', kelas: [11, 12] },
+  'fungsi': { refNomor: 528, fase: 'E', kelas: [10, 11] },
+  'barisan-deret': { refNomor: 508, fase: 'E', kelas: [10] },
+  'polinomial': { refNomor: 591, fase: 'F', kelas: [11, 12] },
+  'geometri-bidang': { refNomor: 567, fase: 'E', kelas: [10, 11] },
+  'geometri-ruang': { refNomor: 698, fase: 'F', kelas: [12] },
+  'transformasi': { refNomor: 680, fase: 'F', kelas: [11, 12] },
+  'vektor': { refNomor: 664, fase: 'F', kelas: [11] },
+  'statistika': { refNomor: 574, fase: 'E', kelas: [10, 12] },
+  'kaidah-pencacahan': { refNomor: 578, fase: 'E', kelas: [12] },
+  'peluang': { refNomor: 588, fase: 'E', kelas: [10, 12] },
+  'perbandingan-trigonometri': { refNomor: 554, fase: 'E', kelas: [10] },
+  'aturan-sinus-kosinus': { refNomor: 558, fase: 'E', kelas: [10, 11] },
+};
+
 // ============================================================
 // FUNGSI UTAMA (Renamed to match UI import)
 // ============================================================
@@ -74,6 +95,22 @@ export async function generateSoalWithChecklist({
       );
 
       if (freshFromBank) {
+        const rawPilihan = Array.isArray(freshFromBank.pilihan) ? freshFromBank.pilihan : [];
+        const cleanPilihan = rawPilihan.map((p) => bersihkanPrefixPilihan(p));
+        const rawJawaban = freshFromBank.jawaban_benar || (rawPilihan.length > 0 ? rawPilihan[0] : '');
+        let cleanJawaban: string | string[];
+        if (Array.isArray(rawJawaban)) {
+          cleanJawaban = rawJawaban.map((j: string) => {
+            const jc = bersihkanPrefixPilihan(j);
+            const idx = rawPilihan.findIndex((p: string) => p === j || bersihkanPrefixPilihan(p) === jc);
+            return idx !== -1 ? cleanPilihan[idx] : jc;
+          });
+        } else {
+          const jc = bersihkanPrefixPilihan(String(rawJawaban));
+          const idx = rawPilihan.findIndex((p: string) => p === rawJawaban || bersihkanPrefixPilihan(p) === jc);
+          cleanJawaban = idx !== -1 ? cleanPilihan[idx] : jc;
+        }
+
         return {
           id: `soal-cache-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
           elemen: freshFromBank.elemen,
@@ -82,34 +119,31 @@ export async function generateSoalWithChecklist({
           kelas: freshFromBank.kelas,
           taxonomiBloom: freshFromBank.taxonomiBloom,
           pertanyaan: freshFromBank.pertanyaan,
-          pilihan: freshFromBank.pilihan,
-          jawaban_benar: freshFromBank.jawaban_benar,
+          pilihan: cleanPilihan,
+          jawaban_benar: cleanJawaban,
           tipeSoal: freshFromBank.tipeSoal,
           pembahasan: freshFromBank.pembahasan,
         };
       }
     } catch (e) {
-      console.warn('[generateSoalWithChecklist2026] Gagal baca bank soal lokal:', e);
+      console.warn('[generateSoalWithChecklist2026] Gagal membaca bank cache:', e);
     }
   }
 
-  // 2. Ambil fokus dari item yang dipilih
-  const fokusTopik = topikSesiIni
-    ? [topikSesiIni.namaFokus]
-    : Array.from(new Set(selectedItems.map(item => item.subMateriNama)));
-
+  // 2. Generate soal adaptif baru dengan AI jika belum ada di bank
+  const topikTeks = topikSesiIni?.namaFokus || selectedItems[0]?.nama || 'Matematika';
   const hasil = await generateSoalAdaptif(
     mataPelajaran,
     1,
     statistikElemen,
     undefined,
-    undefined,
+    'sampai',
     selectedModel,
     undefined,
-    fokusTopik,
+    [topikTeks],
     riwayatPertanyaanTopik,
     undefined,
-    undefined
+    topikSesiIni?.kelasValid
   );
 
   const soal = hasil[0];
@@ -158,12 +192,16 @@ export function getAllItemsFromKisi(): SelectedItem[] {
 
   KISI_MATEMATIKA_2026.forEach((elemen) => {
     elemen.subMateri.forEach((sub) => {
+      const mapping = TKA_2026_MAPPING[sub.id] || { refNomor: undefined, fase: undefined, kelas: [10, 11, 12] };
       items.push({
         id: `${elemen.id}-${sub.id}`,
         nama: sub.nama,
         elemenNama: elemen.nama,
         subMateriNama: sub.nama,
         type: 'subMateri',
+        fase: mapping.fase,
+        kelas: mapping.kelas,
+        refNomor: mapping.refNomor,
       });
     });
   });
