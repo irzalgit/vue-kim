@@ -533,6 +533,18 @@ export default function SoalGeneratorWithChecklist({
                   {soalSaatIni.pertanyaan}
                 </div>
 
+                <div style={{ marginBottom: "10px" }}>
+                  {soalSaatIni.tipeSoal === 'multi' ? (
+                    <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "4px", background: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", fontSize: "11px", fontWeight: "bold", marginBottom: "8px" }}>
+                      ☑️ Multi Pilihan (Pilih semua jawaban yang benar)
+                    </span>
+                  ) : (
+                    <span style={{ display: "inline-block", padding: "3px 8px", borderRadius: "4px", background: "rgba(16, 185, 129, 0.2)", color: "#34d399", fontSize: "11px", fontWeight: "bold", marginBottom: "8px" }}>
+                      🔘 Pilihan Ganda (Pilih 1 jawaban benar)
+                    </span>
+                  )}
+                </div>
+
                 <div>
                   {soalSaatIni.pilihan?.map((p: string, i: number) => {
                     const isMulti = soalSaatIni.tipeSoal === 'multi';
@@ -544,6 +556,7 @@ export default function SoalGeneratorWithChecklist({
                     return (
                       <button
                         key={i}
+                        type="button"
                         onClick={() => {
                           if (feedback) return;
                           if (isMulti) {
@@ -558,13 +571,38 @@ export default function SoalGeneratorWithChecklist({
                         disabled={!!feedback}
                         style={{
                           ...styles.pilihan,
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
                           ...(isSelected ? styles.pilihanSelected : {}),
                           ...(feedback ? styles.pilihanDisabled : {})
                         }}
                       >
-                        {isMulti && (isSelected ? '☑️ ' : '☐ ')}
-                        <span style={{ fontWeight: 600, marginRight: '8px' }}>{abjad}.</span>
-                        {bersihkanPrefixPilihan(p)}
+                        {/* Custom visual checkbox / radio */}
+                        <div
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            minWidth: "18px",
+                            borderRadius: isMulti ? "4px" : "50%",
+                            border: isSelected ? "2px solid #10b981" : "2px solid #64748b",
+                            background: isSelected ? "#10b981" : "transparent",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "white",
+                            fontSize: "11px",
+                            fontWeight: "bold",
+                            transition: "all 0.15s"
+                          }}
+                        >
+                          {isSelected ? (isMulti ? "✓" : "●") : ""}
+                        </div>
+
+                        <div style={{ display: "flex", alignItems: "baseline", gap: "6px", flex: 1 }}>
+                          <span style={{ fontWeight: 700, color: isSelected ? "#34d399" : "#94a3b8" }}>{abjad}.</span>
+                          <span style={{ color: isSelected ? "#ffffff" : "#e2e8f0", lineHeight: "1.4" }}>{bersihkanPrefixPilihan(p)}</span>
+                        </div>
                       </button>
                     );
                   })}
@@ -573,13 +611,16 @@ export default function SoalGeneratorWithChecklist({
                 {!feedback && (
                   <button
                     onClick={submitJawaban}
-                    disabled={!jawabanUser}
+                    disabled={
+                      !jawabanUser || 
+                      (Array.isArray(jawabanUser) && jawabanUser.length === 0)
+                    }
                     style={{
                       ...styles.button,
                       ...styles.buttonPrimary,
                       width: "100%",
                       padding: "10px",
-                      ...(!jawabanUser ? styles.buttonDisabled : {})
+                      ...(!jawabanUser || (Array.isArray(jawabanUser) && jawabanUser.length === 0) ? styles.buttonDisabled : {})
                     }}
                   >
                     Submit Jawaban

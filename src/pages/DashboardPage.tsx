@@ -94,6 +94,8 @@ export default function DashboardPage({
   // ============================================
   // DATA SIMULASI
   // ============================================
+  const [isGeneratingMtkVideo, setIsGeneratingMtkVideo] = useState<boolean>(false);
+
   const daftarSimulasi: SimulasiItem[] = [
     {
       kode: "matematika",
@@ -101,17 +103,52 @@ export default function DashboardPage({
       warna: "#2563eb",
       icon: "📐",
       deskripsi: "Latihan soal matematika dari SD hingga SMA"
+    },
+    {
+      kode: "matematika-video",
+      nama: "5 Soal Matematika + Video",
+      warna: "linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%)",
+      icon: "🎬",
+      deskripsi: "5 Soal Matematika adaptif lengkap dengan rekomendasi video edukasi TikTok"
     }
   ];
 
   // ============================================
   // HANDLER SIMULASI
   // ============================================
-  const handlePilihSimulasi = (sim: SimulasiItem) => {
+  const handlePilihSimulasi = async (sim: SimulasiItem) => {
     if (sim.isCustomMapel) {
       setShowSimulasiMapelModal(true);
       return;
     }
+
+    if (sim.kode === "matematika-video") {
+      setIsGeneratingMtkVideo(true);
+      try {
+        const { generateSoalAdaptif } = await import('../agent/generateSoal');
+        const hasilSoal = await generateSoalAdaptif(
+          'Matematika',
+          5,
+          {},
+          10,
+          'sampai',
+          preferredModel
+        );
+
+        if (hasilSoal && hasilSoal.length > 0) {
+          onBukaSoal('matematika', undefined, 1, 5, hasilSoal, '5 Soal Matematika + Video Edukasi');
+        } else {
+          alert('Gagal menghasilkan soal Matematika. Silakan coba lagi.');
+        }
+      } catch (err: any) {
+        console.error('Error generate Matematika + Video:', err);
+        alert(`Gagal generate soal: ${err.message || 'Terjadi kesalahan'}`);
+      } finally {
+        setIsGeneratingMtkVideo(false);
+      }
+      return;
+    }
+
     setSelectedSimulasi(sim.kode);
     setShowChecklistModal(true);
   };
@@ -230,21 +267,34 @@ export default function DashboardPage({
               {daftarSimulasi.map((sim) => (
                 <div
                   key={sim.kode}
-                  onClick={() => handlePilihSimulasi(sim)}
-                  className="p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 relative overflow-hidden group shadow-lg flex flex-col justify-between"
+                  onClick={() => !isGeneratingMtkVideo && handlePilihSimulasi(sim)}
+                  className={`p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 relative overflow-hidden group shadow-lg flex flex-col justify-between ${
+                    sim.kode === 'matematika-video' && isGeneratingMtkVideo ? 'opacity-80 pointer-events-none' : ''
+                  }`}
                   style={{ background: sim.warna }}
                 >
                   <div>
-                    <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">{sim.icon}</div>
+                    <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">
+                      {sim.kode === 'matematika-video' && isGeneratingMtkVideo ? '⏳' : sim.icon}
+                    </div>
                     <div className="font-bold text-white text-xl flex items-center justify-between">
                       <span>{sim.nama}</span>
+                      {sim.kode === 'matematika-video' && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-400/20 text-pink-300 border border-pink-300/30 font-semibold backdrop-blur-sm">
+                          {isGeneratingMtkVideo ? 'Generating...' : '5 Soal + TikTok'}
+                        </span>
+                      )}
                       {sim.isCustomMapel && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/20 text-white font-semibold backdrop-blur-sm">
                           Realtime DB
                         </span>
                       )}
                     </div>
-                    <div className="text-sm opacity-90 mt-2">{sim.deskripsi}</div>
+                    <div className="text-sm opacity-90 mt-2">
+                      {sim.kode === 'matematika-video' && isGeneratingMtkVideo
+                        ? 'Sedang membuat 5 soal Matematika via AI...'
+                        : sim.deskripsi}
+                    </div>
                   </div>
 
                   {sim.isCustomMapel && (

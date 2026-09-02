@@ -22,7 +22,10 @@ export function normalisasiSoal(s: any, level: number | undefined): any {
 }
 
 export function validasiKisiKisi(s: any): boolean {
-  return validasiElemenFase(s.elemen, s.fase);
+  // Jika ada di kisi-kisi Matematika, validasi sesuai fase
+  if (validasiElemenFase(s.elemen, s.fase)) return true;
+  // Jika elemen tidak ditemukan (misal Fisika, Kimia, Biologi), tetap izinkan asalkan data pertanyaan valid
+  return !!s.elemen;
 }
 
 export function validasiSubElemenKisi(s: any): any {

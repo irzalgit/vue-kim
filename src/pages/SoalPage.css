@@ -92,23 +92,101 @@
   line-height: 1.6;
 }
 
-.pilihan label {
-  display: block;
-  padding: 12px;
+.pilihan label,
+.pilihan-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
   margin: 8px 0;
   border: 1px solid #475569;
-  border-radius: 8px;
+  border-radius: 10px;
+  background: #1e293b;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  user-select: none;
 }
 
-.pilihan label:hover {
+.pilihan label:hover,
+.pilihan-label:hover {
   background: #334155;
+  border-color: #64748b;
 }
 
-.pilihan label.dipilih {
-  background: #064e3b;
+.pilihan label.dipilih,
+.pilihan-label.dipilih {
+  background: rgba(16, 185, 129, 0.15);
   border-color: #10b981;
+}
+
+.pilihan-label.dipilih.is-multi {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+}
+
+.custom-indicator {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: bold;
+  transition: all 0.15s ease;
+}
+
+.custom-checkbox {
+  border-radius: 5px;
+  border: 2px solid #64748b;
+  background: transparent;
+}
+
+.custom-checkbox.selected {
+  border-color: #3b82f6;
+  background: #3b82f6;
+}
+
+.custom-radio {
+  border-radius: 50%;
+  border: 2px solid #64748b;
+  background: transparent;
+}
+
+.custom-radio.selected {
+  border-color: #10b981;
+  background: #10b981;
+}
+
+.pilihan-konten {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+.pilihan-abjad {
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.dipilih .pilihan-abjad {
+  color: #34d399;
+}
+
+.dipilih.is-multi .pilihan-abjad {
+  color: #60a5fa;
+}
+
+.pilihan-teks {
+  color: #e2e8f0;
+}
+
+.dipilih .pilihan-teks {
+  color: #ffffff;
 }
 
 .pilihan input {
@@ -247,16 +325,16 @@
     margin-bottom: 18px;
   }
 
-  .pilihan label {
-    padding: 14px;
-    font-size: 17px;
+  .pilihan label,
+  .pilihan-label {
+    padding: 12px 14px;
+    font-size: 16px;
     line-height: 1.5;
+    gap: 10px;
   }
 
-  .pilihan input {
-    width: 20px;
-    height: 20px;
-    margin-right: 12px;
+  .pilihan-konten {
+    font-size: 16px;
   }
 
   .navigasi {

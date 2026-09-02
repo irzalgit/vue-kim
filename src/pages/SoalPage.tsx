@@ -20,7 +20,9 @@ import katex from 'katex';
 import 'katex/dist/katex.min.css';
 import { getSoalFromBank, saveSoalToBank } from '../utils/soalCache';
 import Certificate from '../components/Certificate';
+import TikTokEduModal from '../components/TikTokEduModal';
 import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
+import { Play } from 'lucide-react';
 
 // Skor minimum (dalam %) supaya siswa berhak mendapatkan sertifikat.
 const AMBANG_NILAI_SERTIFIKAT = 75;
@@ -299,6 +301,7 @@ export default function SoalPage({
   const [nilaiAkhir, setNilaiAkhir] = useState<number | null>(null);
   const [showCertificate, setShowCertificate] = useState<boolean>(false);
   const [showKonfirmasiRaportModal, setShowKonfirmasiRaportModal] = useState<boolean>(false);
+  const [selectedTikTokMateri, setSelectedTikTokMateri] = useState<{ materi: string; elemen?: string; kelas?: number } | null>(null);
 
   const [loadingMessage, setLoadingMessage] = useState<string>('Memuat soal...');
 
@@ -337,6 +340,7 @@ export default function SoalPage({
             jawaban_benar: Array.isArray(cleanJawaban)
               ? cleanJawaban.map(normalisasiTeksSoal)
               : normalisasiTeksSoal(cleanJawaban as string),
+            tipeSoal: s.tipeSoal || (Array.isArray(cleanJawaban) && cleanJawaban.length > 1 ? 'multi' : 'single'),
             elemen: s.elemen || s.mapel || s.topik || 'Umum',
             subElemen: s.subElemen || s.topik || '',
             subSubElemen: s.subSubElemen || '',
@@ -352,36 +356,52 @@ export default function SoalPage({
         setLoading(false);
         return;
       }
-      let response: Response | null = null;
+
+      let data: SoalData | null = null;
+      const cleanBase = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
       const candidates = [
         `data/soal-${kodeSoal}.json`,
         `./data/soal-${kodeSoal}.json`,
         `/data/soal-${kodeSoal}.json`,
-        `${import.meta.env.BASE_URL || ''}data/soal-${kodeSoal}.json`.replace(/\/{2,}/g, '/'),
+        `${cleanBase}/data/soal-${kodeSoal}.json`,
+        `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/data/soal-${kodeSoal}.json`,
       ];
 
       for (const url of candidates) {
         try {
           const res = await fetch(url);
           if (res.ok) {
-            response = res;
-            break;
+            const ct = res.headers.get('content-type');
+            if (!ct || ct.includes('json') || ct.includes('text') || ct.includes('octet-stream')) {
+              data = (await res.json()) as SoalData;
+              break;
+            }
           }
         } catch {
           // Lanjut ke URL berikutnya
         }
       }
 
-      if (!response || !response.ok) {
-        throw new Error(`[TAHAP: fetch JSON] File soal 'soal-${kodeSoal}.json' tidak dapat diakses atau tidak ditemukan.`);
+      // Jika fetch gagal (misal file:// protocol atau routing), gunakan dynamic import fallback
+      if (!data) {
+        try {
+          if (kodeSoal === 'matematika') {
+            const mod = await import('../../public/data/soal-matematika.json');
+            data = (mod.default || mod) as unknown as SoalData;
+          } else if (kodeSoal === 'fisika') {
+            const mod = await import('../../public/data/soal-fisika.json');
+            data = (mod.default || mod) as unknown as SoalData;
+          } else if (kodeSoal === 'kimia') {
+            const mod = await import('../../public/data/soal-kimia.json');
+            data = (mod.default || mod) as unknown as SoalData;
+          }
+        } catch (errImport) {
+          console.warn('[muatSoal] Dynamic import fallback gagal:', errImport);
+        }
       }
 
-      let data: SoalData;
-      try {
-        data = await response.json();
-      } catch (errParse) {
-        console.error('[muatSoal] GAGAL DI TAHAP: parse JSON', errParse);
-        throw new Error(`[TAHAP: parse JSON] ${errParse instanceof Error ? errParse.message : String(errParse)}`);
+      if (!data) {
+        throw new Error(`[TAHAP: fetch JSON] File soal 'soal-${kodeSoal}.json' tidak dapat diakses atau tidak ditemukan.`);
       }
       setJudul(data.judul);
       setWaktu(data.waktu * 60);
@@ -455,6 +475,7 @@ export default function SoalPage({
 
           return {
             ...s,
+            tipeSoal: s.tipeSoal || (Array.isArray(s.jawaban_benar) && s.jawaban_benar.length > 1 ? 'multi' : 'single'),
             pertanyaan: normalisasiTeksSoal(s.pertanyaan),
             pilihan: cleanPilihan.map(normalisasiTeksSoal),
             jawaban_benar: Array.isArray(cleanJawaban) 
@@ -777,16 +798,46 @@ export default function SoalPage({
 
           return (
             <div key={idx} className="soal-item">
-              <div className="soal-info">
-                <span className="nomor">Soal {idx + 1} dari {totalSoal}</span>
-                {item.elemen && <span className="info-badge">{item.elemen}</span>}
-                {item.fase && <span className="info-badge">Fase {item.fase}</span>}
-                {item.kelas != null && <span className="info-badge">Kelas {item.kelas}</span>}
-                {item.taxonomiBloom && <span className="info-badge">{item.taxonomiBloom}</span>}
+              <div className="soal-info flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="nomor">Soal {idx + 1} dari {totalSoal}</span>
+                  {item.elemen && <span className="info-badge">{item.elemen}</span>}
+                  {item.fase && <span className="info-badge">Fase {item.fase}</span>}
+                  {item.kelas != null && <span className="info-badge">Kelas {item.kelas}</span>}
+                  {item.taxonomiBloom && <span className="info-badge">{item.taxonomiBloom}</span>}
+                </div>
+
+                {/* Tombol Nonton Video TikTok Sesuai Materi & Elemen */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedTikTokMateri({
+                    materi: item.subElemen || item.elemen || judul,
+                    elemen: item.elemen,
+                    kelas: item.kelas
+                  })}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-[#fe0979]/20 to-[#00f2fe]/20 hover:from-[#fe0979]/30 hover:to-[#00f2fe]/30 text-pink-300 hover:text-white border border-pink-500/40 text-xs font-semibold shadow-sm transition hover:scale-105"
+                  title="Tonton video penjelasan materi ini di TikTok"
+                >
+                  <Play size={12} className="fill-current text-pink-400" />
+                  <span>🎬 Video TikTok</span>
+                </button>
               </div>
 
               <div className="pertanyaan">
                 <span dangerouslySetInnerHTML={{ __html: renderLatex(item.pertanyaan) }} />
+              </div>
+
+              {/* Badge Petunjuk Jenis Soal */}
+              <div style={{ marginBottom: "12px" }}>
+                {isMulti ? (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "6px", background: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", fontSize: "12px", fontWeight: "bold", border: "1px solid rgba(59, 130, 246, 0.3)" }}>
+                    ☑️ Multi Pilihan (Pilih semua jawaban yang benar / Cek box)
+                  </span>
+                ) : (
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: "6px", padding: "4px 10px", borderRadius: "6px", background: "rgba(16, 185, 129, 0.15)", color: "#34d399", fontSize: "12px", fontWeight: "bold", border: "1px solid rgba(16, 185, 129, 0.25)" }}>
+                    🔘 Pilihan Ganda (Pilih 1 jawaban benar)
+                  </span>
+                )}
               </div>
 
               <div className="pilihan">
@@ -805,7 +856,10 @@ export default function SoalPage({
                   const abjad = String.fromCharCode(65 + pIndex);
 
                   return (
-                    <label key={pIndex} className={isSelected ? 'dipilih' : ''}>
+                    <label 
+                      key={pIndex} 
+                      className={`pilihan-label ${isSelected ? 'dipilih' : ''} ${isMulti ? 'is-multi' : 'is-single'}`}
+                    >
                       <input
                         type={isMulti ? 'checkbox' : 'radio'}
                         name={`soal-${idx}`}
@@ -831,9 +885,19 @@ export default function SoalPage({
                             setJawaban(copy);
                           }
                         }}
+                        style={{ display: 'none' }}
                       />
-                      <span className="font-semibold mr-2">{abjad}.</span>
-                      <span dangerouslySetInnerHTML={{ __html: renderLatex(pilihan) }} />
+                      {/* Visual Custom Checkbox / Radio */}
+                      <div
+                        className={`custom-indicator ${isMulti ? 'custom-checkbox' : 'custom-radio'} ${isSelected ? 'selected' : ''}`}
+                      >
+                        {isSelected ? (isMulti ? "✓" : "●") : ""}
+                      </div>
+
+                      <div className="pilihan-konten">
+                        <span className="pilihan-abjad">{abjad}.</span>
+                        <span className="pilihan-teks" dangerouslySetInnerHTML={{ __html: renderLatex(pilihan) }} />
+                      </div>
                     </label>
                   );
                 })}
@@ -887,6 +951,18 @@ export default function SoalPage({
             </div>
           </div>
         </div>
+      )}
+
+      {/* ===== MODAL TIKTOK EDUKASI ===== */}
+      {selectedTikTokMateri && (
+        <TikTokEduModal
+          isOpen={!!selectedTikTokMateri}
+          onClose={() => setSelectedTikTokMateri(null)}
+          materi={selectedTikTokMateri.materi}
+          elemen={selectedTikTokMateri.elemen}
+          mataPelajaran={judul}
+          kelas={selectedTikTokMateri.kelas}
+        />
       )}
     </div>
   );
