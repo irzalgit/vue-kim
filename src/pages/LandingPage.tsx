@@ -37,7 +37,6 @@ export default function LandingPage({ onMulai }: LandingPageProps) {
         <Curriculum />
         <CinematicVision />
         <AlumniArchives />
-    
       </main>
 
       {/* Area Login */}

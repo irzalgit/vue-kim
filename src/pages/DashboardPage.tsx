@@ -5,6 +5,7 @@ import SoalGeneratorWithChecklist2026 from "../components/soal/SoalGeneratorWith
 import ProfileModal from "../components/ProfileModal";
 import BankSoalModal from "../components/BankSoalModal";
 import SimulasiMapelModal from "../components/SimulasiMapelModal";
+import TikTokEduModal from "../components/TikTokEduModal";
 import type { SelectedItem } from "../agent/generateSoalWithChecklist";
 import { 
   Zap, User, LogOut, X, Database, Coins
@@ -57,6 +58,7 @@ export default function DashboardPage({
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showBankSoalModal, setShowBankSoalModal] = useState<boolean>(false);
   const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
+  const [showTikTokModal, setShowTikTokModal] = useState<boolean>(false);
   const [showSimulasiMapelModal, setShowSimulasiMapelModal] = useState<boolean>(false);
   const [selectedMapelTopic, setSelectedMapelTopic] = useState<string>('semua');
   const { user } = useAuth();
@@ -357,6 +359,33 @@ export default function DashboardPage({
                   </span>
                 </div>
               </div>
+
+              {/* KARTU VIDEO TIKTOK PORTAL MATEMATIKA */}
+              <div
+                onClick={() => setShowTikTokModal(true)}
+                className="p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 relative overflow-hidden group shadow-lg flex flex-col justify-between border border-pink-500/30"
+                style={{ background: 'linear-gradient(135deg, #be185d 0%, #7c3aed 100%)' }}
+              >
+                <div>
+                  <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">📱</div>
+                  <div className="font-bold text-white text-xl flex items-center justify-between">
+                    <span>Video TikTok Portal Matematika</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-pink-400/20 text-pink-200 border border-pink-300/30 font-semibold backdrop-blur-sm">
+                      Edukasi TikTok 🎬
+                    </span>
+                  </div>
+                  <div className="text-sm opacity-90 mt-2">
+                    Kumpulan video edukasi, trik cepat, pembahasan soal TKA, dan konsep matematika interaktif dari @pairzal & kreator edukasi.
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between">
+                  <span className="text-xs text-pink-100 font-medium">Buka Video & Koleksi</span>
+                  <span className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs shadow transition">
+                    Tonton Video →
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -441,6 +470,15 @@ export default function DashboardPage({
       <TokenPurchaseModal
         isOpen={showTokenModal}
         onClose={() => setShowTokenModal(false)}
+      />
+
+      {/* ===== MODAL VIDEO TIKTOK PORTAL MATEMATIKA ===== */}
+      <TikTokEduModal
+        isOpen={showTikTokModal}
+        onClose={() => setShowTikTokModal(false)}
+        materi="Matematika"
+        mataPelajaran="Matematika"
+        videoTitle="Koleksi Video TikTok Portal Matematika"
       />
     </div>
   );

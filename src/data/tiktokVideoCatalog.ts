@@ -18,7 +18,7 @@ export const KATALOG_VIDEO_PAIRZAL: Record<number, VideoEdukasi> = {
     judul: "Video Pembahasan Elemen Bilangan & Operasi Hitung",
     tags: "#Bilangan #TKAMatematika #Kelas4",
     koleksi: "Koleksi Bilangan & Operasi Hitung",
-    directUrl: undefined,
+    directUrl: "https://www.tiktok.com/@_pa.irzal/video/7683208743705726225",
   },
 
   // #2 ALJABAR
@@ -78,7 +78,26 @@ export const KATALOG_VIDEO_PAIRZAL: Record<number, VideoEdukasi> = {
     judul: "Video Pembahasan Soal TKA Matematika #51",
     tags: "#TKA2026 #TKAMatematika #Soal51",
     koleksi: "Koleksi Soal TKA 2025/2026",
-    directUrl: "https://vt.tiktok.com/ZSVwdD4o9/",
+    directUrl: "https://www.tiktok.com/@_pa.irzal/video/7684510129974201617",
+  },
+  // #7 ALJABAR FPB KELAS 7
+  7: {
+    id: 7,
+    elemen: "Aljabar",
+    judul: "FPB Bentuk Aljabar Dasar (Monomial) Kelas 7",
+    tags: "#PairzalKelas7 #FPBAljabar #Kelas7 #TKAMatematika",
+    koleksi: "Koleksi Aljabar & SPLDV",
+    directUrl: undefined,
+  },
+
+  // #8 ALJABAR FPB KELAS 8
+  8: {
+    id: 8,
+    elemen: "Aljabar",
+    judul: "FPB Faktorisasi Suku Banyak & Kuadrat Kelas 8",
+    tags: "#PairzalKelas8 #FPBAljabar #Kelas8 #TKAMatematika",
+    koleksi: "Koleksi Aljabar & SPLDV",
+    directUrl: undefined,
   },
 };
 
@@ -134,11 +153,18 @@ export const KOLEKSI_VIDEO_PAIRZAL = [
   }
 ];
 
-// Helper untuk mengambil video berdasarkan elemen soal
-export function getVideoByElemen(elemen: string): VideoEdukasi | undefined {
+// Helper untuk mengambil video berdasarkan elemen & kelas soal
+export function getVideoByElemen(elemen: string, kelas?: number): VideoEdukasi | undefined {
   const norm = elemen.toLowerCase().trim();
+
+  // Pemetaan spesifik Aljabar FPB berdasarkan kelas
+  if (norm.includes("fpb") || norm.includes("aljabar")) {
+    if (kelas === 8) return KATALOG_VIDEO_PAIRZAL[8];
+    if (kelas === 7) return KATALOG_VIDEO_PAIRZAL[7];
+    return KATALOG_VIDEO_PAIRZAL[2];
+  }
+
   if (norm.includes("bilangan")) return KATALOG_VIDEO_PAIRZAL[1];
-  if (norm.includes("aljabar")) return KATALOG_VIDEO_PAIRZAL[2];
   if (norm.includes("geometri")) return KATALOG_VIDEO_PAIRZAL[3];
   if (norm.includes("trigonometri")) return KATALOG_VIDEO_PAIRZAL[4];
   if (norm.includes("statistika") || norm.includes("peluang")) return KATALOG_VIDEO_PAIRZAL[5];

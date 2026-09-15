@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import {
   X,
   ExternalLink,
@@ -10,6 +10,33 @@ import {
 } from 'lucide-react';
 import { getVideoByElemen, KOLEKSI_VIDEO_PAIRZAL, KATALOG_VIDEO_PAIRZAL } from '../data/tiktokVideoCatalog';
 
+// ============================================================
+// EMBED PLAYER TIKTOK (INLINE, DI DALAM MODAL)
+// ============================================================
+
+// Mengambil ID video numerik dari URL TikTok panjang.
+// URL pendek (vt.tiktok.com/xxx) atau URL pencarian TIDAK bisa
+// diambil ID-nya di browser (butuh resolve server), jadi akan
+// mengembalikan string kosong dan caller harus fallback ke link luar.
+function extractTikTokVideoId(url?: string): string {
+  if (!url) return '';
+  const match = url.match(/video\/(\d+)/);
+  return match ? match[1] : '';
+}
+
+// Muat ulang script resmi embed.js milik TikTok setiap ganti video,
+// karena script itu hanya memproses blockquote yang ada saat dimuat.
+function reloadTikTokEmbedScript() {
+  const oldScript = document.getElementById('tiktok-embed-script');
+  if (oldScript) oldScript.remove();
+
+  const script = document.createElement('script');
+  script.id = 'tiktok-embed-script';
+  script.async = true;
+  script.src = 'https://www.tiktok.com/embed.js?_=' + Date.now();
+  document.body.appendChild(script);
+}
+
 // Daftar Akun Kreator Edukasi TikTok yang Relevan
 export const AKUN_TIKTOK_EDUKASI = [
   {
@@ -18,6 +45,13 @@ export const AKUN_TIKTOK_EDUKASI = [
     kategori: 'TKA & Konsep Matematika',
     avatar: '👨‍🏫',
     isPrimary: true,
+  },
+  {
+    username: '@coach.alieem',
+    nama: 'Coach Alieem',
+    kategori: 'Trik Cepat & Edukasi Matematika',
+    avatar: '🎯',
+    isPrimary: false,
   },
   {
     username: '@kokbisa',
@@ -558,6 +592,35 @@ export default function TikTokEduModal({
   const [selectedCreator, setSelectedCreator] =
     useState<string>('@pairzal');
 
+  // Video yang sedang diputar inline di dalam modal (null = belum ada)
+  const [playingVideo, setPlayingVideo] = useState<{
+    url: string;
+    videoId: string;
+    title: string;
+  } | null>(null);
+  const embedContainerRef = useRef<HTMLDivElement>(null);
+
+  // Setiap playingVideo berubah, bangun ulang blockquote embed TikTok
+  useEffect(() => {
+    if (!playingVideo || !embedContainerRef.current) return;
+
+    embedContainerRef.current.innerHTML = '';
+
+    const blockquote = document.createElement('blockquote');
+    blockquote.className = 'tiktok-embed';
+    blockquote.setAttribute('cite', playingVideo.url);
+    blockquote.setAttribute('data-video-id', playingVideo.videoId);
+    blockquote.style.maxWidth = '325px';
+    blockquote.style.minWidth = '325px';
+    blockquote.style.margin = '0 auto';
+
+    const section = document.createElement('section');
+    blockquote.appendChild(section);
+
+    embedContainerRef.current.appendChild(blockquote);
+    reloadTikTokEmbedScript();
+  }, [playingVideo]);
+
   // ----------------------------------------------------------
   // Bersihkan materi dan elemen
   // ----------------------------------------------------------
@@ -804,6 +867,29 @@ export default function TikTokEduModal({
               Temukan video pembelajaran, pembahasan soal konsep, rumus, trik cepat, dan strategi mengerjakan soal TKA Matematika dari akun @pairzal.
             </p>
           </div>
+
+          {/* =================================================
+              PLAYER TIKTOK INLINE (tampil saat ada video dipilih)
+          ================================================== */}
+          {playingVideo && (
+            <div className="p-4 rounded-xl bg-black border border-pink-500/40 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-pink-300 truncate pr-2">
+                  {playingVideo.title}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPlayingVideo(null)}
+                  className="p-1.5 rounded-full hover:bg-gray-800 text-gray-400 hover:text-white transition shrink-0"
+                  aria-label="Tutup pemutar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div ref={embedContainerRef} className="flex justify-center" />
+            </div>
+          )}
+
           {/* =================================================
               DAFTAR VIDEO POSTINGAN & KOLEKSI @PAIRZAL
           ================================================== */}
@@ -822,11 +908,12 @@ export default function TikTokEduModal({
               </div>
 
               {(() => {
-                const videoData = getVideoByElemen(elemenBersih || queryBersih);
+                const videoData = getVideoByElemen(elemenBersih || queryBersih, kelas);
                 const postNum = videoData ? `#${videoData.id}` : '#51';
                 const finalTitle = videoTitle || (videoData ? videoData.judul : 'Video Pembahasan Soal TKA Matematika #51');
                 const finalUrl = videoUrl || (videoData && videoData.directUrl ? videoData.directUrl : 'https://vt.tiktok.com/ZSVwdD4o9/');
                 const finalTags = videoData ? videoData.tags : '#TKAMatematika #pairzal';
+                const finalVideoId = extractTikTokVideoId(finalUrl);
 
                 return (
                   <div className="p-3 bg-gray-900 border border-green-500/40 rounded-xl flex items-center justify-between gap-3 hover:border-green-400 transition">
@@ -843,15 +930,28 @@ export default function TikTokEduModal({
                         {finalTags}
                       </div>
                     </div>
-                    <a
-                      href={finalUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3.5 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-lg shadow-green-600/30 whitespace-nowrap"
-                    >
-                      <Play size={13} fill="white" />
-                      Putar Video
-                    </a>
+                    {finalVideoId ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPlayingVideo({ url: finalUrl, videoId: finalVideoId, title: finalTitle })
+                        }
+                        className="px-3.5 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-lg shadow-green-600/30 whitespace-nowrap"
+                      >
+                        <Play size={13} fill="white" />
+                        Putar Video
+                      </button>
+                    ) : (
+                      <a
+                        href={finalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3.5 py-2 bg-green-600 hover:bg-green-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-lg shadow-green-600/30 whitespace-nowrap"
+                      >
+                        <Play size={13} fill="white" />
+                        Putar Video
+                      </a>
+                    )}
                   </div>
                 );
               })()}
@@ -875,6 +975,7 @@ export default function TikTokEduModal({
                   const urlTarget = targetVideo?.directUrl || `https://www.tiktok.com/search?q=${encodeURIComponent(`@pairzal ${kol.nama}`)}`;
                   const postLabel = `POST #${kol.targetPostId}`;
                   const tagsLabel = targetVideo?.tags || `#${kol.id} #TKAMatematika #pairzal`;
+                  const kolVideoId = extractTikTokVideoId(urlTarget);
 
                   return (
                     <div
@@ -898,15 +999,28 @@ export default function TikTokEduModal({
                         </div>
                       </div>
 
-                      <a
-                        href={urlTarget}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-cyan-900/40 whitespace-nowrap shrink-0 transition"
-                      >
-                        <Play size={12} fill="white" />
-                        Putar Video
-                      </a>
+                      {kolVideoId ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setPlayingVideo({ url: urlTarget, videoId: kolVideoId, title: kol.nama })
+                          }
+                          className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-cyan-900/40 whitespace-nowrap shrink-0 transition"
+                        >
+                          <Play size={12} fill="white" />
+                          Putar Video
+                        </button>
+                      ) : (
+                        <a
+                          href={urlTarget}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 shadow-md shadow-cyan-900/40 whitespace-nowrap shrink-0 transition"
+                        >
+                          <Play size={12} fill="white" />
+                          Putar Video
+                        </a>
+                      )}
                     </div>
                   );
                 })}
