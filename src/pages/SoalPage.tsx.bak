@@ -23,7 +23,6 @@ import Certificate from '../components/Certificate';
 import TikTokEduModal from '../components/TikTokEduModal';
 import { bersihkanPrefixPilihan } from '../services/soal-generator/parser';
 import { Play } from 'lucide-react';
-import { hitungScoring } from '../services/soal-generator/scorer';
 
 // Skor minimum (dalam %) supaya siswa berhak mendapatkan sertifikat.
 const AMBANG_NILAI_SERTIFIKAT = 75;
@@ -321,19 +320,7 @@ export default function SoalPage({
         const formatSoal = customSoal.map((s: any) => {
           const rawPilihan = Array.isArray(s.pilihan) ? s.pilihan : [];
           const cleanPilihan = rawPilihan.map((p: string) => bersihkanPrefixPilihan(p));
-          const rawJawaban = s.jawaban_benar;
-
-          if (
-            rawJawaban === undefined ||
-            rawJawaban === null ||
-            rawJawaban === ''
-          ) {
-            throw new Error(
-              `Soal tidak memiliki jawaban benar yang valid: ${
-                s.pertanyaan || '(tanpa pertanyaan)'
-              }`
-            );
-          }
+          const rawJawaban = s.jawaban_benar || (rawPilihan.length > 0 ? rawPilihan[0] : '');
           let cleanJawaban: string | string[];
           if (Array.isArray(rawJawaban)) {
             cleanJawaban = rawJawaban.map((j: string) => {
@@ -471,19 +458,7 @@ export default function SoalPage({
         soalFinal = soalProses.map((s) => {
           const rawPilihan = Array.isArray(s.pilihan) ? s.pilihan : [];
           const cleanPilihan = rawPilihan.map((p) => bersihkanPrefixPilihan(p));
-          const rawJawaban = s.jawaban_benar;
-
-          if (
-            rawJawaban === undefined ||
-            rawJawaban === null ||
-            rawJawaban === ''
-          ) {
-            throw new Error(
-              `Soal tidak memiliki jawaban benar yang valid: ${
-                s.pertanyaan || '(tanpa pertanyaan)'
-              }`
-            );
-          }
+          const rawJawaban = s.jawaban_benar || (rawPilihan.length > 0 ? rawPilihan[0] : '');
           let cleanJawaban: string | string[];
 
           if (Array.isArray(rawJawaban)) {
@@ -527,82 +502,70 @@ export default function SoalPage({
 
   const kirimJawaban = useCallback(async (modelOverride?: string) => {
     setShowKonfirmasiRaportModal(false);
-
-    // ============================================================
-    // SCORING TERPUSAT
-    // 1 soal benar = 2 poin
-    // 25 soal = 50 poin maksimum
-    // Nilai akhir dikonversi ke skala 100
-    // ============================================================
-
-    const jawabanSiswaList = soalList.map((s, i) => {
-      if (s.tipeSoal === 'multi') {
-        try {
-          return JSON.parse(jawaban[i] || '[]');
-        } catch {
-          return [];
-        }
+    const total = soalList.length;
+    const nilaiPerSoal = total > 0 ? 100 / total : 0;
+    let nilai = 0;
+    
+    soalList.forEach((s, i) => {
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
       }
 
-      return jawaban[i] || '';
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+
+      if (isBenar) {
+        nilai += nilaiPerSoal;
+      }
     });
-
-    const hasilScoring = hitungScoring(
-      soalList,
-      jawabanSiswaList
-    );
-
-    const {
-      persentase,
-      detail,
-    } = hasilScoring;
-
-    const nilai = persentase;
-
+    nilai = Math.round(nilai);
     setNilaiAkhir(nilai);
 
-    // ============================================================
-    // STATISTIK PER ELEMEN
-    // ============================================================
-
-    const statistikElemen: Record<
-      string,
-      { benar: number; total: number }
-    > = {};
-
+    const statistikElemen: Record<string, { benar: number; total: number }> = {};
     soalList.forEach((s, i) => {
-      const elemen = s.elemen || 'Umum';
-
-      if (!statistikElemen[elemen]) {
-        statistikElemen[elemen] = {
-          benar: 0,
-          total: 0,
-        };
+      if (!statistikElemen[s.elemen]) statistikElemen[s.elemen] = { benar: 0, total: 0 };
+      statistikElemen[s.elemen].total += 1;
+      
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
       }
 
-      statistikElemen[elemen].total += 1;
-
-      const detailItem = detail[i];
-
-      if (detailItem?.benar) {
-        statistikElemen[elemen].benar += 1;
-      }
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+        
+      if (isBenar) statistikElemen[s.elemen].benar += 1;
     });
 
-    // ============================================================
-    // DETAIL SETIAP SOAL
-    // ============================================================
+    const detailSoal: DetailSoalEntry[] = soalList.map((s, i) => {
+      let jawabanSiswa;
+      try {
+        jawabanSiswa = s.tipeSoal === 'multi' ? JSON.parse(jawaban[i] || '[]') : jawaban[i];
+      } catch {
+        jawabanSiswa = s.tipeSoal === 'multi' ? [] : '';
+      }
 
-    const detailSoal: DetailSoalEntry[] =
-      soalList.map((s, i) => ({
+      const isBenar = Array.isArray(s.jawaban_benar)
+        ? Array.isArray(jawabanSiswa) && s.jawaban_benar.length === jawabanSiswa.length && s.jawaban_benar.every((val: string) => jawabanSiswa.includes(val))
+        : s.jawaban_benar === jawabanSiswa;
+      
+      return {
         nomor: i + 1,
         elemen: s.elemen,
         subElemen: s.subElemen || '',
         fase: s.fase,
         kelas: s.kelas ?? 0,
         taxonomiBloom: s.taxonomiBloom,
-        benar: detail[i]?.benar ?? false,
-      }));
+        benar: isBenar,
+      };
+    });
 
     const riwayatSebelum = getRiwayat(judul);
     setAnalisisLoading(true);
@@ -621,6 +584,7 @@ export default function SoalPage({
     } catch (err) {
       console.error('Gagal menyimpan riwayat:', err);
     }
+
     try {
       const hasilRaport = await generateRaport(judul, soalList.map((s, i) => ({
         nomor: i + 1,

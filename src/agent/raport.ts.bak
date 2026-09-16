@@ -1,5 +1,3 @@
-import { apakahJawabanBenar, normalisasiJawaban } from '../services/soal-generator/answer';
-
 import { askLLM } from "./llm";
 import type { RiwayatEntry } from "../utils/riwayat";
 
@@ -7,7 +5,7 @@ export interface SoalJawabanItem {
   nomor: number;
   pertanyaan: string;
   pilihan: string[];
-  jawabanSiswa: string | string[];
+  jawabanSiswa: string;
   jawabanBenar: string | string[];
   elemen: string;
   fase: string;
@@ -22,39 +20,18 @@ export async function generateRaport(
 ): Promise<string> {
   const total = items.length;
   const benar = items.filter((i) => {
-    const jawabanSiswa = normalisasiJawaban(i.jawabanSiswa);
-    return (
-      jawabanSiswa !== undefined &&
-      apakahJawabanBenar(
-        {
-          pilihan: [],
-          jawaban_benar: i.jawabanBenar,
-          tipeSoal: Array.isArray(i.jawabanBenar) ? 'multi' : 'single',
-        },
-        jawabanSiswa
-      )
-    );
+    if (Array.isArray(i.jawabanBenar)) {
+        return i.jawabanBenar.includes(i.jawabanSiswa);
+    }
+    return i.jawabanSiswa === i.jawabanBenar;
   }).length;
-
-  const poinPerSoal = 2;
-  const maxPoin = total * poinPerSoal;
-  const poin = benar * poinPerSoal;
-  const nilai = maxPoin > 0 ? Math.round((poin / maxPoin) * 100) : 0;
+  const nilai = total > 0 ? Math.round((benar / total) * 100) : 0;
 
   const detailSoal = items
     .map((item) => {
-      const jawabanSiswa = normalisasiJawaban(item.jawabanSiswa);
-
-      const isBenar =
-        jawabanSiswa !== undefined &&
-        apakahJawabanBenar(
-          {
-            pilihan: [],
-            jawaban_benar: item.jawabanBenar,
-            tipeSoal: Array.isArray(item.jawabanBenar) ? 'multi' : 'single',
-          },
-          jawabanSiswa
-        );
+      const isBenar = Array.isArray(item.jawabanBenar)
+        ? item.jawabanBenar.includes(item.jawabanSiswa)
+        : item.jawabanSiswa === item.jawabanBenar;
 
       const status = isBenar ? "Benar" : "Salah";
       const dijawab = item.jawabanSiswa || "(tidak dijawab)";
@@ -92,7 +69,7 @@ Riwayat nilai ujian sebelumnya untuk mata pelajaran ini:
 ${riwayatText}
 
 Hasil ujian kali ini:
-Skor: ${poin} dari ${maxPoin} poin (${benar} dari ${total} soal benar) (Nilai: ${nilai}/100)
+Skor: ${benar} dari ${total} soal benar (Nilai: ${nilai}/100)
 
 Rincian jawaban siswa:
 

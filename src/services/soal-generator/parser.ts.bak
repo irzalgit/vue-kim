@@ -91,14 +91,10 @@ export function perbaikiJawabanBenar(s: any, _i?: number) {
 
     // Fallback jika tidak ditemukan
     if (indexBenar === -1 || indexBenar >= pilihanBersih.length) {
-      throw new Error(
-        `Kunci jawaban tidak valid pada soal: ${
-          s.pertanyaan || '(tanpa pertanyaan)'
-        }`
-      );
+      indexBenar = 0;
     }
 
-    s.jawaban_benar = pilihanBersih[indexBenar];
+    s.jawaban_benar = pilihanBersih[indexBenar] || pilihanBersih[0] || '';
   } else if (s.tipeSoal === 'multi') {
     // Pastikan jawaban_benar adalah array
     const rawArray: any[] = Array.isArray(s.jawaban_benar) ? s.jawaban_benar : [s.jawaban_benar];
@@ -134,12 +130,8 @@ export function perbaikiJawabanBenar(s: any, _i?: number) {
     });
 
     // Jika tidak ada yang valid, ambil pilihan pertama
-    if (hasilJawaban.length === 0) {
-      throw new Error(
-        `Tidak ditemukan kunci jawaban yang valid pada soal: ${
-          s.pertanyaan || '(tanpa pertanyaan)'
-        }`
-      );
+    if (hasilJawaban.length === 0 && pilihanBersih.length > 0) {
+      hasilJawaban.push(pilihanBersih[0]);
     }
 
     s.jawaban_benar = hasilJawaban;
