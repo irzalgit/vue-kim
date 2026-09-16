@@ -1,13 +1,10 @@
 node_modules
-.env
 .env.local
 dist
 .DS_Store
 localtest/
 dist/
 *.zip
-.env.save
-.env
 .env.save
 .env
 .htaccess
