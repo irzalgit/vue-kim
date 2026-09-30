@@ -1,0 +1,1 @@
+/root/vue-kim/generate_baru11.py

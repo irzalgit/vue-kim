@@ -7,6 +7,8 @@ import AlumniArchives from "../sections/AlumniArchives";
 import Footer from "../sections/Footer";
 import LoginWithGoogle from "../components/LoginWithGoogle";
 import { useAuth } from '../context/AuthContext';
+import ShopBphy from "../components/ShopBphy";
+import PaywuzPosterShop from "../components/PaywuzPosterShop";
 
 interface LandingPageProps {
   onMulai: () => void;
@@ -32,12 +34,38 @@ export default function LandingPage({ onMulai }: LandingPageProps) {
         onLogout={() => {}}
       />
 
-      <main>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Hero />
         <Curriculum />
         <CinematicVision />
         <AlumniArchives />
+
+        {/* 1. SEKSI SHOP BPHY (POSTER 1 - 5 & KERANJANG) */}
+        <ShopBphy />
+
+        {/* 2. SEKSI JUALAN POSTER PAYWUZ TERPISAH (CHECKOUT PAYWUZ.ID) */}
+        <PaywuzPosterShop />
+
+        {/* 3. LINK GALERI VIDEO (diletakkan di bawah section jualan poster) */}
+        <div style={{ textAlign: 'center', padding: '30px 20px' }}>
+          <a
+            href="/video.html"
+            style={{
+              display: 'inline-block',
+              color: '#ffffff',
+              fontSize: '16px',
+              fontWeight: 600,
+              textDecoration: 'none',
+              borderBottom: '2px solid #3b82f6',
+              paddingBottom: '4px',
+              transition: 'opacity 0.2s ease',
+            }}
+          >
+            🎬 Galeri Video
+          </a>
+        </div>
       </main>
+
 
       {/* Area Login */}
       <div style={{ textAlign: 'center', padding: '40px 20px', background: '#0a0a0a' }}>

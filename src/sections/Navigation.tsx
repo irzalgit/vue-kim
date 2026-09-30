@@ -24,6 +24,10 @@ export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: Navig
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
     e.preventDefault();
+    if (href.endsWith('.html')) {
+      window.location.href = href;
+      return;
+    }
     if (href.startsWith('#/')) {
       navigate(href.replace('#', ''));
       return;

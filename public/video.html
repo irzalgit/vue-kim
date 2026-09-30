@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galeri Video</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #0f0f1a;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1a1a2e, #16213e);
+      padding: 2rem;
+      text-align: center;
+      border-bottom: 2px solid #0f3460;
+    }
+
+    header h1 { font-size: 2rem; color: #e94560; }
+    header p { color: #888; margin-top: 0.5rem; }
+
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .video-card {
+      background: #1a1a2e;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid #222;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .video-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(233, 69, 96, 0.15);
+    }
+
+    .video-card .media-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+    }
+
+    .video-card video { width: 100%; height: 100%; display: block; background: #000; }
+
+    .video-card .placeholder {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      color: #666;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    .video-card .placeholder.error {
+      color: #e94560;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .video-card .info { padding: 1rem; }
+    .video-card .info h3 { font-size: 0.95rem; color: #ccc; word-break: break-word; }
+
+    @media (max-width: 480px) {
+      .video-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🎬 Galeri Video</h1>
+  <p id="count"></p>
+</header>
+
+<div class="container">
+  <div class="video-grid" id="videoGrid"></div>
+</div>
+
+<script>
+  // 🔧 UBAH DI SINI sesuai lokasi video sebenarnya
+  // Contoh: "/videos/", "https://math315.id/videos/", "https://cdn.namadomain.com/videos/"
+  const BASE_URL = "videos/";
+
+  const videos = [
+    "lingk (1).mp4",
+    "soal3.mp4",
+    "video_tka12_lingkaran_dalam (1).mp4"
+  ];
+
+  const countEl = document.getElementById("count");
+  const grid = document.getElementById("videoGrid");
+  countEl.textContent = `Total: ${videos.length} video`;
+
+  // Buat semua kartu dulu (tanpa memuat video-nya)
+  const cards = videos.slice().sort().map(file => {
+    const name = file.replace(/_/g, " ").replace(".mp4", "");
+    const src = BASE_URL + encodeURIComponent(file);
+
+    const card = document.createElement("div");
+    card.className = "video-card";
+    card.innerHTML = `
+      <div class="media-wrap">
+        <div class="placeholder">Memuat…</div>
+      </div>
+      <div class="info">
+        <h3>${name}</h3>
+      </div>
+    `;
+    grid.appendChild(card);
+
+    return { card, src, name };
+  });
+
+  // Lazy-load: video baru dipasang saat kartu terlihat di layar
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+
+      const { card, src, name } = entry.target._data;
+      const wrap = card.querySelector(".media-wrap");
+
+      const video = document.createElement("video");
+      video.controls = true;
+      video.preload = "metadata";
+
+      const source = document.createElement("source");
+      source.src = src;
+      source.type = "video/mp4";
+      video.appendChild(source);
+      video.appendChild(document.createTextNode("Browser Anda tidak mendukung video."));
+
+      // Kalau file tidak ditemukan / gagal dimuat, tampilkan pesan yang jelas
+      video.addEventListener("error", () => {
+        wrap.innerHTML = `
+          <div class="placeholder error">
+            <span>⚠️ Video tidak ditemukan</span>
+            <small>${src}</small>
+          </div>
+        `;
+      }, true);
+
+      video.addEventListener("loadedmetadata", () => {
+        const placeholder = wrap.querySelector(".placeholder");
+        if (placeholder) placeholder.remove();
+      });
+
+      wrap.appendChild(video);
+      observer.unobserve(entry.target);
+    });
+  }, { rootMargin: "200px" });
+
+  cards.forEach(({ card, src, name }) => {
+    card._data = { card, src, name };
+    observer.observe(card);
+  });
+</script>
+
+</body>
+</html>
