@@ -1,0 +1,6 @@
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/hook.mp4'
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/fact.mp4'
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/features.mp4'
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/parents.mp4'
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/howto.mp4'
+file '/data/data/com.termux/files/home/vue-kim/temp_promo_ortu/cta.mp4'

@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Galeri Video</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --surface-2: #eceef5;
+      --text: #151a2d;
+      --muted: #6b7290;
+      --line: #e2e5f0;
+      --accent: #4f46e5;
+      --accent-soft: #e8e7fd;
+      --danger: #d6336c;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1120;
+        --surface: #161b2e;
+        --surface-2: #1e2540;
+        --text: #eceefa;
+        --muted: #8f97b8;
+        --line: #252c48;
+        --accent: #8b87ff;
+        --accent-soft: #24274d;
+        --danger: #ff6b9a;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- Top bar ---------- */
+    .topbar {
+      position: sticky; top: 0; z-index: 10;
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      backdrop-filter: saturate(160%) blur(14px);
+      -webkit-backdrop-filter: saturate(160%) blur(14px);
+      border-bottom: 1px solid var(--line);
+    }
+    .topbar-inner {
+      max-width: 1480px; margin: 0 auto;
+      padding: .8rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    .brand { display: flex; align-items: center; gap: .7rem; margin-right: auto; }
+    .brand-icon {
+      width: 36px; height: 36px; border-radius: 11px;
+      background: var(--accent); color: #fff;
+      display: grid; place-items: center;
+    }
+    .brand h1 { font-size: 1.1rem; font-weight: 800; letter-spacing: -.02em; }
+
+    .search { position: relative; flex: 0 1 360px; min-width: 200px; }
+    .search svg {
+      position: absolute; left: .85rem; top: 50%; transform: translateY(-50%);
+      color: var(--muted); pointer-events: none;
+    }
+    .search input {
+      width: 100%; font: inherit; font-size: .9rem; color: var(--text);
+      background: var(--surface); border: 1px solid var(--line);
+      border-radius: 999px; padding: .55rem 1rem .55rem 2.5rem;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .search input::placeholder { color: var(--muted); }
+    .search input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+
+    /* ---------- Layout ---------- */
+    .layout {
+      max-width: 1480px; margin: 0 auto;
+      padding: 1.25rem;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 400px;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    /* ---------- Pemutar ---------- */
+    .player-wrap {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .player-wrap video { width: 100%; height: 100%; display: block; background: #000; }
+    .player-msg {
+      position: absolute; inset: 0;
+      display: grid; place-content: center; gap: .3rem;
+      text-align: center; padding: 1rem;
+      color: #fff; background: #000;
+      font-size: .9rem;
+    }
+    .player-msg.error { color: var(--danger); }
+    .player-msg small { color: #9aa0bd; word-break: break-all; }
+
+    .now { padding: 1rem .25rem 0; }
+    .now h2 {
+      font-size: 1.35rem; font-weight: 700; letter-spacing: -.02em;
+      line-height: 1.35; word-break: break-word;
+    }
+    .now-meta { display: flex; align-items: center; gap: .6rem; margin-top: .75rem; flex-wrap: wrap; }
+    .pill {
+      font: inherit; font-size: .8rem; font-weight: 600;
+      color: var(--text); background: var(--surface-2);
+      border: 0; border-radius: 999px; padding: .4rem .9rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .pill:hover { background: var(--line); }
+    .pill[aria-pressed="true"] { background: var(--accent-soft); color: var(--accent); }
+    .pill:disabled { opacity: .45; cursor: default; }
+    .pos { font-size: .8rem; color: var(--muted); margin-left: auto; }
+
+    /* ---------- Daftar samping ---------- */
+    .list-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      padding: 0 .25rem .6rem;
+    }
+    .list-head h3 { font-size: 1rem; font-weight: 700; }
+    .list-head span { font-size: .8rem; color: var(--muted); }
+
+    .list {
+      display: flex; flex-direction: column; gap: .35rem;
+      max-height: calc(100vh - 8.5rem);
+      overflow-y: auto;
+      padding-right: .25rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+    }
+
+    .item {
+      display: grid; grid-template-columns: 168px minmax(0, 1fr);
+      gap: .75rem; align-items: start;
+      width: 100%; text-align: left;
+      font: inherit; color: inherit;
+      background: transparent; border: 0;
+      border-radius: 12px; padding: .4rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .item:hover { background: var(--surface-2); }
+    .item[aria-current="true"] { background: var(--accent-soft); }
+
+    .thumb {
+      position: relative; aspect-ratio: 16 / 9;
+      border-radius: 9px; overflow: hidden;
+      background: var(--surface-2);
+    }
+    .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+    .thumb::after {
+      content: ""; position: absolute; inset: 0;
+      background: linear-gradient(transparent 55%, rgba(0,0,0,.35));
+      opacity: 0; transition: opacity .15s;
+    }
+    .item:hover .thumb::after { opacity: 1; }
+    .playing-tag {
+      position: absolute; left: 6px; bottom: 6px; z-index: 1;
+      font-size: .68rem; font-weight: 700; color: #fff;
+      background: var(--accent); border-radius: 6px; padding: .1rem .45rem;
+    }
+
+    .item-title {
+      font-size: .88rem; font-weight: 600; line-height: 1.35;
+      letter-spacing: -.01em; word-break: break-word;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+      padding-top: .1rem;
+    }
+
+    .state {
+      text-align: center; padding: 2.5rem 1rem; color: var(--muted);
+      border: 1px dashed var(--line); border-radius: 14px; font-size: .9rem;
+    }
+    .state strong { display: block; color: var(--text); margin-bottom: .25rem; }
+    .state.error strong { color: var(--danger); }
+    .state code { background: var(--surface-2); padding: .1rem .4rem; border-radius: 6px; font-size: .85em; }
+    .state-page { grid-column: 1 / -1; }
+
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Responsif ---------- */
+    @media (max-width: 1000px) {
+      .layout { grid-template-columns: 1fr; padding: 0 0 2rem; gap: 1rem; }
+      .player-wrap { border-radius: 0; }
+      .now, .side { padding-left: 1rem; padding-right: 1rem; }
+      .now { padding-top: .9rem; }
+      .now h2 { font-size: 1.15rem; }
+      .list { max-height: none; overflow: visible; padding-right: 0; }
+    }
+    @media (max-width: 480px) {
+      .item { grid-template-columns: 140px minmax(0, 1fr); }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>
+      </div>
+      <h1>Galeri Video</h1>
+    </div>
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="search" id="search" placeholder="Cari video…" aria-label="Cari video" autocomplete="off">
+    </label>
+  </div>
+</header>
+
+<main class="layout" id="layout">
+  <section class="main" aria-label="Pemutar video">
+    <div class="player-wrap" id="playerWrap">
+      <video id="player" controls playsinline preload="metadata"></video>
+    </div>
+    <div class="now">
+      <h2 id="nowTitle">Memuat daftar video…</h2>
+      <div class="now-meta">
+        <button class="pill" id="autoBtn" aria-pressed="true" type="button">Putar otomatis: Nyala</button>
+        <button class="pill" id="nextBtn" type="button" disabled>Berikutnya</button>
+        <span class="pos" id="pos"></span>
+      </div>
+    </div>
+  </section>
+
+  <aside class="side" aria-label="Daftar video">
+    <div class="list-head">
+      <h3>Daftar video</h3>
+      <span id="count"></span>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+</main>
+
+<script>
+  // 🔧 Lokasi folder video (harus berisi list.php + file .mp4)
+  // Contoh: "videos/", "/videos/", "https://math315.id/videos/"
+  const BASE_URL = "videos/";
+
+  const $ = id => document.getElementById(id);
+  const player = $("player"), playerWrap = $("playerWrap");
+  const listEl = $("list"), countEl = $("count"), searchEl = $("search");
+  const nowTitle = $("nowTitle"), posEl = $("pos");
+  const autoBtn = $("autoBtn"), nextBtn = $("nextBtn");
+
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const prettyName = f => f.replace(/_/g, " ").replace(/\.mp4$/i, "");
+
+  let videos = [];     // semua file (terurut)
+  let items = [];      // { file, name, src, el }
+  let current = -1;    // indeks di items
+  let autoplay = true;
+
+  // Ambil daftar video otomatis dari list.php
+  async function loadList() {
+    try {
+      const res = await fetch(BASE_URL + "list.php", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Format JSON tidak valid");
+      return data;
+    } catch (err) {
+      console.error("list.php gagal dimuat:", err);
+      return null;
+    }
+  }
+
+  // Thumbnail dimuat saat item mendekati layar
+  const thumbObserver = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      const box = e.target;
+      const v = document.createElement("video");
+      v.muted = true; v.preload = "metadata"; v.playsInline = true;
+      v.src = box.dataset.src + "#t=0.5";
+      box.prepend(v);
+      thumbObserver.unobserve(box);
+    });
+  }, { root: null, rootMargin: "300px" });
+
+  function showPlayerMessage(html, isError) {
+    const old = playerWrap.querySelector(".player-msg");
+    if (old) old.remove();
+    const d = document.createElement("div");
+    d.className = "player-msg" + (isError ? " error" : "");
+    d.innerHTML = html;
+    playerWrap.appendChild(d);
+  }
+  function clearPlayerMessage() {
+    const old = playerWrap.querySelector(".player-msg");
+    if (old) old.remove();
+  }
+
+  function select(index, { play = true, push = true } = {}) {
+    const it = items[index];
+    if (!it) return;
+    current = index;
+    clearPlayerMessage();
+
+    player.src = it.src;
+    player.load();
+    if (play) player.play().catch(() => {});
+
+    nowTitle.textContent = it.name;
+    document.title = it.name + " – Galeri Video";
+    posEl.textContent = `Video ${videos.indexOf(it.file) + 1} dari ${videos.length}`;
+    nextBtn.disabled = nextVisible(index) === -1;
+
+    items.forEach((x, i) => {
+      const active = i === index;
+      if (active) x.el.setAttribute("aria-current", "true");
+      else x.el.removeAttribute("aria-current");
+      const tag = x.el.querySelector(".playing-tag");
+      if (tag) tag.hidden = !active;
+    });
+
+    if (push) history.replaceState(null, "", "#" + encodeURIComponent(it.file));
+    it.el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }
+
+  // Cari item berikutnya yang tidak tersembunyi oleh pencarian
+  function nextVisible(from) {
+    for (let i = from + 1; i < items.length; i++) if (!items[i].el.hidden) return i;
+    return -1;
+  }
+
+  player.addEventListener("error", () => {
+    const it = items[current];
+    showPlayerMessage("<span>Video tidak ditemukan</span><small>" + esc(it ? it.src : "") + "</small>", true);
+  }, true);
+
+  player.addEventListener("ended", () => {
+    if (!autoplay) return;
+    const n = nextVisible(current);
+    if (n !== -1) select(n);
+  });
+
+  nextBtn.addEventListener("click", () => {
+    const n = nextVisible(current);
+    if (n !== -1) select(n);
+  });
+
+  autoBtn.addEventListener("click", () => {
+    autoplay = !autoplay;
+    autoBtn.setAttribute("aria-pressed", autoplay);
+    autoBtn.textContent = "Putar otomatis: " + (autoplay ? "Nyala" : "Mati");
+  });
+
+  searchEl.addEventListener("input", () => {
+    const q = searchEl.value.trim().toLowerCase();
+    let shown = 0;
+    items.forEach(x => {
+      const match = !q || x.name.toLowerCase().includes(q);
+      x.el.hidden = !match;
+      if (match) shown++;
+    });
+    countEl.textContent = q ? `${shown} dari ${videos.length}` : `${videos.length} video`;
+    const empty = $("emptySearch");
+    empty.hidden = shown > 0;
+    empty.innerHTML = `<strong>Tidak ada hasil</strong>Tidak ada video yang cocok dengan “${esc(q)}”.`;
+    if (current !== -1) nextBtn.disabled = nextVisible(current) === -1;
+  });
+
+  function render(data) {
+    if (data === null) {
+      $("layout").innerHTML = '<div class="state error state-page"><strong>Daftar video gagal dimuat</strong>Pastikan <code>' + esc(BASE_URL) + 'list.php</code> ada dan PHP aktif di server.</div>';
+      return;
+    }
+    if (!data.length) {
+      $("layout").innerHTML = '<div class="state state-page"><strong>Belum ada video</strong>Tambahkan file .mp4 ke folder video.</div>';
+      return;
+    }
+
+    videos = data.slice().sort();
+    countEl.textContent = `${videos.length} video`;
+
+    videos.forEach((file, i) => {
+      const name = prettyName(file);
+      const src = BASE_URL + encodeURIComponent(file);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "item";
+      btn.innerHTML = `
+        <div class="thumb" data-src="${esc(src)}"><span class="playing-tag" hidden>Sedang diputar</span></div>
+        <span class="item-title">${esc(name)}</span>
+      `;
+      btn.addEventListener("click", () => {
+        select(i);
+        if (window.matchMedia("(max-width: 1000px)").matches) window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+      listEl.appendChild(btn);
+      thumbObserver.observe(btn.querySelector(".thumb"));
+      items.push({ file, name, src, el: btn });
+    });
+
+    const empty = document.createElement("div");
+    empty.className = "state"; empty.id = "emptySearch"; empty.hidden = true;
+    listEl.appendChild(empty);
+
+    // Buka video dari alamat (#nama.mp4) bila ada, jika tidak video pertama
+    const hash = decodeURIComponent(location.hash.slice(1));
+    const start = Math.max(0, videos.indexOf(hash));
+    select(start, { play: false, push: false });
+  }
+
+  loadList().then(render);
+</script>
+
+</body>
+</html>

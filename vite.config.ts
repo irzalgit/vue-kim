@@ -10,6 +10,17 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react-vendor'
+          return 'vendor'
+        },
+      },
+    },
+  },
   server: {
     host: true,
     proxy: {

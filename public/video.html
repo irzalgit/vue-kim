@@ -92,82 +92,102 @@
 </div>
 
 <script>
-  // 🔧 UBAH DI SINI sesuai lokasi video sebenarnya
-  // Contoh: "/videos/", "https://math315.id/videos/", "https://cdn.namadomain.com/videos/"
+  // 🔧 Lokasi folder video (harus berisi list.php + file .mp4)
+  // Contoh: "videos/", "/videos/", "https://math315.id/videos/"
   const BASE_URL = "videos/";
-
-  const videos = [
-    "lingk (1).mp4",
-    "soal3.mp4",
-    "video_tka12_lingkaran_dalam (1).mp4"
-  ];
 
   const countEl = document.getElementById("count");
   const grid = document.getElementById("videoGrid");
-  countEl.textContent = `Total: ${videos.length} video`;
 
-  // Buat semua kartu dulu (tanpa memuat video-nya)
-  const cards = videos.slice().sort().map(file => {
-    const name = file.replace(/_/g, " ").replace(".mp4", "");
-    const src = BASE_URL + encodeURIComponent(file);
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-    const card = document.createElement("div");
-    card.className = "video-card";
-    card.innerHTML = `
-      <div class="media-wrap">
-        <div class="placeholder">Memuat…</div>
-      </div>
-      <div class="info">
-        <h3>${name}</h3>
-      </div>
-    `;
-    grid.appendChild(card);
+  // Ambil daftar video otomatis dari list.php
+  async function loadList() {
+    try {
+      const res = await fetch(BASE_URL + "list.php", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Format JSON tidak valid");
+      return data;
+    } catch (err) {
+      console.error("list.php gagal dimuat:", err);
+      return null;
+    }
+  }
 
-    return { card, src, name };
-  });
+  function render(videos) {
+    if (videos === null) {
+      countEl.textContent = "";
+      grid.innerHTML = '<p style="color:#e94560">⚠️ Gagal memuat daftar video. Pastikan <code>' + esc(BASE_URL) + 'list.php</code> ada dan PHP aktif di server.</p>';
+      return;
+    }
 
-  // Lazy-load: video baru dipasang saat kartu terlihat di layar
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (!entry.isIntersecting) return;
+    countEl.textContent = `Total: ${videos.length} video`;
 
-      const { card, src, name } = entry.target._data;
-      const wrap = card.querySelector(".media-wrap");
+    if (!videos.length) {
+      grid.innerHTML = '<p style="color:#888">Belum ada video di folder.</p>';
+      return;
+    }
 
-      const video = document.createElement("video");
-      video.controls = true;
-      video.preload = "metadata";
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
 
-      const source = document.createElement("source");
-      source.src = src;
-      source.type = "video/mp4";
-      video.appendChild(source);
-      video.appendChild(document.createTextNode("Browser Anda tidak mendukung video."));
+        const { card, src } = entry.target._data;
+        const wrap = card.querySelector(".media-wrap");
 
-      // Kalau file tidak ditemukan / gagal dimuat, tampilkan pesan yang jelas
-      video.addEventListener("error", () => {
-        wrap.innerHTML = `
-          <div class="placeholder error">
-            <span>⚠️ Video tidak ditemukan</span>
-            <small>${src}</small>
-          </div>
-        `;
-      }, true);
+        const video = document.createElement("video");
+        video.controls = true;
+        video.preload = "metadata";
 
-      video.addEventListener("loadedmetadata", () => {
-        const placeholder = wrap.querySelector(".placeholder");
-        if (placeholder) placeholder.remove();
+        const source = document.createElement("source");
+        source.src = src;
+        source.type = "video/mp4";
+        video.appendChild(source);
+        video.appendChild(document.createTextNode("Browser Anda tidak mendukung video."));
+
+        video.addEventListener("error", () => {
+          wrap.innerHTML = `
+            <div class="placeholder error">
+              <span>⚠️ Video tidak ditemukan</span>
+              <small>${esc(src)}</small>
+            </div>
+          `;
+        }, true);
+
+        video.addEventListener("loadedmetadata", () => {
+          const ph = wrap.querySelector(".placeholder");
+          if (ph) ph.remove();
+        });
+
+        wrap.appendChild(video);
+        observer.unobserve(entry.target);
       });
+    }, { rootMargin: "200px" });
 
-      wrap.appendChild(video);
-      observer.unobserve(entry.target);
+    videos.slice().sort().forEach(file => {
+      const name = file.replace(/_/g, " ").replace(/\.mp4$/i, "");
+      const src = BASE_URL + encodeURIComponent(file);
+
+      const card = document.createElement("div");
+      card.className = "video-card";
+      card.innerHTML = `
+        <div class="media-wrap">
+          <div class="placeholder">Memuat…</div>
+        </div>
+        <div class="info">
+          <h3>${esc(name)}</h3>
+        </div>
+      `;
+      grid.appendChild(card);
+
+      card._data = { card, src };
+      observer.observe(card);
     });
-  }, { rootMargin: "200px" });
+  }
 
-  cards.forEach(({ card, src, name }) => {
-    card._data = { card, src, name };
-    observer.observe(card);
-  });
+  countEl.textContent = "Memuat daftar video…";
+  loadList().then(render);
 </script>
 
 </body>
