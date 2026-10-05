@@ -100,43 +100,23 @@
 
   const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-  // Daftar video STATIS (GitHub Pages tidak menjalankan PHP, jadi list.php tidak dipakai).
-  // Tambahkan nama file baru di sini setiap kali ada video baru di folder videos/.
-  const DAFTAR_VIDEO = [
-    "bilangan9.mp4",
-    "video_latihan_tka9_part1_soal1_9.mp4",
-    "video_latihan_tka9_part2_soal10_18.mp4",
-    "video_latihan_tka9_part3_soal19_25.mp4",
-    "video_latihan_tka9_25soal.mp4",
-    "video_latihan_tka9_5.mp4",
-    "video_latihan_tka9_4.mp4",
-    "video_tka9_matematika.mp4",
-    "video_gabungan_geometri_tka9.mp4",
-    "video_gabungan_geometri_3soal.mp4",
-    "video_gabungan_trigonometri_4soal.mp4",
-    "video_gabungan_data_peluang_3soal.mp4",
-    "video_gabungan_tka123.mp4",
-    "video_gabungan_2soal.mp4",
-    "video_gabungan_3soal.mp4",
-    "video_soal_kuadrat_1.mp4",
-    "video_soal_kuadrat_2.mp4",
-    "video_soal_matematika_1.mp4",
-    "uji_coba_soal1.mp4",
-    "uji_coba_soal1_tka9_1.mp4",
-    "uji_coba_soal1_tka9_2.mp4",
-    "uji_coba_soal1_tka9_3.mp4",
-    "portal_matematika_promo.mp4",
-    "cinematic-vision.mp4"
-  ];
-
   async function loadList() {
-    return DAFTAR_VIDEO;
+    try {
+      const res = await fetch(BASE_URL + "list.json", { cache: "no-store" });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Format JSON tidak valid");
+      return data;
+    } catch (err) {
+      console.error("list.json gagal dimuat:", err);
+      return null;
+    }
   }
 
   function render(videos) {
     if (videos === null) {
       countEl.textContent = "";
-      grid.innerHTML = '<p style="color:#e94560">⚠️ Gagal memuat daftar video. Pastikan <code>' + esc(BASE_URL) + 'list.php</code> ada dan PHP aktif di server.</p>';
+      grid.innerHTML = '<p style="color:#e94560">⚠️ Gagal memuat daftar video. Pastikan <code>' + esc(BASE_URL) + 'list.json</code> ada.</p>';
       return;
     }
 
@@ -184,8 +164,10 @@
     }, { rootMargin: "200px" });
 
     videos.slice().sort().forEach(file => {
-      const name = file.replace(/_/g, " ").replace(/\.mp4$/i, "");
-      const src = BASE_URL + encodeURIComponent(file);
+      const base = file.split("/").pop();
+      const folder = file.includes("/") ? file.split("/").slice(0, -1).join(" / ") + " — " : "";
+      const name = folder + base.replace(/_/g, " ").replace(/\.mp4$/i, "");
+      const src = BASE_URL + file.split("/").map(encodeURIComponent).join("/");
 
       const card = document.createElement("div");
       card.className = "video-card";
