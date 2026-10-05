@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Award, Volume2, VolumeX, Film } from 'lucide-react';
+const V = (name: string) => `${import.meta.env.BASE_URL}videos/${name}`;
+
 
 export interface VideoItemOption {
   id: string;
@@ -14,7 +16,7 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'bilangan9',
     nama: '🎬 Bilangan Kelas 9 (7 Soal + Dialog)',
-    src: '/videos/bilangan9.mp4',
+    src: V('bilangan9.mp4'),
     kategori: 'Bilangan',
     kunciSoal: [
       { nomor: 1, kunci: 'A', penjelasan: 'Suhu akhir = -4 + 15 - 9 = 2°C (Opsi A)' },
@@ -29,25 +31,25 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'tka9_part1',
     nama: '📝 Latihan TKA 9 Part 1 (Soal 1 - 9)',
-    src: '/videos/video_latihan_tka9_part1_soal1_9.mp4',
+    src: V('video_latihan_tka9_part1_soal1_9.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'tka9_part2',
     nama: '📝 Latihan TKA 9 Part 2 (Soal 10 - 18)',
-    src: '/videos/video_latihan_tka9_part2_soal10_18.mp4',
+    src: V('video_latihan_tka9_part2_soal10_18.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'tka9_part3',
     nama: '📝 Latihan TKA 9 Part 3 (Soal 19 - 25)',
-    src: '/videos/video_latihan_tka9_part3_soal19_25.mp4',
+    src: V('video_latihan_tka9_part3_soal19_25.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'tka9_25soal',
     nama: '🏆 Latihan Lengkap TKA 9 (25 Soal)',
-    src: '/videos/video_latihan_tka9_25soal.mp4',
+    src: V('video_latihan_tka9_25soal.mp4'),
     kategori: 'Simulasi TKA',
     kunciSoal: [
       { nomor: 1, kunci: 'A', penjelasan: 'Soal 1 TKA 9 (Opsi A)' },
@@ -58,31 +60,31 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'tka9_paket5',
     nama: '🎯 Latihan TKA 9 (Paket 5)',
-    src: '/videos/video_latihan_tka9_5.mp4',
+    src: V('video_latihan_tka9_5.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'tka9_paket4',
     nama: '🎯 Latihan TKA 9 (Paket 4)',
-    src: '/videos/video_latihan_tka9_4.mp4',
+    src: V('video_latihan_tka9_4.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'tka9_matematika_full',
     nama: '📐 Pembahasan TKA 9 Matematika Lengkap',
-    src: '/videos/video_tka9_matematika.mp4',
+    src: V('video_tka9_matematika.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'geometri_tka9',
     nama: '🔷 Geometri TKA 9 Lengkap',
-    src: '/videos/video_gabungan_geometri_tka9.mp4',
+    src: V('video_gabungan_geometri_tka9.mp4'),
     kategori: 'Geometri',
   },
   {
     id: 'geometri_3soal',
     nama: '📐 Geometri & Pengukuran (3 Soal)',
-    src: '/videos/video_gabungan_geometri_3soal.mp4',
+    src: V('video_gabungan_geometri_3soal.mp4'),
     kategori: 'Geometri',
     kunciSoal: [
       { nomor: 1, kunci: 'B', penjelasan: 'Besar sudut berseberangan dalam = 65° (Opsi B)' },
@@ -93,7 +95,7 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'trigonometri_4soal',
     nama: '📐 Trigonometri Cepat (4 Soal)',
-    src: '/videos/video_gabungan_trigonometri_4soal.mp4',
+    src: V('video_gabungan_trigonometri_4soal.mp4'),
     kategori: 'Trigonometri',
     kunciSoal: [
       { nomor: 1, kunci: 'A', penjelasan: 'Sin 30° + Cos 60° = 1/2 + 1/2 = 1 (Opsi A)' },
@@ -105,7 +107,7 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'data_peluang_3soal',
     nama: '📊 Statistika, Data & Peluang (3 Soal)',
-    src: '/videos/video_gabungan_data_peluang_3soal.mp4',
+    src: V('video_gabungan_data_peluang_3soal.mp4'),
     kategori: 'Statistika',
     kunciSoal: [
       { nomor: 1, kunci: 'C', penjelasan: 'Modus = 157,5 cm (Opsi C)' },
@@ -116,73 +118,73 @@ export const DAFTAR_VIDEO_PUBLIC: VideoItemOption[] = [
   {
     id: 'tka123',
     nama: '⚡ Video Gabungan TKA 1, 2, 3',
-    src: '/videos/video_gabungan_tka123.mp4',
+    src: V('video_gabungan_tka123.mp4'),
     kategori: 'Simulasi TKA',
   },
   {
     id: 'gabungan_2soal',
     nama: '🔢 Latihan Gabungan 2 Soal',
-    src: '/videos/video_gabungan_2soal.mp4',
+    src: V('video_gabungan_2soal.mp4'),
     kategori: 'Latihan',
   },
   {
     id: 'gabungan_3soal',
     nama: '🔢 Latihan Gabungan 3 Soal',
-    src: '/videos/video_gabungan_3soal.mp4',
+    src: V('video_gabungan_3soal.mp4'),
     kategori: 'Latihan',
   },
   {
     id: 'soal_kuadrat_1',
     nama: '✏️ Soal Persamaan Kuadrat #1',
-    src: '/videos/video_soal_kuadrat_1.mp4',
+    src: V('video_soal_kuadrat_1.mp4'),
     kategori: 'Aljabar',
   },
   {
     id: 'soal_kuadrat_2',
     nama: '✏️ Soal Persamaan Kuadrat #2',
-    src: '/videos/video_soal_kuadrat_2.mp4',
+    src: V('video_soal_kuadrat_2.mp4'),
     kategori: 'Aljabar',
   },
   {
     id: 'soal_matematika_1',
     nama: '✏️ Soal Matematika Dasar #1',
-    src: '/videos/video_soal_matematika_1.mp4',
+    src: V('video_soal_matematika_1.mp4'),
     kategori: 'Dasar',
   },
   {
     id: 'uji_coba_soal1',
     nama: '🧪 Uji Coba Soal #1',
-    src: '/videos/uji_coba_soal1.mp4',
+    src: V('uji_coba_soal1.mp4'),
     kategori: 'Uji Coba',
   },
   {
     id: 'uji_coba_tka9_1',
     nama: '🧪 Uji Coba TKA 9 (Bagian 1)',
-    src: '/videos/uji_coba_soal1_tka9_1.mp4',
+    src: V('uji_coba_soal1_tka9_1.mp4'),
     kategori: 'Uji Coba',
   },
   {
     id: 'uji_coba_tka9_2',
     nama: '🧪 Uji Coba TKA 9 (Bagian 2)',
-    src: '/videos/uji_coba_soal1_tka9_2.mp4',
+    src: V('uji_coba_soal1_tka9_2.mp4'),
     kategori: 'Uji Coba',
   },
   {
     id: 'uji_coba_tka9_3',
     nama: '🧪 Uji Coba TKA 9 (Bagian 3)',
-    src: '/videos/uji_coba_soal1_tka9_3.mp4',
+    src: V('uji_coba_soal1_tka9_3.mp4'),
     kategori: 'Uji Coba',
   },
   {
     id: 'promo_portal',
     nama: '🎥 Video Promo Portal Matematika',
-    src: '/videos/portal_matematika_promo.mp4',
+    src: V('portal_matematika_promo.mp4'),
     kategori: 'Promosi',
   },
   {
     id: 'cinematic_vision',
     nama: '🎬 Cinematic Vision Preview',
-    src: '/videos/cinematic-vision.mp4',
+    src: V('cinematic-vision.mp4'),
     kategori: 'Cinematic',
   },
 ];
@@ -198,7 +200,7 @@ interface VideoModalProps {
 export default function VideoModal({
   isOpen,
   onClose,
-  videoSrc = '/videos/bilangan9.mp4',
+  videoSrc = V('bilangan9.mp4'),
   title = '🎬 Video Pembelajaran Interaktif',
   daftarVideo = DAFTAR_VIDEO_PUBLIC,
 }: VideoModalProps) {
@@ -290,9 +292,7 @@ export default function VideoModal({
     }
 
     setJawabanUser('');
-    setTimeout(() => {
-      setNotifHasil(null), 4500;
-    });
+    setTimeout(() => setNotifHasil(null), 4500);
   };
 
   const jumlahBenar = Object.values(riwayatNilai).filter(Boolean).length;

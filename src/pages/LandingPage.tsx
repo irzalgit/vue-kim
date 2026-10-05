@@ -53,7 +53,7 @@ export default function LandingPage({ onMulai }: LandingPageProps) {
         <div style={{ textAlign: 'center', padding: '30px 20px' }}>
           <div>
             <a
-              href="/video.html"
+              href={`${import.meta.env.BASE_URL}video.html`}
               style={{
                 display: 'inline-block',
                 color: '#ffffff',

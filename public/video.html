@@ -92,8 +92,7 @@
 </div>
 
 <script>
-  // 🔧 Lokasi folder video (harus berisi list.php + file .mp4)
-  // Contoh: "videos/", "/videos/", "https://math315.id/videos/"
+  // Lokasi folder video (relatif terhadap video.html, cocok untuk GitHub Pages)
   const BASE_URL = "videos/";
 
   const countEl = document.getElementById("count");
@@ -101,18 +100,37 @@
 
   const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
-  // Ambil daftar video otomatis dari list.php
+  // Daftar video STATIS (GitHub Pages tidak menjalankan PHP, jadi list.php tidak dipakai).
+  // Tambahkan nama file baru di sini setiap kali ada video baru di folder videos/.
+  const DAFTAR_VIDEO = [
+    "bilangan9.mp4",
+    "video_latihan_tka9_part1_soal1_9.mp4",
+    "video_latihan_tka9_part2_soal10_18.mp4",
+    "video_latihan_tka9_part3_soal19_25.mp4",
+    "video_latihan_tka9_25soal.mp4",
+    "video_latihan_tka9_5.mp4",
+    "video_latihan_tka9_4.mp4",
+    "video_tka9_matematika.mp4",
+    "video_gabungan_geometri_tka9.mp4",
+    "video_gabungan_geometri_3soal.mp4",
+    "video_gabungan_trigonometri_4soal.mp4",
+    "video_gabungan_data_peluang_3soal.mp4",
+    "video_gabungan_tka123.mp4",
+    "video_gabungan_2soal.mp4",
+    "video_gabungan_3soal.mp4",
+    "video_soal_kuadrat_1.mp4",
+    "video_soal_kuadrat_2.mp4",
+    "video_soal_matematika_1.mp4",
+    "uji_coba_soal1.mp4",
+    "uji_coba_soal1_tka9_1.mp4",
+    "uji_coba_soal1_tka9_2.mp4",
+    "uji_coba_soal1_tka9_3.mp4",
+    "portal_matematika_promo.mp4",
+    "cinematic-vision.mp4"
+  ];
+
   async function loadList() {
-    try {
-      const res = await fetch(BASE_URL + "list.php", { cache: "no-store" });
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Format JSON tidak valid");
-      return data;
-    } catch (err) {
-      console.error("list.php gagal dimuat:", err);
-      return null;
-    }
+    return DAFTAR_VIDEO;
   }
 
   function render(videos) {
