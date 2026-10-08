@@ -5,6 +5,7 @@ import { HashRouter, Routes, Route, useLocation, useNavigate, useParams } from '
 import { AuthProvider } from './context/AuthContext';
 import { renderMathJax } from './utils/helpers';
 import LandingPage from './pages/LandingPage';
+import TkaDiagnostikPage from './pages/TkaDiagnostikPage';
 import DashboardPage from './pages/DashboardPage';
 import SoalPage from './pages/SoalPage';
 import AnimasiMatematikaPage from './pages/AnimasiMatematikaPage';
@@ -127,6 +128,7 @@ function AppContent() {
 
         <Routes>
           <Route path="/" element={<LandingPage onMulai={() => navigate('/dashboard')} />} />
+          <Route path="/tka" element={<TkaDiagnostikPage />} />
           <Route path="/shop" element={<ShopPage />} />
           <Route path="/animasi-matematika" element={<AnimasiMatematikaPage />} />
           <Route 

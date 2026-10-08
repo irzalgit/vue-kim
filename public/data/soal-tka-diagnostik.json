@@ -1,0 +1,180 @@
+{
+  "kode": "TKA12-DIAGNOSTIK-01",
+  "judul": "Tes Diagnostik TKA Matematika Kelas 12",
+  "jumlah_soal": 10,
+  "durasi_menit": 10,
+  "skor_maksimal": 100,
+  "petunjuk": "Pilih satu jawaban yang paling tepat. Soal nomor 10 memiliki lebih dari satu jawaban benar.",
+  "soal": [
+    {
+      "id": "TKA12-D01",
+      "elemen": "Aljabar",
+      "submateri": "Fungsi dan komposisi",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Diketahui f(x) = 2x - 3 dan g(x) = x² + 1. Jika (g ∘ f)(x) = 17, nilai x yang memenuhi adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "-1/2"},
+        {"id": "B", "teks": "1/2"},
+        {"id": "C", "teks": "3/2"},
+        {"id": "D", "teks": "7/2"},
+        {"id": "E", "teks": "9/2"}
+      ],
+      "kunci_id": ["A", "D"],
+      "pembahasan": "g(f(x)) = (2x - 3)² + 1 = 17. Maka (2x - 3)² = 16, sehingga 2x - 3 = ±4. Jadi x = -1/2 atau x = 7/2."
+    },
+    {
+      "id": "TKA12-D02",
+      "elemen": "Aljabar",
+      "submateri": "Logaritma",
+      "level": "Menengah",
+      "bentuk": "PG",
+      "pertanyaan": "Jika log₂(x - 1) = 3, nilai x adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "7"},
+        {"id": "B", "teks": "8"},
+        {"id": "C", "teks": "9"},
+        {"id": "D", "teks": "10"},
+        {"id": "E", "teks": "11"}
+      ],
+      "kunci_id": ["C"],
+      "pembahasan": "log₂(x - 1) = 3 berarti x - 1 = 2³ = 8. Jadi x = 9."
+    },
+    {
+      "id": "TKA12-D03",
+      "elemen": "Bilangan",
+      "submateri": "Barisan aritmetika",
+      "level": "Menengah",
+      "bentuk": "PG",
+      "pertanyaan": "Suatu barisan aritmetika mempunyai suku pertama 7 dan beda 4. Jika suku ke-n bernilai 51, maka n adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "10"},
+        {"id": "B", "teks": "11"},
+        {"id": "C", "teks": "12"},
+        {"id": "D", "teks": "13"},
+        {"id": "E", "teks": "14"}
+      ],
+      "kunci_id": ["C"],
+      "pembahasan": "Uₙ = a + (n - 1)b. Jadi 51 = 7 + 4(n - 1), sehingga n = 12."
+    },
+    {
+      "id": "TKA12-D04",
+      "elemen": "Geometri",
+      "submateri": "Jarak titik ke garis",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Jarak titik P(2,3) terhadap garis 3x + 4y - 12 = 0 adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "2/5"},
+        {"id": "B", "teks": "3/5"},
+        {"id": "C", "teks": "4/5"},
+        {"id": "D", "teks": "6/5"},
+        {"id": "E", "teks": "7/5"}
+      ],
+      "kunci_id": ["D"],
+      "pembahasan": "Jarak = |3(2) + 4(3) - 12| / √(3² + 4²) = 6/5."
+    },
+    {
+      "id": "TKA12-D05",
+      "elemen": "Trigonometri",
+      "submateri": "Identitas trigonometri",
+      "level": "Menengah",
+      "bentuk": "PG",
+      "pertanyaan": "Jika sin θ = 3/5 dan θ berada di kuadran I, maka nilai cos θ adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "1/5"},
+        {"id": "B", "teks": "2/5"},
+        {"id": "C", "teks": "3/5"},
+        {"id": "D", "teks": "4/5"},
+        {"id": "E", "teks": "5/4"}
+      ],
+      "kunci_id": ["D"],
+      "pembahasan": "sin²θ + cos²θ = 1, sehingga cos²θ = 16/25. Karena θ di kuadran I, cos θ = 4/5."
+    },
+    {
+      "id": "TKA12-D06",
+      "elemen": "Kalkulus",
+      "submateri": "Turunan",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Diberikan f(x) = x³ - 6x² + 9x + 2. Nilai x saat grafik f mempunyai titik stasioner adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "x = 0 dan x = 2"},
+        {"id": "B", "teks": "x = 1 dan x = 3"},
+        {"id": "C", "teks": "x = 2 dan x = 3"},
+        {"id": "D", "teks": "x = 1 dan x = 2"},
+        {"id": "E", "teks": "x = 3 dan x = 4"}
+      ],
+      "kunci_id": ["B"],
+      "pembahasan": "f'(x) = 3(x - 1)(x - 3). Jadi titik stasioner terjadi pada x = 1 dan x = 3."
+    },
+    {
+      "id": "TKA12-D07",
+      "elemen": "Kalkulus",
+      "submateri": "Maksimum dan minimum",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Sebuah persegi panjang mempunyai keliling 40 cm. Agar luasnya maksimum, panjang dan lebarnya harus ...",
+      "opsi": [
+        {"id": "A", "teks": "5 cm dan 15 cm"},
+        {"id": "B", "teks": "8 cm dan 12 cm"},
+        {"id": "C", "teks": "9 cm dan 11 cm"},
+        {"id": "D", "teks": "10 cm dan 10 cm"},
+        {"id": "E", "teks": "6 cm dan 14 cm"}
+      ],
+      "kunci_id": ["D"],
+      "pembahasan": "Keliling 40 cm berarti p + l = 20. Luas maksimum terjadi ketika p = l, sehingga p = l = 10 cm."
+    },
+    {
+      "id": "TKA12-D08",
+      "elemen": "Data dan Peluang",
+      "submateri": "Peluang",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Sebuah kotak berisi 4 bola merah, 3 bola biru, dan 3 bola hijau. Jika satu bola diambil secara acak, peluang terambil bola yang bukan biru adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "3/10"},
+        {"id": "B", "teks": "4/10"},
+        {"id": "C", "teks": "6/10"},
+        {"id": "D", "teks": "7/10"},
+        {"id": "E", "teks": "8/10"}
+      ],
+      "kunci_id": ["D"],
+      "pembahasan": "Jumlah bola = 10 dan bola bukan biru = 7. Jadi peluangnya 7/10."
+    },
+    {
+      "id": "TKA12-D09",
+      "elemen": "Aljabar",
+      "submateri": "Pemodelan matematika",
+      "level": "HOTS",
+      "bentuk": "PG",
+      "pertanyaan": "Sebuah kendaraan menempuh 180 km. Jika kecepatannya dinaikkan 15 km/jam, waktu perjalanan menjadi 1 jam lebih singkat. Kecepatan awal kendaraan adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "30 km/jam"},
+        {"id": "B", "teks": "35 km/jam"},
+        {"id": "C", "teks": "40 km/jam"},
+        {"id": "D", "teks": "45 km/jam"},
+        {"id": "E", "teks": "50 km/jam"}
+      ],
+      "kunci_id": ["D"],
+      "pembahasan": "180/v - 180/(v + 15) = 1 menghasilkan v² + 15v - 2700 = 0. Jadi v = 45 km/jam karena kecepatan harus positif."
+    },
+    {
+      "id": "TKA12-D10",
+      "elemen": "Kalkulus",
+      "submateri": "Turunan dan optimasi",
+      "level": "HOTS",
+      "bentuk": "PG_KOMPLEKS",
+      "pertanyaan": "Diberikan f(x) = x³ - 3x² - 9x + 5. Pernyataan yang benar adalah ...",
+      "opsi": [
+        {"id": "A", "teks": "f'(x) = 3x² - 6x - 9"},
+        {"id": "B", "teks": "Titik stasioner terjadi pada x = -1 dan x = 3"},
+        {"id": "C", "teks": "x = -1 merupakan titik maksimum lokal"},
+        {"id": "D", "teks": "x = 3 merupakan titik minimum lokal"},
+        {"id": "E", "teks": "Grafik tidak mempunyai titik stasioner"}
+      ],
+      "kunci_id": ["A", "B", "C", "D"],
+      "pembahasan": "f'(x) = 3(x - 3)(x + 1). Titik stasioner x = -1 dan x = 3. f''(x) = 6x - 6; pada -1 negatif sehingga maksimum lokal, sedangkan pada 3 positif sehingga minimum lokal."
+    }
+  ]
+}
