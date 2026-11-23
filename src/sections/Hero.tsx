@@ -72,7 +72,7 @@ export default function Hero() {
             </LiquidGlassButton>
 
             <a
-              href="./smp175.html"
+              href="./soal150.html"
               target="_blank"
               rel="noopener noreferrer"
               className="px-6 py-3 rounded-full text-white font-medium bg-blue-600/80 hover:bg-blue-600 hover:scale-105 backdrop-blur-md transition-all duration-300 no-underline shadow-lg shadow-blue-500/25 flex items-center gap-2"
