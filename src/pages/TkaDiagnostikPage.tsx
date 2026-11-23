@@ -1,4 +1,21 @@
+
 import { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '../context/AuthContext';
+import { signOut } from 'firebase/auth';
+import { auth, db, signInWithGoogle } from '../lib/firebase';
+import MathText from '../components/MathText';
+import { ref, onValue } from 'firebase/database';
+import {
+  CheckCircle2,
+  QrCode,
+  Sparkles,
+  MessageCircle,
+  ShieldCheck,
+  ArrowRight,
+  Heart,
+  LogOut,
+  Crown,
+} from 'lucide-react';
 
 type Option = {
   id: string;
@@ -15,6 +32,8 @@ type Question = {
   opsi: Option[];
   kunci_id: string[];
   pembahasan: string;
+  /** Poin soal (default 1). Dipakai untuk menghitung skor; jawaban benar menambah poin ini. */
+  skor: number;
 };
 
 type QuizData = {
@@ -27,30 +46,458 @@ type QuizData = {
   soal: Question[];
 };
 
-export default function TkaDiagnostikPage() {
+type TopicStat = {
+  total: number;
+  benar: number;
+};
+
+type SessionAnswerDetail = {
+  id: string;
+  pertanyaan: string;
+  materi: string;
+  jawaban_siswa: string[];
+  kunci_jawaban: string[];
+  benar: boolean;
+  pembahasan: string;
+};
+
+type SessionResult = {
+  sesi: number;
+  total: number;
+  benar: number;
+  persentase: number;
+  lulus: boolean;
+  topik: Record<string, TopicStat>;
+  /** Skor dan jawaban rinci disimpan untuk setiap sesi. Opsional agar data lama tetap terbaca. */
+  skor?: number;
+  skor_maksimal?: number;
+  jawaban?: Record<string, string[]>;
+  rincian_jawaban?: SessionAnswerDetail[];
+  disimpan_pada?: string;
+};
+
+type Props = {
+  /** true = tampil sebagai section di Landing Page (di bawah Hero) */
+  embedded?: boolean;
+  /** dipanggil saat tombol "Buka Sesi Latihan TKA" ditekan */
+  onOpenDashboard?: () => void;
+};
+
+function normalizeQuizData(raw: any): QuizData {
+  const rawSoal = Array.isArray(raw?.soal) ? raw.soal : [];
+  const normalizedSoal: Question[] = rawSoal.map((s: any, idx: number) => {
+    let opsi: Option[] = [];
+    if (Array.isArray(s.opsi)) {
+      opsi = s.opsi.map((o: any) => ({
+        id: String(o.id ?? ''),
+        teks: String(o.teks ?? o.text ?? ''),
+      }));
+    } else if (s.pilihan && typeof s.pilihan === 'object') {
+      opsi = Object.entries(s.pilihan).map(([key, val]) => ({
+        id: key,
+        teks: String(val),
+      }));
+    } else if (Array.isArray(s.pilihan)) {
+      opsi = s.pilihan.map((p: any, i: number) => ({
+        id: String.fromCharCode(65 + i),
+        teks: typeof p === 'string' ? p : String(p.teks ?? p.text ?? ''),
+      }));
+    }
+
+    let kunci_id: string[] = [];
+    if (Array.isArray(s.kunci_id)) {
+      kunci_id = s.kunci_id.map(String);
+    } else if (typeof s.kunci_id === 'string') {
+      kunci_id = [s.kunci_id];
+    } else if (Array.isArray(s.kunci_jawaban)) {
+      kunci_id = s.kunci_jawaban.map(String);
+    } else if (typeof s.kunci_jawaban === 'string') {
+      kunci_id = [s.kunci_jawaban];
+    }
+
+    return {
+      id: String(s.id || `SOAL-${idx + 1}`),
+      elemen: String(s.elemen || s.materi || 'Matematika'),
+      submateri: String(s.submateri || s.topik || ''),
+      level: String(s.level || s.level_kognitif || 'Standar'),
+      bentuk: String(s.bentuk || s.bentuk_soal || (kunci_id.length > 1 ? 'PG_KOMPLEKS' : 'PG')),
+      pertanyaan: String(s.pertanyaan || s.soal || ''),
+      opsi,
+      kunci_id,
+      pembahasan: String(s.pembahasan || ''),
+      skor: Number(s.skor) > 0 ? Number(s.skor) : 1,
+    };
+  });
+
+  return {
+    kode: String(raw.kode || 'TKA-01'),
+    judul: String(raw.judul || 'Latihan Soal TKA Matematika'),
+    jumlah_soal: Number(raw.jumlah_soal) || normalizedSoal.length,
+    durasi_menit: Number(raw.durasi_menit || raw.durasi_menit_saran) || 60,
+    skor_maksimal: Number(raw.skor_maksimal || raw.skor_maksimum) || 100,
+    petunjuk: String(raw.petunjuk || ''),
+    soal: normalizedSoal,
+  };
+}
+
+function canonicalElement(topic: string): string | null {
+  const value = topic.toLocaleLowerCase('id-ID').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (value.includes('geometri') || value.includes('geometr')) return 'Geometri';
+  if (value.includes('trigonometri') || value.includes('trigon')) return 'Trigonometri';
+  if (value.includes('aljabar') || value.includes('algebra')) return 'Aljabar';
+  if (value.includes('bilangan') || value.includes('angka')) return 'Bilangan';
+  if (value.includes('data') || value.includes('peluang') || value.includes('statistika') || value.includes('statistik')) return 'Data dan Peluang';
+  return null;
+}
+
+const ELEMENT_WEIGHTS: Record<string, number> = {
+  Geometri: 30,
+  Aljabar: 25,
+  Bilangan: 15,
+  Trigonometri: 15,
+  'Data dan Peluang': 15,
+};
+
+/** Sesi 1–3 = Matematika Wajib: berurutan, saling mengunci, digabung di resume akhir. */
+const TOTAL_SESI_WAJIB = 3;
+const SESI_WAJIB_LIST = Array.from({ length: TOTAL_SESI_WAJIB }, (_, i) => i + 1);
+/** Sesi 4 dan 5 = Matematika Pilihan (Tingkat Lanjut): berdiri sendiri, tidak terkunci, tidak masuk resume Wajib. */
+const SESI_PILIHAN_LIST = [4, 5];
+/** Nomor sesi tertinggi yang dikenali (dipakai untuk hash URL dan penyimpanan hasil). */
+const TOTAL_SESI = Math.max(...SESI_PILIHAN_LIST);
+
+export default function TkaDiagnostikPage({
+  embedded = false,
+  onOpenDashboard,
+}: Props) {
+  const { user } = useAuth();
+  const [loginError, setLoginError] = useState('');
+
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const handleLogout = async () => {
+    if (!window.confirm('Keluar dari akun? Jawaban tes yang sedang dikerjakan akan hilang.')) return;
+    try {
+      await signOut(auth);
+      // Muat ulang agar tes kembali ke awal dan kembali ke halaman login.
+      window.location.reload();
+    } catch (error) {
+      console.error('Logout gagal:', error);
+      setLoginError('Gagal keluar. Silakan coba lagi.');
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    if (loggingIn) return; // cegah klik ganda (memicu auth/cancelled-popup-request)
+    setLoginError('');
+    setLoggingIn(true);
+    try {
+      await signInWithGoogle();
+    } catch (error) {
+      const code = (error as { code?: string })?.code ?? 'unknown';
+      console.error('Login Google gagal:', code, error);
+
+      const messages: Record<string, string> = {
+        'auth/unauthorized-domain':
+          'Domain ini belum diizinkan. Tambahkan domain di Firebase Console > Authentication > Settings > Authorized domains.',
+        'auth/popup-blocked':
+          'Popup diblokir browser. Izinkan popup untuk situs ini lalu coba lagi.',
+        'auth/popup-closed-by-user': 'Jendela login ditutup sebelum selesai.',
+        'auth/cancelled-popup-request': 'Login sedang diproses, tunggu sebentar.',
+        'auth/operation-not-allowed':
+          'Provider Google belum diaktifkan di Firebase Console > Authentication > Sign-in method.',
+        'auth/network-request-failed': 'Koneksi internet bermasalah.',
+        'auth/invalid-api-key': 'API key Firebase salah. Periksa file .env.',
+        'auth/internal-error': 'Kesalahan internal Firebase. Periksa konfigurasi.',
+      };
+
+      setLoginError(
+        `${messages[code] ?? 'Login belum berhasil. Silakan coba kembali.'} (${code})`
+      );
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+  const [isPremium, setIsPremium] = useState(false);
+  const [premiumUntil, setPremiumUntil] = useState<number | null>(null);
+  const [premiumChecked, setPremiumChecked] = useState(false);
+
+  // State sesi aktif. Sesi 1 -> 2 -> 3 berurutan (Wajib); Sesi 4 (Pilihan) berdiri sendiri.
+  const [currentSesi, setCurrentSesi] = useState<number>(() => {
+    try {
+      const hash = window.location.hash || '';
+      const match = hash.match(/[?&]sesi=(\d+)/);
+      if (match) {
+        const fromHash = parseInt(match[1], 10);
+        if (fromHash >= 1 && fromHash <= TOTAL_SESI) return fromHash;
+      }
+
+      const saved = localStorage.getItem('tka_active_sesi');
+      if (saved) {
+        const parsed = parseInt(saved, 10);
+        if (parsed >= 1 && parsed <= TOTAL_SESI) return parsed;
+      }
+    } catch {}
+    return 1;
+  });
+
+  const [unlockedSesi, setUnlockedSesi] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('tka_unlocked_sesi');
+      if (saved) return Math.max(1, Math.min(TOTAL_SESI_WAJIB, parseInt(saved, 10) || 1));
+    } catch {}
+    return 1;
+  });
+
+  const isSesiMode =
+    isPremium ||
+    currentSesi > 1 ||
+    (typeof window !== 'undefined' && window.location.hash.includes('sesi=')) ||
+    Boolean(localStorage.getItem('tka_unlocked_sesi')) ||
+    Boolean(localStorage.getItem('tka_active_sesi')) ||
+    Boolean(import.meta.env.DEV);
+
+  // Sesi 4 dan 5 = Matematika Pilihan (terpisah dari jalur Wajib).
+  const isPilihan = isSesiMode && SESI_PILIHAN_LIST.includes(currentSesi);
+
   const [data, setData] = useState<QuizData | null>(null);
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [sessionResults, setSessionResults] = useState<Record<number, SessionResult>>(() => {
+    const results: Record<number, SessionResult> = {};
+    try {
+      for (let sesi = 1; sesi <= TOTAL_SESI; sesi++) {
+        const saved = localStorage.getItem(`tka_sesi_${sesi}_result`);
+        if (saved) {
+          const parsed = JSON.parse(saved) as SessionResult;
+          if (parsed && parsed.sesi === sesi) results[sesi] = parsed;
+        }
+      }
+    } catch (error) {
+      console.warn('Hasil sesi tersimpan tidak dapat dibaca:', error);
+    }
+    return results;
+  });
   const [finished, setFinished] = useState(false);
   const [seconds, setSeconds] = useState(600);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
 
+  const [diagnosticParticipantCount, setDiagnosticParticipantCount] =
+    useState<number | null>(null);
+  const [diagnosticSubmitting, setDiagnosticSubmitting] = useState(false);
+
+  // Mengambil jumlah peserta tes diagnostik, bukan peserta sesi 1-5.
   useEffect(() => {
-    fetch(`${import.meta.env.BASE_URL}data/soal-tka-diagnostik.json`)
+    if (isSesiMode) return;
+
+    let cancelled = false;
+
+    fetch('https://math315.vercel.app/api/tka-diagnostic-participants')
       .then((response) => {
+        if (!response.ok) throw new Error('Gagal mengambil jumlah peserta');
+        return response.json();
+      })
+      .then((result: { success?: boolean; total?: number }) => {
+        if (!cancelled && result.success) {
+          setDiagnosticParticipantCount(Number(result.total) || 0);
+        }
+      })
+      .catch((error) => console.warn('Jumlah peserta:', error));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isSesiMode]);
+
+
+  // Pantau status langganan TKA Premium user secara realtime
+  useEffect(() => {
+    if (!user) {
+      setIsPremium(false);
+      setPremiumUntil(null);
+      setPremiumChecked(true);
+      return;
+    }
+
+    setPremiumChecked(false);
+    const userRef = ref(db, `users/${user.uid}`);
+    const unsubscribe = onValue(
+      userRef,
+      (snapshot) => {
+        const val = snapshot.val();
+        if (val) {
+          const until = Math.max(
+            Number(val.premium_until) || 0,
+            Number(val.premiumExpired) || 0
+          );
+          const active = until > Date.now();
+          setIsPremium(active);
+          setPremiumUntil(until || null);
+        } else {
+          setIsPremium(false);
+          setPremiumUntil(null);
+        }
+        setPremiumChecked(true);
+      },
+      (error) => {
+        console.error('Gagal membaca status premium:', error);
+        setIsPremium(false);
+        setPremiumChecked(true);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Memuat soal: jika mode sesi (Sesi 1 sampai TOTAL_SESI), muat sesi_X.json secara berurutan
+  useEffect(() => {
+    if (user && !premiumChecked) return;
+
+    let cancelled = false;
+    let targetFile = `sesi_${currentSesi}.json`;
+    let fallbackUrl =
+      currentSesi === 1 ? `${import.meta.env.BASE_URL}data/soal_1.json` : null;
+
+    if (!isSesiMode) {
+      targetFile = 'soal-tka-diagnostik.json';
+      fallbackUrl = `${import.meta.env.BASE_URL}data/sesi_1.json`;
+    }
+
+    const primaryUrl = `${import.meta.env.BASE_URL}data/${targetFile}`;
+
+    const loadData = async () => {
+      try {
+        let response = await fetch(primaryUrl);
+        if (!response.ok && fallbackUrl) {
+          response = await fetch(fallbackUrl);
+        }
         if (!response.ok) {
           throw new Error('Gagal memuat soal');
         }
-        return response.json();
-      })
-      .then(setData)
-      .catch((error) => {
-        console.error(error);
-        setData(null);
-      });
-  }, []);
 
+        const raw = await response.json();
+        if (cancelled) return;
+
+        const result = normalizeQuizData(raw);
+
+        if (!Array.isArray(result.soal) || result.soal.length === 0) {
+          throw new Error('Data soal kosong');
+        }
+
+        setData(result);
+        setSeconds(
+          Math.max(1, Number(result.durasi_menit) || 75) * 60
+        );
+        setIndex(0);
+        setAnswers({});
+        setFinished(false);
+        setLoadError(null);
+      } catch (error) {
+        if (cancelled) return;
+
+        console.error('Gagal memuat soal TKA:', error);
+        setLoadError(
+          'Soal TKA gagal dimuat. Periksa koneksi internet, kemudian coba lagi.'
+        );
+      }
+    };
+
+    loadData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isPremium, premiumChecked, currentSesi, isSesiMode, reloadNonce]);
+
+  const handleResetSemuaSesi = () => {
+    const yakin = window.confirm(
+      `Hapus seluruh hasil dan progres Matematika Wajib (Sesi 1 sampai ${TOTAL_SESI_WAJIB})? Hasil Sesi Pilihan tidak ikut dihapus. Data yang dihapus tidak dapat dipulihkan.`
+    );
+    if (!yakin) return;
+
+    try {
+      for (let sesi = 1; sesi <= TOTAL_SESI_WAJIB; sesi++) {
+        localStorage.removeItem(`tka_sesi_${sesi}_result`);
+        localStorage.removeItem(`tka_sesi_${sesi}_percentage`);
+      }
+      localStorage.removeItem("tka_active_sesi");
+      localStorage.removeItem("tka_unlocked_sesi");
+    } catch (error) {
+      console.error("Gagal menghapus progres TKA:", error);
+      alert("Sebagian data tidak berhasil dihapus. Silakan coba lagi.");
+      return;
+    }
+
+    setSessionResults((previous) => {
+      const next = { ...previous };
+      for (const sesi of SESI_WAJIB_LIST) delete next[sesi];
+      return next;
+    });
+    setUnlockedSesi(1);
+    setCurrentSesi(1);
+    setIndex(0);
+    setAnswers({});
+    setFinished(false);
+    setLoadError(null);
+    setReloadNonce((previous) => previous + 1);
+  };
+
+  const handlePindahSesi = (targetSesi: number) => {
+    // Hanya sesi Wajib (2 dan 3) yang terkunci; Sesi 1 dan Sesi Pilihan bebas dibuka.
+    if (targetSesi > 1 && targetSesi <= TOTAL_SESI_WAJIB && !import.meta.env.DEV) {
+      let previousPassed = false;
+      try {
+        const saved = localStorage.getItem(`tka_sesi_${targetSesi - 1}_result`);
+        if (saved) {
+          const previousResult = JSON.parse(saved) as SessionResult;
+          previousPassed = Number(previousResult.persentase) >= 20;
+        }
+      } catch {}
+      if (!previousPassed) {
+        alert(
+          `Sesi ${targetSesi} masih terkunci. Sesi ${targetSesi - 1} harus mencapai minimal 20% jawaban benar terlebih dahulu.`
+        );
+        return;
+      }
+
+      if (targetSesi > unlockedSesi) {
+        setUnlockedSesi(targetSesi);
+        try {
+          localStorage.setItem('tka_unlocked_sesi', String(targetSesi));
+        } catch {}
+      }
+    }
+    setCurrentSesi(targetSesi);
+    try {
+      localStorage.setItem('tka_active_sesi', String(targetSesi));
+    } catch {}
+    setData(null);
+    setIndex(0);
+    setAnswers({});
+    setFinished(false);
+    setLoadError(null);
+    setReloadNonce((value) => value + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleUlangiSesi = (targetSesi: number = currentSesi) => {
+    setCurrentSesi(targetSesi);
+    try {
+      localStorage.setItem('tka_active_sesi', String(targetSesi));
+    } catch {}
+    setData(null);
+    setIndex(0);
+    setAnswers({});
+    setFinished(false);
+    setLoadError(null);
+    setReloadNonce((value) => value + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Timer berhenti setelah tes selesai.
   useEffect(() => {
-    if (!data || finished) return;
+    if (!data || finished || !user) return;
 
     const timer = window.setInterval(() => {
       setSeconds((value) => {
@@ -65,61 +512,808 @@ export default function TkaDiagnostikPage() {
     }, 1000);
 
     return () => window.clearInterval(timer);
-  }, [data, finished]);
+  }, [data, finished, user]);
 
-  const score = useMemo(() => {
-    if (!data) return 0;
+  // Evaluasi skor, jumlah benar, dan persentase kelulusan (minimal 60%)
+  const { correctCount, totalQuestions, correctPercentage, score } = useMemo(() => {
+    if (!data || data.soal.length === 0) {
+      return {
+        correctCount: 0,
+        totalQuestions: 0,
+        correctPercentage: 0,
+        isPassed: false,
+        score: 0,
+      };
+    }
 
     let correct = 0;
+    let earnedPoints = 0;
+    let totalPoints = 0;
 
     for (const question of data.soal) {
       const answer = [...(answers[question.id] ?? [])].sort();
       const key = [...question.kunci_id].sort();
+
+      totalPoints += question.skor;
 
       if (
         answer.length === key.length &&
         answer.every((value, i) => value === key[i])
       ) {
         correct++;
+        earnedPoints += question.skor;
       }
     }
 
-    return correct * 10;
+    const total = data.soal.length;
+    const maxScore = Number(data.skor_maksimal) || 100;
+    // Skor memakai poin per soal (default 1). Tanpa field skor, hasilnya sama dengan hitungan jumlah benar.
+    const calculatedScore = Math.round((earnedPoints / totalPoints) * maxScore);
+    const percentage = Math.round((correct / total) * 100);
+
+    return {
+      correctCount: correct,
+      totalQuestions: total,
+      correctPercentage: percentage,
+      isPassed: percentage > 20,
+      score: calculatedScore,
+    };
   }, [data, answers]);
 
+  // Evaluasi berdasarkan elemen atau materi soal.
+  const topicStats = useMemo(() => {
+    const stats: Record<string, TopicStat> = {};
+
+    if (!data) return stats;
+
+    for (const question of data.soal) {
+      const topic = question.elemen || 'Materi lainnya';
+
+      const answer = [...(answers[question.id] ?? [])].sort();
+      const key = [...question.kunci_id].sort();
+
+      const correct =
+        answer.length === key.length &&
+        answer.every((value, i) => value === key[i]);
+
+      if (!stats[topic]) {
+        stats[topic] = { total: 0, benar: 0 };
+      }
+
+      stats[topic].total++;
+
+      if (correct) {
+        stats[topic].benar++;
+      }
+    }
+
+    return stats;
+  }, [data, answers]);
+
+  // Simpan hasil setiap sesi agar resume akhir dapat menggabungkan semua sesi.
+  // Sesi berikutnya hanya dibuka jika sesi sebelumnya mencapai minimal 20%.
+  useEffect(() => {
+    if (!finished || !isSesiMode || currentSesi < 1 || currentSesi > TOTAL_SESI || totalQuestions === 0) return;
+
+    const rincianJawaban: SessionAnswerDetail[] = (data?.soal ?? []).map((question) => {
+      const jawabanSiswa = [...(answers[question.id] ?? [])].sort();
+      const kunciJawaban = [...question.kunci_id].sort();
+      const benar = jawabanSiswa.length === kunciJawaban.length &&
+        jawabanSiswa.every((value, i) => value === kunciJawaban[i]);
+
+      return {
+        id: question.id,
+        pertanyaan: question.pertanyaan,
+        materi: question.elemen || question.submateri || 'Lainnya',
+        jawaban_siswa: jawabanSiswa,
+        kunci_jawaban: kunciJawaban,
+        benar,
+        pembahasan: question.pembahasan,
+      };
+    });
+
+    const result: SessionResult = {
+      sesi: currentSesi,
+      total: totalQuestions,
+      benar: correctCount,
+      persentase: correctPercentage,
+      lulus: correctPercentage >= 20,
+      topik: topicStats,
+      skor: score,
+      skor_maksimal: Number(data?.skor_maksimal) || 100,
+      jawaban: { ...answers },
+      rincian_jawaban: rincianJawaban,
+      disimpan_pada: new Date().toISOString(),
+    };
+
+    setSessionResults((previous) => {
+      const next = { ...previous, [currentSesi]: result };
+      try {
+        localStorage.setItem(`tka_sesi_${currentSesi}_result`, JSON.stringify(result));
+        localStorage.setItem(`tka_sesi_${currentSesi}_percentage`, String(correctPercentage));
+        localStorage.setItem('tka_active_sesi', String(currentSesi));
+      } catch (error) {
+        console.warn('Hasil sesi tidak dapat disimpan:', error);
+      }
+      return next;
+    });
+
+    if (correctPercentage >= 20 && currentSesi < TOTAL_SESI_WAJIB) {
+      const nextSesi = currentSesi + 1;
+      setUnlockedSesi((previous) => {
+        const unlocked = Math.max(previous, nextSesi);
+        try {
+          localStorage.setItem('tka_unlocked_sesi', String(unlocked));
+        } catch {}
+        return unlocked;
+      });
+    }
+  }, [finished, isSesiMode, currentSesi, totalQuestions, correctCount, correctPercentage, topicStats, answers, data, score]);
+
+  const handleSubscribeViaCheckout = () => {
+    if (!user) {
+      setLoginError('Silakan login dengan Google sebelum berlangganan.');
+      return;
+    }
+    const baseUrl = '/checkout.html';
+    const params = new URLSearchParams({
+      productId: 'premium_1bulan',
+      productName: 'Langganan TKA Premium (1 Bulan)',
+      price: '10000',
+      type: 'subscription',
+      ...(user?.displayName ? { name: user.displayName } : {}),
+      ...(user?.email ? { email: user.email } : {}),
+    });
+    window.location.href = `${baseUrl}?${params.toString()}`;
+  };
+
+  const handlePayViaWa = () => {
+    if (!user) {
+      setLoginError('Silakan login dengan Google sebelum menghubungi admin.');
+      return;
+    }
+    const adminWa = '6282189392233';
+    const invoiceNo = `INV-TKA-${Date.now().toString().slice(-6)}`;
+    const text =
+      `Halo Admin Math315, saya ingin berlangganan *TKA Matematika Premium (1 Bulan)*:\n\n` +
+      `📦 *Paket:* Langganan TKA Premium (1 Bulan)\n` +
+      `💰 *Harga:* Rp 10.000 / bulan\n` +
+      `👤 *Nama:* ${user?.displayName || 'Siswa'}\n` +
+      `📧 *Email:* ${user?.email || '-'}\n` +
+      `🆔 *UID:* ${user?.uid || '-'}\n` +
+      `📄 *Draft Ref:* ${invoiceNo}\n\n` +
+      `Mohon kirim barcode QRIS DANA untuk aktivasi langganan TKA Premium saya. Terima kasih!`;
+    window.open(`https://wa.me/${adminWa}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // Diagnostik 10 soal terbuka untuk semua pengguna.
+  // Login dan Premium bukan syarat mengerjakan diagnostik.
+
+  // Tampilan ketika soal sedang dimuat atau gagal dimuat.
   if (!data) {
     return (
-      <main className="min-h-screen bg-slate-950 p-6 text-white">
+      <main className={`${embedded ? '' : 'min-h-screen '}bg-slate-950 p-6 text-white`}>
         <div className="mx-auto max-w-3xl rounded-2xl bg-slate-900 p-8">
-          <h1 className="text-2xl font-bold">
+          <p className="text-sm font-bold text-cyan-400">
+            PORTAL MATEMATIKA
+          </p>
+
+          <h1 className="mt-2 text-2xl font-bold">
             Tes TKA Matematika
           </h1>
 
           <p className="mt-3 text-slate-300">
-            Memuat soal...
+            {loadError || 'Memuat soal...'}
           </p>
+
+          {loadError && (
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="mt-5 rounded-xl bg-cyan-500 px-5 py-3 font-bold text-slate-950"
+            >
+              Coba Lagi
+            </button>
+          )}
         </div>
-      </main>
+      <a
+          href="https://www.math315.id/"
+          className="fixed bottom-4 left-4 z-50 rounded-full border border-cyan-400 bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-xl hover:bg-slate-700"
+        >
+          ← Kembali ke Beranda
+        </a>
+        </main>
     );
   }
 
+  // Hasil tes.
   if (finished) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl bg-slate-900 p-6 shadow-xl sm:p-10">
+    const refreshSavedScores = () => {
+      setSessionResults(() => {
+        const results: Record<number, SessionResult> = {};
+        for (let sesi = 1; sesi <= TOTAL_SESI; sesi++) {
+          try {
+            const saved = localStorage.getItem(`tka_sesi_${sesi}_result`);
+            if (saved) {
+              const parsed = JSON.parse(saved) as SessionResult;
+              if (parsed && parsed.sesi === sesi) results[sesi] = parsed;
+            }
+          } catch (error) {
+            console.warn(`Gagal membaca hasil Sesi ${sesi}:`, error);
+          }
+        }
+        return results;
+      });
+    };
 
-          <p className="text-sm font-semibold text-cyan-400">
-            HASIL TES DIAGNOSTIK
+    const maxScore = Number(data.skor_maksimal) || 100;
+    const activeSessionResult: SessionResult = {
+      sesi: currentSesi,
+      total: totalQuestions,
+      benar: correctCount,
+      persentase: correctPercentage,
+      lulus: correctPercentage >= 20,
+      topik: topicStats,
+    };
+    // Baca hasil tersimpan terbaru agar resume mengikuti sesi yang diulang.
+    const latestSessionResults: Record<number, SessionResult> = {
+      ...sessionResults,
+    };
+
+    if (isSesiMode) {
+      for (let sesi = 1; sesi <= TOTAL_SESI; sesi++) {
+        try {
+          const saved = localStorage.getItem(`tka_sesi_${sesi}_result`);
+          if (saved) {
+            const parsed = JSON.parse(saved) as SessionResult;
+            if (parsed && parsed.sesi === sesi) {
+              latestSessionResults[sesi] = parsed;
+            }
+          }
+        } catch (error) {
+          console.warn(`Gagal membaca hasil Sesi ${sesi}:`, error);
+        }
+      }
+
+      // Hasil yang sedang ditampilkan menjadi sumber terbaru untuk sesi aktif.
+      latestSessionResults[currentSesi] = {
+        ...latestSessionResults[currentSesi],
+        ...activeSessionResult,
+      };
+    }
+
+    const allSessionResults = latestSessionResults;
+    const allSessionsPassed = SESI_WAJIB_LIST.every(
+      (sesi) => Boolean(allSessionResults[sesi]?.lulus)
+    );
+    const finalElements: Record<string, TopicStat> = {
+      Aljabar: { total: 0, benar: 0 },
+      Bilangan: { total: 0, benar: 0 },
+      Geometri: { total: 0, benar: 0 },
+      Trigonometri: { total: 0, benar: 0 },
+      'Data dan Peluang': { total: 0, benar: 0 },
+    };
+    // Skor akhir berbobot hanya dari Matematika Wajib (Sesi 1–3); Sesi Pilihan tidak ikut.
+    const wajibResults = SESI_WAJIB_LIST
+      .map((sesi) => allSessionResults[sesi])
+      .filter((r): r is SessionResult => Boolean(r));
+    for (const result of wajibResults) {
+      for (const [topic, stat] of Object.entries(result.topik || {})) {
+        const element = canonicalElement(topic);
+        if (element) {
+          finalElements[element].total += Number(stat.total) || 0;
+          finalElements[element].benar += Number(stat.benar) || 0;
+        }
+      }
+    }
+    const includedElements = (Object.entries(finalElements) as [string, TopicStat][]).filter(([, stat]) => stat.total > 0);
+    const totalWeight = includedElements.reduce((sum, [element]) => sum + ELEMENT_WEIGHTS[element], 0);
+    const weightedPercentage = totalWeight > 0
+      ? includedElements.reduce((sum, [element, stat]) => {
+          const percentage = (stat.benar / stat.total) * 100;
+          return sum + percentage * ELEMENT_WEIGHTS[element];
+        }, 0) / totalWeight
+      : 0;
+    const finalScore = Math.round(200 + weightedPercentage * 6);
+    const allSessionCorrect = SESI_WAJIB_LIST.reduce((sum, sesi) => sum + (allSessionResults[sesi]?.benar || 0), 0);
+    const allSessionQuestions = SESI_WAJIB_LIST.reduce((sum, sesi) => sum + (allSessionResults[sesi]?.total || 0), 0);
+
+    const weakestTopics = (Object.entries(topicStats) as [string, TopicStat][])
+      .filter(([, stat]) => stat.benar < stat.total)
+      .sort(
+        (a, b) =>
+          a[1].benar / a[1].total -
+          b[1].benar / b[1].total
+      );
+
+    return (
+      <main className={`${embedded ? '' : 'min-h-screen '}bg-slate-950 px-4 py-8 text-white`}>
+        <div className="mx-auto max-w-3xl rounded-3xl bg-slate-900 p-6 shadow-xl sm:p-10">
+          <p className="text-sm font-bold text-cyan-400">
+            {isPilihan
+              ? 'HASIL LATIHAN MATEMATIKA PILIHAN (TINGKAT LANJUT)'
+              : isPremium
+              ? 'HASIL LATIHAN SOAL TKA (PREMIUM)'
+              : 'HASIL TES DIAGNOSTIK'}
           </p>
 
           <h1 className="mt-2 text-3xl font-bold">
-            Skor Anda: {score}/100
+            Skor Anda: {score}/{maxScore}
           </h1>
 
-          <p className="mt-3 text-slate-300">
-            Gunakan hasil ini untuk menentukan materi yang perlu
-            dilatih berikutnya.
+          <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-700">
+            <div
+              className="h-full rounded-full bg-cyan-400"
+              style={{
+                width: `${Math.min(
+                  100,
+                  (score / maxScore) * 100
+                )}%`,
+              }}
+            />
+          </div>
+
+          <p className="mt-4 text-slate-300">
+            {isPilihan
+              ? `Hasil pengerjaan ${totalQuestions} soal latihan TKA Matematika Tingkat Lanjut (Pilihan) kelas XII. Sesi ini berdiri sendiri, terpisah dari Matematika Wajib. Periksa evaluasi per materi berikut.`
+              : isPremium
+              ? 'Hasil pengerjaan 25 soal latihan prediksi TKA Matematika Wajib kelas XII. Periksa evaluasi per materi berikut untuk mempertajam kesiapan Anda.'
+              : 'Hasil ini membantu menentukan materi yang perlu dilatih sebelum mengikuti TKA Matematika.'}
           </p>
+
+          {isSesiMode && currentSesi === TOTAL_SESI_WAJIB && (
+            <section className="mt-5 rounded-2xl border border-cyan-500/40 bg-slate-800 p-5">
+              <h2 className="text-xl font-bold">Resume Akhir TKA Matematika Wajib</h2>
+              <button
+                type="button"
+                onClick={handleResetSemuaSesi}
+                className="mt-4 w-full rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3 font-bold text-red-300 hover:bg-red-500/20"
+              >
+                Reset Semua Sesi Wajib 1–{TOTAL_SESI_WAJIB}
+              </button>
+              {allSessionsPassed ? (
+                <>
+                  <p className="mt-2 text-sm leading-6 text-emerald-200">
+                    Selamat! Seluruh {TOTAL_SESI_WAJIB} sesi Matematika Wajib telah mencapai minimal 20% jawaban benar.
+                    Berikut rekap gabungan Sesi 1 sampai {TOTAL_SESI_WAJIB}.
+                  </p>
+                  <div className="mt-4 rounded-2xl bg-slate-950 p-5 text-center">
+                    <p className="text-sm text-slate-400">Skor akhir berbobot</p>
+                    <p className="mt-1 text-4xl font-extrabold text-cyan-300">{finalScore}<span className="text-lg text-slate-400">/800</span></p>
+                    <p className="mt-1 text-xs text-slate-400">Rentang skor 200–800 · Jawaban benar {allSessionCorrect}/{allSessionQuestions}</p>
+                  </div>
+                  <div className="mt-5 space-y-4">
+                    {Object.entries(finalElements).map(([element, stat]) => {
+                      const percentage = stat.total ? Math.round((stat.benar / stat.total) * 100) : 0;
+                      return (
+                        <div key={element}>
+                          <div className="flex justify-between gap-3 text-sm">
+                            <span className="font-semibold">{element} <span className="font-normal text-slate-400">(bobot {ELEMENT_WEIGHTS[element]}%)</span></span>
+                            <span>{stat.total ? `${stat.benar}/${stat.total} · ${percentage}%` : 'Belum ada soal'}</span>
+                          </div>
+                          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700">
+                            <div className={`h-full ${element === 'Geometri' ? 'bg-emerald-400' : 'bg-cyan-400'}`} style={{ width: `${percentage}%` }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-4 text-xs leading-5 text-slate-400">
+                    Geometri berbobot paling besar (30%). Bobot elemen yang memiliki soal dihitung secara proporsional; elemen tanpa soal pada seluruh sesi tidak memengaruhi skor.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="mt-2 text-sm leading-6 text-amber-200">
+                    Resume akhir belum tersedia. Syaratnya, masing-masing Sesi 1 sampai {TOTAL_SESI_WAJIB} harus mencapai minimal 20% benar.
+                  </p>
+                  <div className="mt-4 space-y-2">
+                    {SESI_WAJIB_LIST.map((sesi) => {
+                      const result = allSessionResults[sesi];
+                      return <div key={sesi} className="flex items-center justify-between rounded-xl bg-slate-950 px-4 py-3 text-sm">
+                        <span>Sesi {sesi}</span>
+                        <span className={result?.lulus ? 'text-emerald-300' : 'text-amber-300'}>{result ? `${result.persentase}% ${result.lulus ? '· Lulus' : '· Perlu mengulang'}` : 'Belum selesai'}</span>
+                      </div>;
+                    })}
+                  </div>
+                </>
+              )}
+              <section className="mt-5 rounded-2xl border border-cyan-500/30 bg-slate-800 p-5">
+                <h2 className="text-lg font-bold text-cyan-300">
+                  Pemeriksaan Skor Tersimpan
+                </h2>
+                <button
+                  type="button"
+                  onClick={refreshSavedScores}
+                  className="mt-3 w-full rounded-xl bg-cyan-500 px-4 py-3 font-bold text-slate-950"
+                >
+                  Muat Ulang Data Skor
+                </button>
+                <div className="mt-4 space-y-3">
+                  {SESI_WAJIB_LIST.map((sesi) => {
+                    const hasil = sessionResults[sesi];
+                    return (
+                      <div key={sesi} className="rounded-xl bg-slate-950 p-4">
+                        <h3 className="font-bold">Sesi {sesi}</h3>
+                        {hasil ? (
+                          <>
+                            <p className="mt-1 text-sm text-slate-300">
+                              Benar: {hasil.benar}/{hasil.total}
+                            </p>
+                            <p className="text-sm text-slate-300">
+                              Persentase: {hasil.persentase}%
+                            </p>
+                            <p className={hasil.lulus ? "text-sm text-emerald-300" : "text-sm text-amber-300"}>
+                              Status: {hasil.lulus ? "Lulus" : "Perlu mengulang"}
+                            </p>
+                            <p className="mt-1 break-all text-xs text-slate-400">
+                              Waktu: {hasil.disimpan_pada
+                                ? new Date(hasil.disimpan_pada).toLocaleString("id-ID")
+                                : "Tidak tersedia"}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="mt-1 text-sm text-amber-300">
+                            Belum ada hasil tersimpan.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                {SESI_WAJIB_LIST.map((sesi) => (
+                  <button
+                    key={sesi}
+                    type="button"
+                    onClick={() => handleUlangiSesi(sesi)}
+                    className="w-full rounded-xl bg-amber-400 px-4 py-3 font-bold text-slate-950 hover:bg-amber-300"
+                  >
+                    Ulangi Sesi {sesi}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {isPilihan && (
+            <section className="mt-5 rounded-2xl border border-violet-500/40 bg-slate-800 p-5">
+              <p className="text-sm font-bold text-violet-300">
+                MATEMATIKA PILIHAN (TINGKAT LANJUT)
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Hasil: <strong>{correctCount}/{totalQuestions} benar ({correctPercentage}%)</strong>.
+                Sesi ini berdiri sendiri: tidak mengunci sesi lain dan tidak memengaruhi
+                skor akhir Matematika Wajib (Sesi 1–{TOTAL_SESI_WAJIB}).
+              </p>
+              <button
+                type="button"
+                onClick={() => handleUlangiSesi(currentSesi)}
+                className="mt-4 w-full rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950 hover:bg-amber-300"
+              >
+                Ulangi Sesi {currentSesi}
+              </button>
+              {SESI_PILIHAN_LIST.filter((sesi) => sesi !== currentSesi).map((sesi) => (
+                <button
+                  key={sesi}
+                  type="button"
+                  onClick={() => handlePindahSesi(sesi)}
+                  className="mt-3 w-full rounded-xl bg-violet-500 px-5 py-3 font-bold text-white hover:bg-violet-400"
+                >
+                  {sesi > currentSesi ? `Lanjut Sesi ${sesi} (Pilihan) →` : `Buka Sesi ${sesi} (Pilihan)`}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => handlePindahSesi(1)}
+                className="mt-3 w-full rounded-xl border border-slate-600 px-5 py-3 font-semibold text-slate-200 hover:bg-slate-700"
+              >
+                Kembali ke Matematika Wajib (Sesi 1)
+              </button>
+            </section>
+          )}
+
+          {isSesiMode && !isPilihan && (
+            <section className="mt-5 rounded-2xl border border-violet-500/30 bg-slate-800 p-5">
+              <p className="text-sm font-bold text-violet-300">
+                MATEMATIKA PILIHAN (TINGKAT LANJUT)
+              </p>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Sesi terpisah di luar Matematika Wajib: tidak wajib, tidak terkunci, dan tidak
+                memengaruhi skor akhir Sesi 1–{TOTAL_SESI_WAJIB}. Bisa dikerjakan kapan saja.
+              </p>
+              <div className="mt-4 space-y-2">
+                {SESI_PILIHAN_LIST.map((sesi) => {
+                  const hasil = sessionResults[sesi];
+                  return (
+                    <button
+                      key={sesi}
+                      type="button"
+                      onClick={() => handlePindahSesi(sesi)}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl bg-violet-500 px-5 py-3 text-left font-bold text-white hover:bg-violet-400"
+                    >
+                      <span>{hasil ? `Buka Lagi Sesi ${sesi}` : `Mulai Sesi ${sesi}`}</span>
+                      {hasil && (
+                        <span className="text-xs font-semibold text-violet-100">
+                          {hasil.benar}/{hasil.total} benar ({hasil.persentase}%)
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {isSesiMode && currentSesi < TOTAL_SESI_WAJIB && (
+            <section className="mt-5 rounded-2xl border border-cyan-500/40 bg-slate-800 p-5">
+              <p className="text-sm text-slate-300">
+                Hasil Sesi {currentSesi}: <strong>{correctCount}/{totalQuestions} benar ({correctPercentage}%)</strong>.
+                Syarat melanjutkan: minimal 20% jawaban benar.
+              </p>
+              {correctPercentage >= 20 ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handlePindahSesi(currentSesi + 1)}
+                    className="mt-4 w-full rounded-xl bg-emerald-500 px-5 py-3 font-bold text-slate-950 hover:bg-emerald-400"
+                  >
+                    Lanjut Sesi {currentSesi + 1} →
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleUlangiSesi(currentSesi)}
+                    className="mt-3 w-full rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950 hover:bg-amber-300"
+                  >
+                    Ulangi Sesi {currentSesi}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleUlangiSesi(currentSesi)}
+                  className="mt-4 w-full rounded-xl bg-amber-400 px-5 py-3 font-bold text-slate-950 hover:bg-amber-300"
+                >
+                  Ulangi Sesi {currentSesi}
+                </button>
+              )}
+            </section>
+          )}
+
+          {/* Evaluasi per materi */}
+          <section className="mt-6 rounded-2xl bg-slate-800 p-5">
+            <h2 className="text-lg font-bold">
+              Evaluasi per Materi
+            </h2>
+
+            <div className="mt-4 space-y-4">
+              {(Object.entries(topicStats) as [string, TopicStat][]).map(([topic, stat]) => {
+                const percentage = Math.round(
+                  (stat.benar / stat.total) * 100
+                );
+
+                return (
+                  <div key={topic}>
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span>{topic}</span>
+
+                      <span>
+                        {stat.benar}/{stat.total} benar
+                      </span>
+                    </div>
+
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-700">
+                      <div
+                        className="h-full rounded-full bg-cyan-400"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-5 border-t border-slate-700 pt-4">
+              <p className="font-semibold">
+                Rekomendasi belajar
+              </p>
+
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                {weakestTopics.length > 0
+                  ? `Prioritaskan latihan ${
+                      weakestTopics
+                        .slice(0, 3)
+                        .map(([topic]) => topic)
+                        .join(', ')
+                    }.`
+                  : 'Semua soal dijawab dengan benar. Lanjutkan latihan untuk mempertahankan kemampuan.'}
+              </p>
+            </div>
+          </section>
+
+          {/* Sesi 1 info / lanjutan */}
+          {isPremium ? (
+            <section className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/30 p-5 shadow-lg">
+              <div className="flex items-center gap-2 text-cyan-400 font-bold text-sm">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>{isPilihan ? `SESI ${currentSesi} (PILIHAN) TELAH DISELESAIKAN` : 'SESI 1 TELAH DISELESAIKAN'}</span>
+              </div>
+              <h2 className="mt-2 text-xl font-bold text-white">
+                25 Soal Prediksi TKA Telah Diselesaikan
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Anda dapat mengulang latihan ini kapan saja dengan tombol di bawah, atau membuka Dashboard untuk topik materi lainnya.
+              </p>
+            </section>
+          ) : (
+            <section className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/70 p-5">
+              <p className="text-sm font-bold text-cyan-300">
+                LANJUTAN LATIHAN TKA
+              </p>
+              <h2 className="mt-2 text-xl font-bold text-white">
+                Sesi 1 — Latihan TKA Matematika (25 Soal)
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Tersedia 25 butir soal prediksi TKA Matematika Wajib lengkap dengan pembahasan mendalam untuk akun Premium.
+              </p>
+              <button
+                type="button"
+                onClick={handleSubscribeViaCheckout}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3.5 font-bold text-slate-950 transition hover:bg-cyan-400"
+              >
+                <span>Berlangganan Premium untuk Akses Sesi 1</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </section>
+          )}
+
+          {/* Status Langganan / Penawaran Premium */}
+          {isPremium ? (
+            <section className="mt-6 rounded-2xl border border-emerald-500/50 bg-emerald-950/40 p-5 shadow-lg">
+              <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
+                <CheckCircle2 className="h-5 w-5" />
+                <span>STATUS BERLANGGANAN AKTIF</span>
+              </div>
+
+              <h2 className="mt-2 text-xl font-bold text-white">
+                TKA Matematika Premium Aktif
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-emerald-200/90">
+                {premiumUntil
+                  ? `Masa aktif langganan Anda berlaku hingga ${new Date(
+                      premiumUntil
+                    ).toLocaleDateString('id-ID', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}. Anda memiliki akses penuh ke seluruh sesi latihan TKA.`
+                  : 'Akun Anda telah memiliki akses penuh ke sesi latihan TKA Matematika Premium.'}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  onOpenDashboard
+                    ? onOpenDashboard()
+                    : (window.location.href = '/dashboard')
+                }
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-5 py-3.5 font-bold text-slate-950 transition hover:bg-emerald-400"
+              >
+                <span>Buka Sesi Latihan TKA di Dashboard</span>
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            </section>
+          ) : (
+            <section className="mt-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/40 p-5 shadow-lg">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-bold text-cyan-300">
+                  LANJUTKAN PERSIAPAN TKA
+                </p>
+                <span className="rounded-full bg-cyan-500/20 px-3 py-0.5 text-xs font-semibold text-cyan-300">
+                  Akses 30 Hari
+                </span>
+              </div>
+
+              <h2 className="mt-2 text-xl font-bold">
+                TKA Matematika Premium
+              </h2>
+
+              <p className="mt-2 text-sm leading-6 text-slate-300">
+                Lanjutkan belajar melalui lima sesi latihan TKA adaptif.
+                Pelajari materi, kerjakan soal terstruktur, dan evaluasi
+                hasil latihan secara bertahap.
+              </p>
+
+              <ul className="mt-3 space-y-1.5 text-xs text-slate-300">
+                <li className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>5 Sesi Latihan TKA adaptif berbasis kisi-kisi resmi</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>Pembahasan kunci jawaban & diagnosa kemampuan terperinci</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-cyan-400 shrink-0" />
+                  <span>Akses penuh selama 1 bulan tanpa batas</span>
+                </li>
+              </ul>
+
+              <div className="mt-4 flex items-baseline gap-2">
+                <span className="text-3xl font-extrabold text-white">
+                  Rp10.000
+                </span>
+                <span className="text-sm font-normal text-slate-400">
+                  / bulan
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSubscribeViaCheckout}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-5 py-3.5 font-bold text-slate-950 transition hover:bg-cyan-300"
+              >
+                <QrCode className="h-5 w-5" />
+                <span>Berlangganan Sekarang via QRIS (Rp10.000)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePayViaWa}
+                className="mt-2.5 flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/80 px-5 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-slate-800 hover:text-white"
+              >
+                <MessageCircle className="h-4 w-4 text-emerald-400" />
+                <span>Bantuan / Bayar via WhatsApp Admin</span>
+              </button>
+
+              {loginError && (
+                <p role="alert" className="mt-3 rounded-lg bg-red-950/50 p-3 text-sm text-red-300">
+                  {loginError}
+                </p>
+              )}
+
+              {!user && (
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loggingIn}
+                  className="mt-3 flex w-full items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-bold text-white hover:bg-blue-500"
+                >
+                  {loggingIn ? 'Memproses...' : 'Login dengan Google untuk berlangganan'}
+                </button>
+              )}
+
+              <p className="mt-3 text-center text-xs leading-5 text-slate-400">
+                Pembayaran instan via QRIS (BCA, Mandiri, BRI, DANA, GoPay, OVO).
+                Aktivasi otomatis & terverifikasi.
+              </p>
+            </section>
+          )}
+
+          {/* Donasi sukarela via QR DANA */}
+          <section className="mt-6 rounded-2xl border border-rose-500/30 bg-rose-950/20 p-5">
+            <div className="flex items-center gap-2 text-sm font-bold text-rose-300">
+              <Heart className="h-5 w-5" />
+              <span>DUKUNG PORTAL MATEMATIKA</span>
+            </div>
+
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Portal ini dikelola secara mandiri. Jika terbantu,
+              Anda dapat berdonasi sukarela melalui QR DANA.
+              Donasi tidak mengaktifkan langganan premium.
+            </p>
+
+            <a
+              href={`${import.meta.env.BASE_URL}donasi-qris.html`}
+              className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-rose-400/50 bg-rose-500/10 px-5 py-3 font-semibold text-rose-200 transition hover:bg-rose-500/20"
+            >
+              <QrCode className="h-5 w-5" />
+              <span>Donasi via QR DANA</span>
+            </a>
+          </section>
 
           <div className="mt-6 rounded-2xl bg-slate-800 p-5">
             <p className="font-semibold">
@@ -127,19 +1321,35 @@ export default function TkaDiagnostikPage() {
             </p>
 
             <p className="mt-2 text-sm text-slate-300">
-              Bagikan hasil ini kepada orang tua atau guru
-              untuk mendiskusikan rencana belajar.
+              Simpan hasil tes ini dan diskusikan materi yang
+              perlu dilatih bersama guru atau orang tua.
             </p>
           </div>
 
           <button
+            type="button"
             onClick={() => window.location.reload()}
-            className="mt-6 rounded-xl bg-cyan-500 px-5 py-3 font-bold text-slate-950"
+            className="mt-6 rounded-xl border border-slate-600 px-5 py-3 font-semibold hover:bg-slate-800"
           >
-            Ulangi Tes
+            {isPremium ? 'Ulangi Latihan Soal' : 'Ulangi Tes'}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-6 ml-3 inline-flex items-center gap-2 rounded-xl border border-slate-600 px-5 py-3 font-semibold text-slate-200 hover:bg-slate-800"
+          >
+            <LogOut className="h-4 w-4" />
+            Keluar
           </button>
         </div>
-      </main>
+      <a
+          href="https://www.math315.id/"
+          className="fixed bottom-4 left-4 z-50 rounded-full border border-cyan-400 bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-xl hover:bg-slate-700"
+        >
+          ← Kembali ke Beranda
+        </a>
+        </main>
     );
   }
 
@@ -155,6 +1365,7 @@ export default function TkaDiagnostikPage() {
     .toString()
     .padStart(2, '0');
 
+  // Menyimpan pilihan jawaban.
   const choose = (id: string) => {
     setAnswers((previous) => {
       const current = previous[question.id] ?? [];
@@ -172,17 +1383,98 @@ export default function TkaDiagnostikPage() {
     });
   };
 
+
+  // Hanya tombol selesai manual yang dapat mencatat peserta.
+  const handleFinishTest = async () => {
+    if (isSesiMode) {
+      setFinished(true);
+      return;
+    }
+
+    if (!user) {
+      window.alert('Login dengan Google diperlukan agar keikutsertaan tercatat.');
+      setFinished(true);
+      return;
+    }
+
+    if (!data || data.soal.length !== 10) {
+      window.alert('Data tes diagnostik tidak valid.');
+      return;
+    }
+
+    const unansweredIndex = data.soal.findIndex(
+      (question) => !(answers[question.id] ?? []).length
+    );
+
+    if (unansweredIndex !== -1) {
+      window.alert('Jawab seluruh 10 soal sebelum menekan Selesai.');
+      setIndex(unansweredIndex);
+      return;
+    }
+
+    if (diagnosticSubmitting) return;
+
+    setDiagnosticSubmitting(true);
+
+    try {
+      const token = await user.getIdToken();
+
+      const response = await fetch(
+        'https://math315.vercel.app/api/tka-diagnostic-participants',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            questionIds: data.soal.map((question) => question.id),
+            answers,
+          }),
+        }
+      );
+
+      const result: {
+        success?: boolean;
+        counted?: boolean;
+        total?: number;
+        error?: string;
+      } = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Pencatatan peserta gagal.');
+      }
+
+      setDiagnosticParticipantCount(Number(result.total) || 0);
+
+      window.alert(
+        result.counted
+          ? 'Keikutsertaan tes diagnostik berhasil dicatat.'
+          : 'Anda sudah pernah tercatat sebagai peserta.'
+      );
+    } catch (error) {
+      console.error('Pencatatan peserta gagal:', error);
+      window.alert(
+        'Hasil tes tetap ditampilkan, tetapi pencatatan peserta gagal. Silakan coba lagi nanti.'
+      );
+    } finally {
+      setDiagnosticSubmitting(false);
+      setFinished(true);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950 px-4 py-6 text-white">
+    <main className={`${embedded ? '' : 'min-h-screen '}bg-slate-950 px-4 py-6 text-white`}>
       <div className="mx-auto max-w-3xl">
-
         <header className="mb-5 rounded-3xl bg-slate-900 p-5">
-
           <div className="flex items-start justify-between gap-4">
-
             <div>
-              <p className="text-sm font-semibold text-cyan-400">
-                PORTAL MATEMATIKA
+              <p className="text-sm font-bold text-cyan-400">
+                {isPilihan
+                  ? `TKA MATEMATIKA PILIHAN — SESI ${currentSesi}`
+                  : isPremium
+                  ? 'TKA MATEMATIKA — SESI 1 (PREMIUM)'
+                  : 'PORTAL MATEMATIKA'}
               </p>
 
               <h1 className="mt-1 text-2xl font-bold">
@@ -190,25 +1482,108 @@ export default function TkaDiagnostikPage() {
               </h1>
             </div>
 
-            <div className="rounded-xl bg-slate-800 px-3 py-2 text-center">
+            <div
+              className={`rounded-xl px-3 py-2 text-center ${
+                seconds <= 60
+                  ? 'bg-red-950 text-red-300'
+                  : 'bg-slate-800'
+              }`}
+            >
               <div className="text-xs text-slate-400">
                 Waktu
               </div>
 
-              <strong>
+              <strong className="text-lg">
                 {minutes}:{secs}
               </strong>
             </div>
-
           </div>
 
           <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-700">
             <div
               className="h-full bg-cyan-500 transition-all"
               style={{
-                width: `${((index + 1) / data.soal.length) * 100}%`,
+                width: `${
+                  ((index + 1) / data.soal.length) * 100
+                }%`,
               }}
             />
+          </div>
+
+          {!isSesiMode && (
+            <p className="mb-3 text-sm text-cyan-300">
+              Peserta tes diagnostik:{' '}
+              <strong>
+                {diagnosticParticipantCount === null
+                  ? 'Memuat...'
+                  : diagnosticParticipantCount.toLocaleString('id-ID')}
+              </strong>
+            </p>
+          )}
+          <div className="mt-4 border-t border-slate-700 pt-3">
+            {user ? (
+              <div className="flex items-center gap-3">
+                {user.photoURL && (
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Foto pengguna'}
+                    className="h-9 w-9 rounded-full"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <span className="truncate">
+                      {user.displayName || user.email || 'Pengguna Portal Matematika'}
+                    </span>
+                    {isPremium && (
+                      <span
+                        title={
+                          premiumUntil
+                            ? `Premium aktif hingga ${new Date(premiumUntil).toLocaleDateString('id-ID', {
+                                day: 'numeric',
+                                month: 'long',
+                                year: 'numeric',
+                              })}`
+                            : 'Premium aktif'
+                        }
+                        className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-slate-950"
+                      >
+                        <Crown className="h-3 w-3" />
+                        Premium
+                      </span>
+                    )}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">
+                    {user.email}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-600 px-3 py-1.5 text-xs font-semibold text-slate-200 hover:bg-slate-800"
+                >
+                  <LogOut className="h-4 w-4" />
+                  Keluar
+                </button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-sm text-amber-300">
+                  Guest · Belum login
+                </p>
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loggingIn}
+                  className="mt-3 rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-500"
+                >
+                  {loggingIn ? 'Memproses...' : 'Login dengan Google'}
+                </button>
+              </div>
+            )}
+            {loginError && (
+              <p className="mt-2 text-sm text-red-300">{loginError}</p>
+            )}
           </div>
 
           <p className="mt-3 text-sm text-slate-400">
@@ -218,14 +1593,12 @@ export default function TkaDiagnostikPage() {
             {' · '}
             {question.level}
           </p>
-
         </header>
 
         <section className="rounded-3xl bg-white p-6 text-slate-900 shadow-xl sm:p-8">
-
-          <p className="text-lg font-semibold leading-8">
-            {question.pertanyaan}
-          </p>
+          <div className="text-lg font-semibold leading-8">
+            <MathText text={question.pertanyaan} />
+          </div>
 
           <p className="mt-2 text-sm text-slate-500">
             {multi
@@ -234,15 +1607,14 @@ export default function TkaDiagnostikPage() {
           </p>
 
           <div className="mt-6 space-y-3">
-
             {question.opsi.map((option) => {
-
               const active = selected.includes(option.id);
 
               return (
                 <button
                   key={option.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => choose(option.id)}
                   className={`flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition ${
                     active
@@ -260,52 +1632,62 @@ export default function TkaDiagnostikPage() {
                     {option.id}
                   </span>
 
-                  <span>
-                    {option.teks}
-                  </span>
+                  <span className="min-w-0"><MathText text={option.teks} /></span>
                 </button>
               );
             })}
-
           </div>
 
           <div className="mt-8 flex justify-between gap-3">
-
             <button
               type="button"
               disabled={index === 0}
-              onClick={() => setIndex((value) => value - 1)}
-              className="rounded-xl border border-slate-300 px-5 py-3 disabled:opacity-30"
+              onClick={() =>
+                setIndex((value) => Math.max(0, value - 1))
+              }
+              className="rounded-xl border border-slate-300 px-4 py-3 disabled:opacity-30 sm:px-5"
             >
               Sebelumnya
             </button>
 
             {index < data.soal.length - 1 ? (
-
               <button
                 type="button"
-                onClick={() => setIndex((value) => value + 1)}
+                onClick={() =>
+                  setIndex((value) =>
+                    Math.min(data.soal.length - 1, value + 1)
+                  )
+                }
                 className="rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white"
               >
                 Berikutnya
               </button>
-
             ) : (
-
               <button
                 type="button"
-                onClick={() => setFinished(true)}
+                disabled={diagnosticSubmitting}
+                onClick={handleFinishTest}
                 className="rounded-xl bg-cyan-500 px-5 py-3 font-bold text-slate-950"
               >
-                Selesai & Lihat Hasil
+                {diagnosticSubmitting ? 'Mencatat keikutsertaan...' : (isPremium ? 'Selesai & Lihat Nilai' : 'Selesai & Lihat Hasil')}
               </button>
-
             )}
-
           </div>
 
+          <p className="mt-5 text-xs leading-5 text-slate-500">
+            Jawaban tersimpan selama halaman tes ini terbuka.
+            Pastikan semua jawaban sudah diperiksa sebelum
+            menyelesaikan tes.
+          </p>
         </section>
       </div>
-    </main>
+    <a
+          href="https://www.math315.id/"
+          className="fixed bottom-4 left-4 z-50 rounded-full border border-cyan-400 bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-xl hover:bg-slate-700"
+        >
+          ← Kembali ke Beranda
+        </a>
+        </main>
   );
 }
+

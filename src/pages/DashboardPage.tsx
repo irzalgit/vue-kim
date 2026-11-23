@@ -6,6 +6,8 @@ import ProfileModal from "../components/ProfileModal";
 import BankSoalModal from "../components/BankSoalModal";
 import SimulasiMapelModal from "../components/SimulasiMapelModal";
 import TikTokEduModal from "../components/TikTokEduModal";
+import ShopBphy from "../components/ShopBphy";
+import PaywuzPosterShop from "../components/PaywuzPosterShop";
 import type { SelectedItem } from "../agent/generateSoalWithChecklist";
 import { 
   Zap, User, LogOut, X, Database, Coins
@@ -59,6 +61,7 @@ export default function DashboardPage({
   const [showBankSoalModal, setShowBankSoalModal] = useState<boolean>(false);
   const [showTokenModal, setShowTokenModal] = useState<boolean>(false);
   const [showTikTokModal, setShowTikTokModal] = useState<boolean>(false);
+  const [showPosterMindmap, setShowPosterMindmap] = useState<boolean>(false);
   const [showSimulasiMapelModal, setShowSimulasiMapelModal] = useState<boolean>(false);
   const [selectedMapelTopic, setSelectedMapelTopic] = useState<string>('semua');
   const { user } = useAuth();
@@ -182,12 +185,12 @@ export default function DashboardPage({
       {/* KONTEN UTAMA */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-700 bg-gray-800/50">
-          <div className="flex items-center gap-4">
-            <Zap className="text-yellow-400" size={32} />
-            <h1 className="text-3xl font-bold">Vue-Kim Dashboard</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3 px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-700 bg-gray-800/50">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Zap className="text-yellow-400" size={26} />
+            <h1 className="text-xl sm:text-3xl font-bold">Portal Matematika</h1>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-400">Model:</span>
               <select 
@@ -255,7 +258,7 @@ export default function DashboardPage({
         </div>
 
         {/* Area Scroll */}
-        <div className="flex-1 overflow-y-auto px-8 py-8 space-y-8 w-full">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8 w-full">
           <button
             onClick={onKembaliKeLanding}
             className="text-base text-gray-400 hover:text-white transition"
@@ -264,13 +267,13 @@ export default function DashboardPage({
           </button>
 
           <div>
-            <h2 className="text-2xl font-semibold mb-4">Pilih Simulasi</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 w-full">
+            <h2 className="text-xl sm:text-2xl font-semibold mb-4">Pilih Simulasi</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 w-full">
               {daftarSimulasi.map((sim) => (
                 <div
                   key={sim.kode}
                   onClick={() => !isGeneratingMtkVideo && handlePilihSimulasi(sim)}
-                  className={`p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 relative overflow-hidden group shadow-lg flex flex-col justify-between ${
+                  className={`p-5 sm:p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900 relative overflow-hidden group shadow-lg flex flex-col justify-between ${
                     sim.kode === 'matematika-video' && isGeneratingMtkVideo ? 'opacity-80 pointer-events-none' : ''
                   }`}
                   style={{ background: sim.warna }}
@@ -384,6 +387,51 @@ export default function DashboardPage({
                   <span className="px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-xs shadow transition">
                     Tonton Video →
                   </span>
+                </div>
+              </div>
+
+              {/* KARTU DAFTAR POSTER MINDMAP */}
+              <div
+                onClick={() => setShowPosterMindmap(v => !v)}
+                className="p-7 rounded-2xl text-left transition hover:scale-[1.02] cursor-pointer relative overflow-hidden group shadow-lg flex flex-col justify-between border border-amber-400/30"
+                style={{ background: 'linear-gradient(135deg, #92400e 0%, #7c2d12 100%)' }}
+              >
+                <div>
+                  <div className="text-5xl mb-3 group-hover:scale-110 transition-transform">📚</div>
+                  <div className="font-bold text-white text-xl">
+                    Daftar Poster Mindmap
+                  </div>
+                  <div className="text-sm text-amber-100 mt-2">
+                    Lihat koleksi poster mindmap matematika dan pilih poster yang ingin dibeli.
+                  </div>
+                </div>
+                <div className="mt-4 pt-3 border-t border-white/20 flex items-center justify-between">
+                  <span className="text-xs text-amber-100 font-medium">Koleksi Poster</span>
+                  <span className="px-3 py-1.5 rounded-xl bg-white/20 text-white font-bold text-xs">
+                    {showPosterMindmap ? 'Tutup Poster ↑' : 'Lihat Poster →'}
+                  </span>
+                </div>
+              </div>
+
+              {/* PANEL POSTER: tetap terpasang agar keranjang tidak reset saat disembunyikan */}
+              <div className={showPosterMindmap ? "col-span-full min-w-0 rounded-2xl bg-white text-gray-900 p-3 sm:p-6 space-y-8" : "hidden"}>
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-xl sm:text-2xl font-bold">📚 Daftar Poster Mindmap</h2>
+                  <button
+                    type="button"
+                    onClick={() => setShowPosterMindmap(false)}
+                    className="shrink-0 px-4 py-2 rounded-xl bg-gray-800 text-white font-semibold hover:bg-gray-700"
+                  >
+                    Tutup ✕
+                  </button>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold mb-3">Koleksi Poster 1 — BPHY</h3>
+                  <ShopBphy />
+                </div>
+                <div className="border-t border-gray-200 pt-6">
+                  <h3 className="text-lg font-bold mb-3">Koleksi Poster 2 — Paywuz</h3>
+                  <PaywuzPosterShop />
                 </div>
               </div>
             </div>

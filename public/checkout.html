@@ -117,8 +117,11 @@ small { display: block; margin-top: 4px; color: #888; font-size: 12px; }
 
 <body>
 <div class="card">
-  <div id="creditBadge" class="info" style="margin-top:10px;"></div>
-  <h2>🚀 Checkout Premium</h2>
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+    <a href="/#/tka" id="backLink" style="font-size: 13px; color: #4f46e5; text-decoration: none; font-weight: 600;">← Kembali ke Aplikasi</a>
+  </div>
+  <div id="creditBadge" class="info" style="margin-top:4px;"></div>
+  <h2>🚀 Checkout Pembayaran</h2>
 
   <form id="form" style="display: none;">
     <label>👤 Nama</label>
@@ -323,6 +326,13 @@ window._checkoutData = {
 // 🧪 FALLBACK PRODUK
 // ============================================================
 const FALLBACK_PRODUCTS = {
+  "premium_1bulan": {
+    name: "Langganan TKA Premium (1 Bulan)",
+    price: 10000,
+    description: "Akses 5 Sesi Latihan TKA Matematika Selama 1 Bulan",
+    token_amount: 0,
+    type: "subscription"
+  },
   "token_50": {
     name: "Starter",
     price: 10000,
@@ -394,16 +404,18 @@ function findProductKey(productData, targetId, targetName, targetPrice) {
 }
 
 function renderProducts(productData) {
-  // Injeksi produk kustom bila dikirim via URL query (misal: jualan poster)
+  // Injeksi produk kustom bila dikirim via URL query (misal: jualan poster / langganan TKA)
   const data = window._checkoutData;
-  if (data && data.price && (data.productId || data.productName)) {
+  if (data && (data.productId || data.productName)) {
     const customKey = data.productId || 'custom_order';
     if (!productData[customKey]) {
+      const isPremium = customKey === 'premium_1bulan' || customKey.includes('premium');
       productData[customKey] = {
-        name: data.productName || 'Paket Pesanan Khusus',
-        price: data.price,
+        name: data.productName || (isPremium ? 'Langganan TKA Premium (1 Bulan)' : 'Paket Pesanan Khusus'),
+        price: data.price || (isPremium ? 10000 : 0),
         token_amount: data.token || 0,
-        description: data.productName || 'Pesanan Khusus'
+        description: data.productName || (isPremium ? 'Akses 5 Sesi Latihan TKA Matematika Selama 1 Bulan' : 'Pesanan Khusus'),
+        type: isPremium ? 'subscription' : 'one_time'
       };
     }
   }
@@ -545,14 +557,14 @@ async function loadProducts() {
       for (const key in data) {
         if (!data[key].token_amount) data[key].token_amount = getTokenAmountFromKey(key);
       }
-      products = data;
+      products = { ...FALLBACK_PRODUCTS, ...data };
       renderProducts(products);
     } else {
-      products = FALLBACK_PRODUCTS;
+      products = { ...FALLBACK_PRODUCTS };
       renderProducts(products);
     }
   } catch (err) {
-    products = FALLBACK_PRODUCTS;
+    products = { ...FALLBACK_PRODUCTS };
     renderProducts(products);
   }
   validateForm();
@@ -958,14 +970,42 @@ function updateQrisDisplay() {
   }
 }
 
+let currentTxListener = null;
+
+function listenToTransactionStatus(invoiceNo) {
+  if (!invoiceNo) return;
+  if (currentTxListener) {
+    db.ref(`transactions/${currentTxListener}`).off();
+  }
+  currentTxListener = invoiceNo;
+  db.ref(`transactions/${invoiceNo}`).on('value', (snap) => {
+    const val = snap.val();
+    if (val && (val.status === 'paid' || val.status === 'success' || val.status === 'settlement')) {
+      setStatus("🎉 Pembayaran berhasil diverifikasi! Langganan Anda telah aktif.", "success");
+      const selectedKey = productEl.value;
+      const isSub = selectedKey === 'premium_1bulan' || (val.product_id && val.product_id.includes('premium'));
+      setTimeout(() => {
+        if (isSub) {
+          window.location.href = '/#/tka';
+        } else {
+          window.location.href = '/#/dashboard';
+        }
+      }, 2000);
+    }
+  });
+}
+
 async function savePendingQrisTransaction(invoiceNo, product, selectedKey) {
   if (!currentUser) return;
   try {
+    const isSubscription = selectedKey === 'premium_1bulan' || (selectedKey && selectedKey.includes('premium'));
     await db.ref(`transactions/${invoiceNo}`).update({
       customer_name: nameEl.value.trim() || currentUser.displayName || 'Customer',
       customer_email: emailEl.value.trim() || currentUser.email || '',
       product_name: product.name,
       product_id: selectedKey,
+      product_type: isSubscription ? 'subscription' : 'token',
+      subscription_period_months: isSubscription ? 1 : 0,
       amount: product.price,
       token_amount: product.token_amount || 0,
       payment_provider: 'QRIS_DANA',
@@ -975,6 +1015,7 @@ async function savePendingQrisTransaction(invoiceNo, product, selectedKey) {
       user_id: currentUser.uid,
       created_at: Date.now()
     });
+    listenToTransactionStatus(invoiceNo);
   } catch (e) {
     console.warn("Gagal auto-record transaksi pending QRIS:", e);
   }
@@ -1059,17 +1100,18 @@ document.getElementById("downloadQrisBtn").addEventListener("click", () => {
 document.getElementById("confirmWaBtn").addEventListener("click", () => {
   if (!currentUser || !currentInvoiceNo) return;
   const selectedKey = productEl.value;
-  const product = products[selectedKey] || { name: 'Token', price: currentQrisAmount };
-  const adminWa = "6282189392233"; // Nomor WhatsApp Admin
+  const product = products[selectedKey] || { name: 'Langganan TKA Premium (1 Bulan)', price: currentQrisAmount };
+  const adminWa = "6282170505306"; // Nomor WhatsApp Admin
+  const isSub = selectedKey === 'premium_1bulan' || (selectedKey && selectedKey.includes('premium'));
 
-  const text = `Halo Admin Math315, saya telah melakukan pembayaran via *QRIS DANA*:\n\n` +
+  const text = `Halo Admin Portal Matematika, saya ingin membayar melalui QRIS.\n\n` +
     `📄 *No Invoice:* ${currentInvoiceNo}\n` +
     `👤 *Nama:* ${nameEl.value.trim() || currentUser.displayName || 'User'}\n` +
     `📧 *Email:* ${emailEl.value.trim() || currentUser.email || ''}\n` +
     `📦 *Paket:* ${product.name}\n` +
-    `💰 *Nominal Transfer:* ${formatRupiah(product.price)}\n` +
+    `💰 *Nominal:* ${formatRupiah(currentQrisAmount || product.price)}\n` +
     `🆔 *UID:* ${currentUser.uid}\n\n` +
-    `Mohon konfirmasi dan aktivasi tokennya. Terima kasih!`;
+    `Mohon kirimkan gambar QRIS untuk pembayaran ini. Setelah membayar, saya akan mengirim bukti transaksi. Terima kasih!`;
 
   window.open(`https://wa.me/${adminWa}?text=${encodeURIComponent(text)}`, '_blank');
 });
@@ -1100,6 +1142,20 @@ productEl.addEventListener("change", () => {
     priceEl.innerHTML = "Rp -";
   }
   currentInvoiceNo = null; // reset invoice untuk produk baru
+
+  // Sembunyikan opsi pengiriman fisik jika produk adalah digital (langganan atau token)
+  const isDigital = selectedKey === 'premium_1bulan' || selectedKey.startsWith('token_') || (product && product.type === 'subscription');
+  const shippingToggle = document.getElementById("shippingToggleSection");
+  if (shippingToggle) {
+    shippingToggle.style.display = isDigital ? 'none' : 'block';
+    if (isDigital && needShippingEl && needShippingEl.checked) {
+      needShippingEl.checked = false;
+      document.getElementById("shippingSection").style.display = 'none';
+      currentShippingCost = 0;
+      selectedShippingService = null;
+    }
+  }
+
   updateQrisDisplay();
   validateForm();
 });
@@ -1164,6 +1220,7 @@ document.getElementById("form").addEventListener("submit", async e => {
       cust_email: emailEl.value.trim(),
       msisdn: phone,
       uid: currentUser.uid,
+      product_id: selectedKey,
       token_amount: tokenAmount,
       item: [{ product: sanitizedProductName, qty: 1, amount }]
     };
@@ -1205,7 +1262,14 @@ document.getElementById("form").addEventListener("submit", async e => {
 // ============================================================
 console.log("🚀 Checkout Math315 (QRIS DANA + Faspay) siap!");
 if (window._checkoutData && window._checkoutData.productId) {
-  setStatus(`📦 Data dari dashboard: ${window._checkoutData.productName || 'Paket'} - ${formatRupiah(window._checkoutData.price || 0)}`, "info");
+  setStatus(`📦 Produk yang dipilih: ${window._checkoutData.productName || 'Langganan TKA Premium (1 Bulan)'} - ${formatRupiah(window._checkoutData.price || 10000)}`, "info");
+  if (window._checkoutData.productId === 'premium_1bulan') {
+    const back = document.getElementById("backLink");
+    if (back) {
+      back.href = "/#/tka";
+      back.textContent = "← Kembali ke TKA Diagnostik";
+    }
+  }
 }
 setTimeout(() => {
   if (!currentUser) setStatus("⏳ Belum login? Klik tombol 'Login dengan Google' di bawah.", "warning");

@@ -102,13 +102,13 @@
 
   async function loadList() {
     try {
-      const res = await fetch(BASE_URL + "list.json", { cache: "no-store" });
+      const res = await fetch(BASE_URL + "list.php", { cache: "no-store" });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const data = await res.json();
       if (!Array.isArray(data)) throw new Error("Format JSON tidak valid");
       return data;
     } catch (err) {
-      console.error("list.json gagal dimuat:", err);
+      console.error("list.php gagal dimuat:", err);
       return null;
     }
   }
@@ -116,7 +116,7 @@
   function render(videos) {
     if (videos === null) {
       countEl.textContent = "";
-      grid.innerHTML = '<p style="color:#e94560">⚠️ Gagal memuat daftar video. Pastikan <code>' + esc(BASE_URL) + 'list.json</code> ada.</p>';
+      grid.innerHTML = '<p style="color:#e94560">⚠️ Gagal memuat daftar video. Pastikan <code>' + esc(BASE_URL) + 'list.php</code> ada dan PHP aktif di server.</p>';
       return;
     }
 

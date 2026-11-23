@@ -10,7 +10,6 @@ interface NavigationProps {
 }
 
 export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: NavigationProps) {
-  console.log('Navigation isLoggedIn:', isLoggedIn);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
 
@@ -23,6 +22,9 @@ export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: Navig
   }, []);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      return;
+    }
     e.preventDefault();
     if (href.endsWith('.html')) {
       window.location.href = href;
@@ -92,8 +94,8 @@ export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: Navig
             onClick={onLogout}
             style={{
               background: 'transparent',
-              color: '#ff4d4d',
-              border: '1px solid #ff4d4d',
+              color: '#ff7777',
+              border: '1px solid #ff7777',
               padding: '8px 16px',
               borderRadius: '8px',
               cursor: 'pointer',
@@ -102,34 +104,51 @@ export default function Navigation({ onLoginClick, isLoggedIn, onLogout }: Navig
             Logout
           </button>
         ) : (
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button
-              onClick={onLoginClick}
-              style={{
-                background: 'transparent',
-                color: 'white',
-                border: '1px solid #404040',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              Sign-in
-            </button>
-            <button
-              onClick={onLoginClick} // Assuming sign-up triggers same flow for now
-              style={{
-                background: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                cursor: 'pointer',
-              }}
-            >
-              Sign-up
-            </button>
-          </div>
+          <button
+            onClick={onLoginClick}
+            style={{
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            Login
+          </button>
+        )}
+      </div>
+
+      <div className="flex md:hidden items-center" style={{ gap: 8 }}>
+        {isLoggedIn ? (
+          <button
+            onClick={onLogout}
+            style={{
+              background: 'transparent',
+              color: '#ff7777',
+              border: '1px solid #ff7777',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            Logout
+          </button>
+        ) : (
+          <button
+            onClick={onLoginClick}
+            style={{
+              background: '#2563eb',
+              color: 'white',
+              border: 'none',
+              padding: '7px 12px',
+              borderRadius: '8px',
+              cursor: 'pointer',
+            }}
+          >
+            Login
+          </button>
         )}
       </div>
 

@@ -1,5 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
+} from "firebase/auth";
 import { getDatabase } from "firebase/database";
 import { getEnv } from "../agent/envUtil";
 
@@ -19,6 +26,31 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
-export const signInWithGoogle = () => signInWithPopup(auth, googleProvider);
+// Simpan sesi login di localStorage (abaikan jika browser memblokirnya).
+setPersistence(auth, browserLocalPersistence).catch(() => {});
 
+// Gunakan signInWithPopup secara langsung.
+// signInWithRedirect dihindari karena di browser modern dengan storage partitioning
+// (Chrome 115+, Safari ITP) dan domain kustom, redirect memicu error fatal:
+// "Unable to process request due to missing initial state".
+export const signInWithGoogle = () => {
+  return signInWithPopup(auth, googleProvider);
+};
+
+// Panggil saat aplikasi dimuat; jika ada sisa redirect yang gagal karena
+// missing-initial-state, tangkap dengan aman tanpa membuat error fatal.
+export const checkRedirectResult = async () => {
+  try {
+    return await getRedirectResult(auth);
+  } catch (error: any) {
+    const code = error?.code;
+    if (code === "auth/missing-initial-state") {
+      // Abaikan error initial-state akibat storage partitioning / redirect tidak lengkap
+      return null;
+    }
+    console.warn("Redirect login gagal:", code, error);
+    return null;
+  }
+};

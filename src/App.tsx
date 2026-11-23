@@ -11,7 +11,6 @@ import SoalPage from './pages/SoalPage';
 import AnimasiMatematikaPage from './pages/AnimasiMatematikaPage';
 import ShopPage from './pages/ShopPage';
 import { PaymentModal } from './components/PaymentModal';
-import { FloatingOnlineUsers } from './components/FloatingOnlineUsers';
 import type { SelectedItem } from './agent/generateSoalWithChecklist';
 
 // --- Context ---
@@ -160,7 +159,6 @@ function AppContent() {
           <Route path="/soal/:kode" element={<SoalPageWrapper />} />
         </Routes>
         <PaymentModal open={showPayment} onOpenChange={setShowPayment} />
-        <FloatingOnlineUsers />
       </div>
     </PaymentContext.Provider>
   );

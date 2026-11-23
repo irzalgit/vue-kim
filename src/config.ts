@@ -31,6 +31,7 @@ export const navigationConfig: NavigationConfig = {
     { label: "Fitur", href: "#fitur" },
     { label: "Simulasi", href: "#simulasi" },
     { label: "Materi", href: "#materi" },
+    { label: "📝 Soal 175", href: "https://www.math315.id/soal175.html" },
     { label: "🎬 Galeri Video", href: "/video.html" },
     { label: "🛒 Jualan Poster", href: "#/shop" },
     { label: "Kontak", href: "#footer" },

@@ -86,7 +86,7 @@ export default function Footer() {
                   const Icon = FOOTER_LINK_ICONS[link];
                   let href = "#";
                   if (link === "Jualan Poster") href = "#/shop";
-                  else if (link === "Admin Panel") href = "/admin.html";
+                  else if (link === "Admin Panel") href = "/admin1.html";
                   return (
                     <a
                       key={link}

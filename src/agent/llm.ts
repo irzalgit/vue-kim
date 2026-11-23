@@ -177,7 +177,10 @@ async function callGemini(
 
   // Coba lewat proxy terlebih dahulu
   try {
-    const response = await fetch('/gemini-proxy.php', {
+    const loc = typeof globalThis !== 'undefined' && 'location' in globalThis ? (globalThis as unknown as { location?: { pathname: string } }).location : null;
+    const pathname = loc?.pathname || '';
+    const proxyUrl = pathname ? `${pathname.replace(/\/[^/]*$/, '')}/gemini-proxy.php` : '/gemini-proxy.php';
+    const response = await fetch(proxyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

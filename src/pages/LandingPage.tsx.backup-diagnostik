@@ -1,0 +1,91 @@
+import { Toaster } from 'sonner';
+import Navigation from '../sections/Navigation';
+import Hero from '../sections/Hero';
+import LandingDiagnosticPreview from '../components/LandingDiagnosticPreview';
+import Footer from '../sections/Footer';
+import LoginWithGoogle from '../components/LoginWithGoogle';
+import { useAuth } from '../context/AuthContext';
+
+interface LandingPageProps {
+  onMulai: () => void;
+}
+
+export default function LandingPage({ onMulai }: LandingPageProps) {
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
+
+  return (
+    <div
+      style={{
+        background: '#0a0a0a',
+        minHeight: '100vh',
+        overflowX: 'hidden',
+        color: '#fff',
+      }}
+    >
+      <Toaster richColors position="top-right" />
+
+      <Navigation
+        onLoginClick={() => {
+          document
+            .querySelector('#login')
+            ?.scrollIntoView({ behavior: 'smooth' });
+        }}
+        isLoggedIn={isLoggedIn}
+        onLogout={async () => {
+          try {
+            await logout();
+          } catch (error) {
+            console.error('Gagal logout:', error);
+          }
+        }}
+      />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <Hero />
+        <LandingDiagnosticPreview />
+
+        <section
+          id="login"
+          style={{
+            textAlign: 'center',
+            padding: '36px 16px 48px',
+            scrollMarginTop: '90px',
+          }}
+        >
+          {isLoggedIn ? (
+            <button
+              onClick={onMulai}
+              style={{
+                background: '#2563eb',
+                color: '#fff',
+                border: 0,
+                padding: '14px 32px',
+                fontSize: '16px',
+                borderRadius: '12px',
+                cursor: 'pointer',
+                fontWeight: 700,
+              }}
+            >
+              Mulai Belajar →
+            </button>
+          ) : (
+            <>
+              <h2 style={{ fontSize: '22px', fontWeight: 700 }}>
+                Mulai Belajar Matematika
+              </h2>
+              <p style={{ color: '#cbd5e1', margin: '10px 0 20px' }}>
+                Masuk dengan Google untuk melanjutkan belajar.
+              </p>
+              <div className="flex justify-center">
+                <LoginWithGoogle />
+              </div>
+            </>
+          )}
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  );
+}

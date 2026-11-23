@@ -6,6 +6,17 @@
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_WARNING);
 header('Content-Type: application/json');
 
+// Handle CORS preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+    http_response_code(200);
+    exit;
+}
+
+header('Access-Control-Allow-Origin: *');
+
 // Hanya izinkan method POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -13,12 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-// Validasi asal request: hanya izinkan yang datang dari domain situs ini,
-// supaya orang lain tidak bisa "numpang" pakai proxy (dan kuota Gemini) dari luar.
+// Validasi asal request: izinkan same-origin / host cPanel
 $allowedHosts = ['math315.id', 'www.math315.id', 'localhost', '127.0.0.1'];
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 $referer = $_SERVER['HTTP_REFERER'] ?? '';
+$serverHost = $_SERVER['HTTP_HOST'] ?? '';
 $sourceHost = '';
 
 if ($origin) {
@@ -28,10 +39,24 @@ if ($origin) {
 }
 
 $isAllowed = false;
-foreach ($allowedHosts as $host) {
-    if ($sourceHost === $host || str_ends_with($sourceHost, '.' . $host)) {
+
+// Jika request berasal dari host server saat ini (cPanel domain) atau tidak ada header origin/referer (same-origin fetch)
+if (!$sourceHost) {
+    $isAllowed = true;
+} elseif ($serverHost) {
+    $cleanServerHost = explode(':', $serverHost)[0];
+    if ($sourceHost === $cleanServerHost || (function_exists('str_ends_with') ? str_ends_with($sourceHost, '.' . $cleanServerHost) : substr($sourceHost, -strlen('.' . $cleanServerHost)) === '.' . $cleanServerHost)) {
         $isAllowed = true;
-        break;
+    }
+}
+
+if (!$isAllowed && $sourceHost) {
+    foreach ($allowedHosts as $host) {
+        $matches = ($sourceHost === $host) || (function_exists('str_ends_with') ? str_ends_with($sourceHost, '.' . $host) : substr($sourceHost, -strlen('.' . $host)) === '.' . $host);
+        if ($matches) {
+            $isAllowed = true;
+            break;
+        }
     }
 }
 
@@ -41,16 +66,42 @@ if (!$isAllowed) {
     exit;
 }
 
-// Ambil API key dari environment variable server.
-// Di cPanel: Setup Node.js App / .htaccess SetEnv, atau di file terpisah.
-// Di lokal (php -S / Termux): export lewat shell sebelum start server, contoh:
-//   export VITE_GEMINI_API_KEY="key_kamu"
+// Ambil API key dari environment variable server / .htaccess SetEnv / REDIRECT_ (FastCGI/PHP-FPM)
 $apiKey = getenv('VITE_GEMINI_API_KEY') ?: getenv('GEMINI_API_KEY');
+if (!$apiKey && isset($_SERVER['VITE_GEMINI_API_KEY'])) {
+    $apiKey = $_SERVER['VITE_GEMINI_API_KEY'];
+}
+if (!$apiKey && isset($_SERVER['REDIRECT_VITE_GEMINI_API_KEY'])) {
+    $apiKey = $_SERVER['REDIRECT_VITE_GEMINI_API_KEY'];
+}
+if (!$apiKey && isset($_SERVER['GEMINI_API_KEY'])) {
+    $apiKey = $_SERVER['GEMINI_API_KEY'];
+}
+if (!$apiKey && isset($_SERVER['REDIRECT_GEMINI_API_KEY'])) {
+    $apiKey = $_SERVER['REDIRECT_GEMINI_API_KEY'];
+}
+if (!$apiKey && isset($_ENV['VITE_GEMINI_API_KEY'])) {
+    $apiKey = $_ENV['VITE_GEMINI_API_KEY'];
+}
+if (!$apiKey && isset($_ENV['GEMINI_API_KEY'])) {
+    $apiKey = $_ENV['GEMINI_API_KEY'];
+}
 
-if (!$apiKey) {
-    http_response_code(500);
-    echo json_encode(['error' => ['message' => 'Gemini API key tidak ditemukan di server (set env VITE_GEMINI_API_KEY)']]);
-    exit;
+// Fallback baca dari .env jika server PHP-FPM / cPanel mengisolasi env vars
+if (!$apiKey && file_exists(__DIR__ . '/../.env')) {
+    $envLines = @file(__DIR__ . '/../.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+    foreach ($envLines as $line) {
+        if (strpos(trim($line), '#') === 0) continue;
+        if (strpos($line, '=') !== false) {
+            list($envK, $envV) = explode('=', $line, 2);
+            $envK = trim($envK);
+            $envV = trim($envV, " \t\n\r\0\x0B\"'");
+            if (($envK === 'GEMINI_API_KEY' || $envK === 'VITE_GEMINI_API_KEY') && $envV) {
+                $apiKey = $envV;
+                break;
+            }
+        }
+    }
 }
 
 // Ambil body request dari frontend

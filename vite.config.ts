@@ -4,7 +4,7 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/vue-kim/',
+  base: './',
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -24,10 +24,9 @@ export default defineConfig({
   server: {
     host: true,
     proxy: {
-      '/vue-kim/gemini-proxy.php': {
+      '/gemini-proxy.php': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/vue-kim/, ''),
       },
     },
   },

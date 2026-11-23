@@ -112,7 +112,7 @@ export const FloatingOnlineUsers: React.FC = () => {
   }, [user]);
 
   return (
-    <div className="fixed bottom-5 right-5 z-[9990] flex flex-col items-end font-sans select-none">
+    <div className="fixed bottom-5 left-3 sm:left-5 z-[9990] flex flex-col items-start font-sans select-none">
       {/* Detail Popover saat diklik (Accordion / Popup) */}
       {isExpanded && (
         <div className="mb-2 w-60 rounded-xl border border-white/15 bg-black/90 p-3 shadow-2xl backdrop-blur-md text-white animate-in fade-in slide-in-from-bottom-2 duration-200">

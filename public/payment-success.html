@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Status Pembayaran - Math315</title>
+<style>
+body{font-family:system-ui,sans-serif;background:#f5f7fb;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px}
+.card{background:#fff;border-radius:16px;padding:32px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.icon{font-size:48px}p{color:#555;line-height:1.5}
+a.btn{display:inline-block;margin-top:16px;padding:12px 24px;background:#2563eb;color:#fff;border-radius:10px;text-decoration:none}
+small{color:#999}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="icon" id="icon">⏳</div>
+<h2 id="title">Memeriksa pembayaran...</h2>
+<p id="msg">Mohon tunggu sebentar.</p>
+<a class="btn" id="btn" href="https://www.math315.id" style="display:none">Kembali ke Math315</a>
+<p><small id="ref"></small></p>
+</div>
+<script>
+(function(){
+// Server API (create-transaction) ada di math315.vercel.app
+var API_BASE="https://math315.vercel.app";
+// Tujuan setelah pembayaran sukses (landing page)
+var REDIRECT_URL="https://www.math315.id";
+var REDIRECT_SECONDS=5;
+
+var q=new URLSearchParams(location.search);var billNo=q.get("bill_no")||localStorage.getItem("last_bill_no");
+var PAID=["paid","success","settlement","completed"],FAILED=["failed","expired","cancelled","canceled"];
+var tries=0,MAX=20;
+function $(id){return document.getElementById(id)}
+function show(i,t,m,b){$("icon").textContent=i;$("title").textContent=t;$("msg").textContent=m;$("btn").style.display=b?"inline-block":"none"}
+
+function redirectCountdown(){
+var left=REDIRECT_SECONDS;
+function tick(){
+$("msg").textContent="Premium Anda sudah aktif. Anda akan diarahkan dalam "+left+" detik...";
+if(left<=0){location.href=REDIRECT_URL;return}
+left--;setTimeout(tick,1000);
+}
+tick();
+}
+
+if(!billNo){show("ℹ️","Terima kasih","Jika sudah membayar, Premium aktif otomatis setelah pembayaran terkonfirmasi.",true);return}
+$("ref").textContent="No. tagihan: "+billNo;
+function check(){
+tries++;
+fetch(API_BASE+"/api/create-transaction?bill_no="+encodeURIComponent(billNo)).then(function(r){return r.json()}).then(function(d){
+var s=String(d.status||"").toLowerCase();
+if(PAID.indexOf(s)!==-1){
+try{localStorage.removeItem("last_bill_no")}catch(e){}
+show("✅","Pembayaran berhasil","",true);
+$("btn").href=REDIRECT_URL;
+redirectCountdown();
+}
+else if(FAILED.indexOf(s)!==-1)show("❌","Pembayaran tidak berhasil","Transaksi gagal atau kedaluwarsa. Silakan buat pembayaran baru.",true);
+else if(tries<MAX){show("⏳","Menunggu konfirmasi","Pembayaran sedang diverifikasi. Halaman diperbarui otomatis.",false);setTimeout(check,3000)}
+else show("🕒","Masih diproses","Jika sudah membayar, Premium aktif otomatis dalam beberapa menit.",true);
+}).catch(function(){if(tries<MAX)setTimeout(check,3000);else show("⚠️","Gagal memeriksa status","Silakan muat ulang halaman ini nanti.",true)});
+}
+check();
+})();
+</script>
+</body>
+</html>

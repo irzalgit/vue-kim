@@ -4,6 +4,8 @@ import { signInWithGoogle } from '../lib/firebase';
 import ProfileCompletionModal from './ProfileCompletionModal';
 import { get, ref } from 'firebase/database';
 import { db } from '../lib/firebase';
+import InAppBrowserNotice from './InAppBrowserNotice';
+import { isInAppBrowser } from '../lib/inAppBrowser';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -14,10 +16,13 @@ interface LoginModalProps {
 export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginModalProps) {
   const [showCompletion, setShowCompletion] = useState(false);
   const [uid, setUid] = useState('');
+  const [error, setError] = useState('');
+  const inApp = isInAppBrowser();
 
   if (!isOpen) return null;
 
   const handleGoogleLogin = async () => {
+    setError('');
     try {
       const result = await signInWithGoogle();
       const user = result.user;
@@ -30,8 +35,10 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
         setUid(user.uid);
         setShowCompletion(true);
       }
-    } catch (error) {
-      console.error('Firebase Login failed', error);
+    } catch (err) {
+      const code = (err as { code?: string })?.code ?? 'unknown';
+      console.error('Firebase Login failed', code, err);
+      setError(`Login Google gagal (${code}). Coba lagi atau buka di Chrome/Safari.`);
     }
   };
 
@@ -78,9 +85,16 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
         >
           <h2 style={{ marginBottom: '20px' }}>Login</h2>
           <Pass onCheckProfile={checkProfile} />
+          {inApp && (
+            <div style={{ marginTop: '10px' }}>
+              <InAppBrowserNotice />
+            </div>
+          )}
           <button
             onClick={handleGoogleLogin}
+            disabled={inApp}
             style={{
+              opacity: inApp ? 0.5 : 1,
               marginTop: '10px',
               padding: '10px',
               width: '100%',
@@ -93,6 +107,11 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess }: LoginMod
           >
             Login with Google
           </button>
+          {error && (
+            <p role="alert" style={{ marginTop: '10px', color: '#fca5a5', fontSize: '13px' }}>
+              {error}
+            </p>
+          )}
         </div>
       </div>
       <ProfileCompletionModal 

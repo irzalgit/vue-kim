@@ -1,8 +1,18 @@
 export const QUOTA_EXCEEDED_ERROR = "QUOTA_EXCEEDED";
 
+function getGeminiProxyUrl(): string {
+  if (typeof globalThis !== 'undefined' && 'location' in globalThis) {
+    const loc = (globalThis as unknown as { location?: { pathname: string } }).location;
+    const pathname = loc?.pathname || '';
+    return `${pathname.replace(/\/[^/]*$/, '')}/gemini-proxy.php`;
+  }
+  return '/gemini-proxy.php';
+}
+
 export const geminiProvider = {
   async generate(prompt: string, systemPrompt?: string): Promise<string> {
-    const response = await fetch('/gemini-proxy.php', {
+    const proxyUrl = getGeminiProxyUrl();
+    const response = await fetch(proxyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

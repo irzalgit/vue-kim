@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin Panel - Manajemen Token & Transaksi QRIS Math315</title>
+  <title>Admin TKA - Manajemen Token, Premium & Transaksi QRIS Math315</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- QRCode.js Library -->
@@ -96,7 +96,7 @@
       <div class="mb-3 text-warning">
         <i class="fas fa-shield-alt fa-4x"></i>
       </div>
-      <h3 class="fw-bold text-white mb-2" id="gateTitle">Admin Panel Math315</h3>
+      <h3 class="fw-bold text-white mb-2" id="gateTitle">Admin TKA Math315</h3>
       <p class="text-secondary small mb-4" id="gateDesc">
         Akses dibatasi khusus untuk Administrator (<b class="text-info">irzalpa27@gmail.com</b>). Silakan login dengan akun Google terdaftar.
       </p>
@@ -117,8 +117,8 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
       <div>
-        <h2 class="fw-bold mb-0 text-info"><i class="fa-solid fa-coins me-2"></i> Admin Panel Token & Pembayaran QRIS</h2>
-        <small class="text-secondary">Math315 Portal Manajemen Realtime Database & QRIS Gateway</small>
+        <h2 class="fw-bold mb-0 text-info"><i class="fa-solid fa-coins me-2"></i> Admin TKA</h2>
+        <small class="text-secondary">Token, Premium & Pembayaran QRIS · Math315 Portal Manajemen Realtime Database</small>
       </div>
       <div class="d-flex align-items-center gap-3">
         <a href="/" class="btn btn-outline-secondary btn-sm"><i class="fas fa-home me-1"></i> Beranda</a>
@@ -285,6 +285,7 @@
               <div class="mb-3">
                 <label class="form-label text-secondary small">Pilih Paket Token Terkait (Opsional)</label>
                 <select id="qrisTokenPackage" class="form-select">
+                  <option value="premium_1bulan">Langganan TKA Premium (1 Bulan) - Rp 10.000</option>
                   <option value="token_50">Starter (50 Token) - Rp 10.000</option>
                   <option value="token_200">Pro (200 Token) - Rp 35.000</option>
                   <option value="token_500">Business (500 Token) - Rp 75.000</option>
@@ -430,6 +431,50 @@
     </div>
   </div>
 
+  <!-- MODAL AKTIVASI PREMIUM MANUAL -->
+  <div class="modal fade" id="premiumModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header border-secondary">
+          <h5 class="modal-title fw-bold text-warning"><i class="fas fa-crown me-2"></i> Aktivasi Premium Manual</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label text-secondary small">Nama / Email</label>
+            <input type="text" id="premUserName" class="form-control" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary small">UID User</label>
+            <input type="text" id="premUserUid" class="form-control font-monospace small" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary small">Status Saat Ini</label>
+            <div id="premCurrentStatus" class="form-control" style="height:auto;"></div>
+          </div>
+          <hr class="border-secondary">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Tambah masa aktif (hari)</label>
+            <input type="number" id="premDays" class="form-control" value="30" min="1" max="3650" oninput="updatePremiumPreview()">
+            <small class="text-secondary">Jika masih aktif, hari ditambahkan ke tanggal berakhir yang ada. Jika sudah habis, dihitung dari sekarang.</small>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-secondary small">Catatan pembayaran (Opsional)</label>
+            <input type="text" id="premNote" class="form-control" maxlength="200" placeholder="Contoh: INV-DANA-525195-794 / WA 21-10-2026 / Rp10.000">
+          </div>
+          <div class="alert alert-info py-2 small mb-0" id="premPreview"></div>
+        </div>
+        <div class="modal-footer border-secondary justify-content-between">
+          <button type="button" class="btn btn-outline-danger" id="premRevokeBtn" onclick="submitPremiumRevoke()"><i class="fas fa-ban me-1"></i> Nonaktifkan</button>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+            <button type="button" class="btn btn-warning fw-semibold" id="premActivateBtn" onclick="submitPremiumActivate()"><i class="fas fa-check me-1"></i> Aktifkan / Perpanjang</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL TAMPILKAN QRIS TRANSAKSI -->
   <div class="modal fade" id="showQrisModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
@@ -494,16 +539,19 @@
     let allTransactions = {};
     let tokenModalInstance = null;
     let showQrisModalInstance = null;
+    let premiumModalInstance = null;
     let activeGeneratedQris = null;
 
     document.addEventListener("DOMContentLoaded", () => {
       tokenModalInstance = new bootstrap.Modal(document.getElementById('tokenModal'));
       showQrisModalInstance = new bootstrap.Modal(document.getElementById('showQrisModal'));
+      premiumModalInstance = new bootstrap.Modal(document.getElementById('premiumModal'));
       
       // Auto-update price when selecting token package in QRIS generator
       document.getElementById("qrisTokenPackage").addEventListener("change", (e) => {
         const val = e.target.value;
         const prices = {
+          "premium_1bulan": 10000,
           "token_50": 10000,
           "token_200": 35000,
           "token_500": 75000,
@@ -596,6 +644,13 @@
       }
     }
 
+    // Escape HTML agar data pengguna (nama, email, dst.) tidak bisa menyisipkan script ke halaman admin.
+    function esc(value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, (c) => (
+        { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+      ));
+    }
+
     function renderUsers(usersMap) {
       const tbody = document.getElementById("usersTableBody");
       const uids = Object.keys(usersMap);
@@ -615,17 +670,24 @@
         const tokens = Number(u.tokens ?? u.token_balance ?? 0);
         totalTokens += tokens;
 
-        const isPrem = u.isPremium ? `<span class="badge bg-success">Active</span>` : `<span class="badge bg-secondary">Free</span>`;
-        const name = u.name || u.displayName || "Tanpa Nama";
-        const email = u.email || "-";
-        const phone = u.phone || "-";
+        // Status mengikuti aturan portal: aktif hanya jika premium_until / premiumExpired masih di masa depan.
+        const premUntil = Math.max(Number(u.premium_until) || 0, Number(u.premiumExpired) || 0);
+        const premDate = premUntil ? new Date(premUntil).toLocaleDateString('id-ID') : '';
+        const isPrem = premUntil > Date.now()
+          ? `<span class="badge bg-success">Active</span><br><small class="text-info font-monospace" style="font-size:10px;">s/d ${premDate}</small>`
+          : (premUntil
+              ? `<span class="badge bg-secondary">Habis</span><br><small class="text-secondary font-monospace" style="font-size:10px;">sejak ${premDate}</small>`
+              : `<span class="badge bg-secondary">Free</span>`);
+        const name = esc(u.name || u.displayName || "Tanpa Nama");
+        const email = esc(u.email || "-");
+        const phone = esc(u.phone || "-");
 
         html += `
           <tr>
             <td>${index + 1}</td>
             <td>
               <div class="fw-bold">${name}</div>
-              <small class="text-secondary font-monospace" style="font-size: 11px;">${uid}</small>
+              <small class="text-secondary font-monospace" style="font-size: 11px;">${esc(uid)}</small>
             </td>
             <td>${email}</td>
             <td>${phone}</td>
@@ -635,10 +697,13 @@
             <td>${isPrem}</td>
             <td class="text-center">
               <div class="btn-group">
-                <button class="btn btn-sm btn-info" onclick="openTokenModal('${uid}')" title="Kelola Token">
+                <button class="btn btn-sm btn-info" data-uid="${esc(uid)}" onclick="openTokenModal(this.dataset.uid)" title="Kelola Token">
                   <i class="fas fa-coins me-1"></i> Kelola Token
                 </button>
-                <button class="btn btn-sm btn-outline-primary" onclick="prepareQrisForUser('${uid}', '${name.replace(/'/g, "\\'")}')" title="Buat Tagihan QRIS">
+                <button class="btn btn-sm btn-warning" data-uid="${esc(uid)}" onclick="openPremiumModal(this.dataset.uid)" title="Aktifkan / Perpanjang Premium">
+                  <i class="fas fa-crown me-1"></i> Premium
+                </button>
+                <button class="btn btn-sm btn-outline-primary" data-uid="${esc(uid)}" onclick="prepareQrisForUser(this.dataset.uid)" title="Buat Tagihan QRIS">
                   <i class="fas fa-qrcode"></i>
                 </button>
               </div>
@@ -870,27 +935,172 @@
     }
 
     // ============================================================
+    // 👑 AKTIVASI PREMIUM MANUAL (pembayaran WhatsApp / QRIS di luar transaksi)
+    // ============================================================
+    const PREMIUM_DAY_MS = 24 * 60 * 60 * 1000;
+    let premiumTargetUid = null;
+
+    function premiumUntilOf(u) {
+      return Math.max(Number(u && u.premium_until) || 0, Number(u && u.premiumExpired) || 0);
+    }
+
+    function fmtWib(ms) {
+      return new Date(ms).toLocaleString('id-ID', {
+        timeZone: 'Asia/Jakarta', day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      }) + ' WIB';
+    }
+
+    function premiumDaysValue() {
+      const d = Math.floor(Number(document.getElementById("premDays").value));
+      return (Number.isFinite(d) && d >= 1 && d <= 3650) ? d : null;
+    }
+
+    function openPremiumModal(uid) {
+      const user = allUsers[uid];
+      if (!user) return;
+      premiumTargetUid = uid;
+
+      document.getElementById("premUserName").value = (user.name || user.displayName || "Tanpa Nama") + " · " + (user.email || "-");
+      document.getElementById("premUserUid").value = uid;
+      document.getElementById("premDays").value = 30;
+      document.getElementById("premNote").value = "";
+
+      const until = premiumUntilOf(user);
+      const statusBox = document.getElementById("premCurrentStatus");
+      if (until > Date.now()) {
+        statusBox.innerHTML = '<span class="badge bg-success me-2">Active</span>berlaku hingga ' + esc(fmtWib(until));
+      } else if (until) {
+        statusBox.innerHTML = '<span class="badge bg-secondary me-2">Habis</span>berakhir ' + esc(fmtWib(until));
+      } else {
+        statusBox.innerHTML = '<span class="badge bg-secondary me-2">Free</span>belum pernah premium';
+      }
+      document.getElementById("premRevokeBtn").disabled = !until;
+
+      updatePremiumPreview();
+      premiumModalInstance.show();
+    }
+
+    function updatePremiumPreview() {
+      const box = document.getElementById("premPreview");
+      const days = premiumDaysValue();
+      const user = allUsers[premiumTargetUid];
+      if (!days || !user) {
+        box.textContent = "Isi jumlah hari antara 1 dan 3650.";
+        return;
+      }
+      const base = Math.max(Date.now(), premiumUntilOf(user));
+      box.textContent = "Setelah disimpan, premium berlaku hingga " + fmtWib(base + days * PREMIUM_DAY_MS) + ".";
+    }
+
+    async function submitPremiumActivate() {
+      const uid = premiumTargetUid;
+      const days = premiumDaysValue();
+      if (!uid || !days) {
+        showAlert("❌ Isi jumlah hari antara 1 dan 3650.", "danger");
+        return;
+      }
+      const note = document.getElementById("premNote").value.trim().slice(0, 200);
+      const btn = document.getElementById("premActivateBtn");
+      btn.disabled = true;
+
+      try {
+        // Baca ulang dari database agar perpanjangan memakai tanggal berakhir terbaru, bukan data tabel yang mungkin usang.
+        const snap = await db.ref(`users/${uid}`).once("value");
+        const userData = snap.val() || {};
+        const base = Math.max(Date.now(), premiumUntilOf(userData));
+        const newExpiry = base + days * PREMIUM_DAY_MS;
+
+        if (!confirm(`Aktifkan premium untuk ${userData.email || uid} hingga ${fmtWib(newExpiry)}?`)) {
+          return;
+        }
+
+        const patch = {
+          isPremium: true,
+          is_premium: true,
+          premium: true,
+          tka_premium: true,
+          premium_until: newExpiry,
+          premiumExpired: newExpiry,
+          premiumActivatedAt: Date.now(),
+          premium_type: "manual_admin",
+          updated_at: firebase.database.ServerValue.TIMESTAMP
+        };
+        if (note) patch.premium_note = note;
+        await db.ref(`users/${uid}`).update(patch);
+
+        let logWarning = "";
+        try {
+          await db.ref(`subscription_logs/${uid}`).push({
+            action: "manual_admin_activation",
+            days: days,
+            premium_until: newExpiry,
+            note: note || "",
+            admin_email: auth.currentUser ? auth.currentUser.email : "admin",
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          });
+        } catch (logErr) {
+          logWarning = " (catatan log gagal disimpan: " + esc(logErr.message) + ")";
+        }
+
+        premiumModalInstance.hide();
+        showAlert(`✅ Premium untuk <b>${esc(userData.email || uid)}</b> aktif hingga <b>${esc(fmtWib(newExpiry))}</b>.${logWarning}`, logWarning ? "warning" : "success");
+        loadUsersData();
+      } catch (err) {
+        showAlert(`❌ Gagal mengaktifkan premium: ${esc(err.message)}`, "danger");
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function submitPremiumRevoke() {
+      const uid = premiumTargetUid;
+      if (!uid) return;
+      const target = allUsers[uid] || {};
+      if (!confirm(`Nonaktifkan premium untuk ${target.email || uid} sekarang?`)) return;
+
+      try {
+        await db.ref(`users/${uid}`).update({
+          isPremium: false,
+          is_premium: false,
+          premium: false,
+          tka_premium: false,
+          premium_until: 0,
+          premiumExpired: 0,
+          updated_at: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        try {
+          await db.ref(`subscription_logs/${uid}`).push({
+            action: "manual_admin_revoke",
+            premium_until: 0,
+            admin_email: auth.currentUser ? auth.currentUser.email : "admin",
+            timestamp: firebase.database.ServerValue.TIMESTAMP
+          });
+        } catch (logErr) { /* log opsional */ }
+
+        premiumModalInstance.hide();
+        showAlert(`✅ Premium untuk <b>${esc(target.email || uid)}</b> dinonaktifkan.`, "success");
+        loadUsersData();
+      } catch (err) {
+        showAlert(`❌ Gagal menonaktifkan premium: ${esc(err.message)}`, "danger");
+      }
+    }
+
+    // ============================================================
     // ⚡ LUNASKAN TRANSAKSI MANUAL & TAMBAHKAN TOKEN
     // ============================================================
     async function markPaidManual(inv, uid, amount, productId) {
-      if (!confirm(`Konfirmasi pelunasan untuk invoice ${inv}?\nToken akan otomatis ditambahkan ke user.`)) {
+      const isSub = productId && (productId === "premium_1bulan" || productId.includes("premium") || productId.includes("tka"));
+      const actionPrompt = isSub 
+        ? `Konfirmasi pelunasan untuk invoice ${inv}?\nLangganan TKA Premium (1 Bulan) akan diaktifkan untuk user.`
+        : `Konfirmasi pelunasan untuk invoice ${inv}?\nToken akan otomatis ditambahkan ke user.`;
+
+      if (!confirm(actionPrompt)) {
         return;
       }
 
       try {
-        // 1. Ekstrak token dari productId
-        let tokenAmount = 50; // default starter
-        if (productId && productId.startsWith("token_")) {
-          tokenAmount = parseInt(productId.replace("token_", ""), 10) || 50;
-        } else if (amount >= 150000) {
-          tokenAmount = 1500;
-        } else if (amount >= 75000) {
-          tokenAmount = 500;
-        } else if (amount >= 35000) {
-          tokenAmount = 200;
-        }
-
-        // 2. Update status transaksi
+        // 1. Update status transaksi
         await db.ref(`transactions/${inv}`).update({
           status: "paid",
           callback_received: true,
@@ -899,32 +1109,83 @@
           updated_at: firebase.database.ServerValue.TIMESTAMP
         });
 
-        // 3. Tambah token user jika UID valid
+        // 2. Tambah hak akses (langganan premium atau token) jika UID valid
         if (uid && uid !== "-" && uid !== "GUEST") {
           const userSnap = await db.ref(`users/${uid}`).once("value");
           const userData = userSnap.val() || {};
-          const currentTokens = Number(userData.tokens ?? userData.token_balance ?? 0);
-          const newTokens = currentTokens + tokenAmount;
 
-          await db.ref(`users/${uid}`).update({
-            tokens: newTokens,
-            token_balance: newTokens,
-            lastPaymentAmount: amount,
-            lastPaymentBillNo: inv,
-            lastPaymentDate: new Date().toISOString(),
-            updated_at: firebase.database.ServerValue.TIMESTAMP
-          });
+          if (isSub) {
+            const now = Date.now();
+            const oneMonthMs = 30 * 24 * 60 * 60 * 1000;
+            const currentExpiry = (userData.premium_until && userData.premium_until > now) 
+              ? userData.premium_until 
+              : now;
+            const newExpiry = currentExpiry + oneMonthMs;
 
-          await db.ref(`token_logs/${uid}`).push({
-            action: "manual_trx_approval",
-            bill_no: inv,
-            tokens_added: tokenAmount,
-            new_balance: newTokens,
-            timestamp: firebase.database.ServerValue.TIMESTAMP
-          });
+            await db.ref(`users/${uid}`).update({
+              isPremium: true,
+              is_premium: true,
+              premium: true,
+              tka_premium: true,
+              premium_until: newExpiry,
+              premiumExpired: newExpiry,
+              premiumActivatedAt: Date.now(),
+              premium_type: "1_bulan",
+              lastPaymentAmount: amount,
+              lastPaymentBillNo: inv,
+              lastPaymentDate: new Date().toISOString(),
+              updated_at: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            await db.ref(`subscription_logs/${uid}`).push({
+              action: "manual_trx_approval",
+              bill_no: inv,
+              product_id: productId,
+              premium_until: newExpiry,
+              amount: amount,
+              timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            showAlert(`✅ Invoice <b>${inv}</b> berhasil dilunaskan dan <b>Langganan TKA Premium (1 Bulan)</b> telah aktif hingga ${new Date(newExpiry).toLocaleDateString('id-ID')}.`, "success");
+          } else {
+            // Ekstrak token dari productId
+            let tokenAmount = 50; // default starter
+            if (productId && productId.startsWith("token_")) {
+              tokenAmount = parseInt(productId.replace("token_", ""), 10) || 50;
+            } else if (amount >= 150000) {
+              tokenAmount = 1500;
+            } else if (amount >= 75000) {
+              tokenAmount = 500;
+            } else if (amount >= 35000) {
+              tokenAmount = 200;
+            }
+
+            const currentTokens = Number(userData.tokens ?? userData.token_balance ?? 0);
+            const newTokens = currentTokens + tokenAmount;
+
+            await db.ref(`users/${uid}`).update({
+              tokens: newTokens,
+              token_balance: newTokens,
+              lastPaymentAmount: amount,
+              lastPaymentBillNo: inv,
+              lastPaymentDate: new Date().toISOString(),
+              updated_at: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            await db.ref(`token_logs/${uid}`).push({
+              action: "manual_trx_approval",
+              bill_no: inv,
+              tokens_added: tokenAmount,
+              new_balance: newTokens,
+              timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+
+            showAlert(`✅ Invoice <b>${inv}</b> berhasil dilunaskan dan token (+${tokenAmount}) telah ditambahkan ke user.`, "success");
+          }
+        } else {
+          showAlert(`✅ Invoice <b>${inv}</b> berhasil dilunaskan.`, "success");
         }
 
-        showAlert(`✅ Invoice <b>${inv}</b> berhasil dilunaskan dan token (+${tokenAmount}) telah ditambahkan ke user.`, "success");
         loadTransactionsData();
         loadUsersData();
       } catch (err) {
@@ -935,7 +1196,9 @@
     // ============================================================
     // 🔲 FITUR GENERATOR & MANAJEMEN QRIS ADMIN
     // ============================================================
-    function prepareQrisForUser(uid, userName) {
+    function prepareQrisForUser(uid) {
+      const target = allUsers[uid] || {};
+      const userName = target.name || target.displayName || target.email || "";
       document.getElementById("qrisTargetUid").value = uid;
       document.getElementById("qrisCustomerName").value = userName;
       // Switch tab to QRIS
@@ -975,11 +1238,14 @@
       document.getElementById("qrisPreviewInvoice").textContent = `${invNo} | Paket: ${pkg}`;
       document.getElementById("qrisPreviewBox").classList.remove("d-none");
 
+      const isSub = pkg === 'premium_1bulan';
       activeGeneratedQris = {
         invoice: invNo,
         customer_name: custName,
         amount: amount,
+        product_name: isSub ? "Langganan TKA Premium (1 Bulan)" : (pkg === 'custom' ? `Paket Kustom (Rp ${amount})` : `Token ${pkg}`),
         product_id: pkg,
+        product_type: isSub ? 'subscription' : 'token',
         uid: uid,
         payment_provider: 'QRIS',
         payment_method: 'QRIS_STATIC',
@@ -1141,3 +1407,4 @@
   </script>
 </body>
 </html>
+

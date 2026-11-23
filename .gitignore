@@ -8,3 +8,4 @@ dist/
 .env.save
 .env
 .htaccess
+.env*
